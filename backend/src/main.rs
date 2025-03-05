@@ -16,7 +16,7 @@ use solana_sdk::{
     pubkey::Pubkey,
     transaction::{Transaction, VersionedTransaction},
     message::{Message, VersionedMessage, v0},
-    instruction::Instruction,
+    instruction::{Instruction, AccountMeta},
     system_program,
     hash::Hash,
     signature::Keypair,
@@ -24,6 +24,7 @@ use solana_sdk::{
 use spl_memo::id as memo_program_id;
 use bs58;
 use bincode;
+use base64;
 use std::collections::HashMap;
 
 #[tokio::main]
@@ -61,7 +62,7 @@ async fn main() {
         .layer(cors);
 
     // Run the server
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    let addr = SocketAddr::from(([127, 0, 0, 1], 3003));
     tracing::debug!("listening on {}", addr);
     
     // In Axum 0.8.x, we use tokio::net::TcpListener instead of axum::Server
@@ -186,14 +187,16 @@ async fn create_memo_transaction(
         Err(_) => return Err(AppError::InvalidAddress),
     };
 
-    // Create a memo instruction
+    // Create a memo instruction with the user's account as a signer
     let memo_instruction = Instruction {
         program_id: memo_program_id(),
-        accounts: vec![],
+        accounts: vec![
+            AccountMeta::new(account_pubkey, true), // true indicates this account is a signer
+        ],
         data: "Hello".as_bytes().to_vec(),
     };
-
-    // Create a V0 message
+    
+    // Create a V0 message with the dummy blockhash
     let v0_message = v0::Message::try_compile(
         &account_pubkey,
         &[memo_instruction],
@@ -201,19 +204,29 @@ async fn create_memo_transaction(
         Hash::default(),
     ).map_err(|_| AppError::SerializationError)?;
 
+    // Get the number of required signatures before moving v0_message
+    let num_required_signatures = v0_message.header.num_required_signatures as usize;
+    
     // Create a versioned message
     let versioned_message = VersionedMessage::V0(v0_message);
     
-    // Create a versioned transaction with an empty signers array
-    // Use an empty Vec instead of an empty array to avoid type inference issues
+    // Create a versioned transaction with placeholder signatures for required signers
+    // The number of signatures must match the number of required signers in the message
+    let mut signatures = Vec::with_capacity(num_required_signatures);
+    
+    // Add empty signatures as placeholders (will be replaced by the wallet)
+    for _ in 0..num_required_signatures {
+        signatures.push(solana_sdk::signature::Signature::default());
+    }
+    
     let versioned_transaction = VersionedTransaction {
-        signatures: vec![],
+        signatures,
         message: versioned_message,
     };
     
-    // Serialize the transaction to base58
+    // Serialize the transaction to base64
     let serialized_transaction = match bincode::serialize(&versioned_transaction) {
-        Ok(bytes) => bs58::encode(bytes).into_string(),
+        Ok(bytes) => base64::encode(bytes),
         Err(_) => return Err(AppError::SerializationError),
     };
     

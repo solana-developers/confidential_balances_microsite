@@ -174,3 +174,83 @@ async function createTransaction({
     latestBlockhash,
   }
 }
+
+export function useInitializeAccount({ address }: { address: PublicKey }) {
+  const { connection } = useConnection()
+  const client = useQueryClient()
+  const transactionToast = useTransactionToast()
+  const wallet = useWallet()
+
+  return useMutation({
+    mutationKey: ['initialize-account', { endpoint: connection.rpcEndpoint, address }],
+    mutationFn: async () => {
+      try {
+        const response = await fetch('http://localhost:3003/txn', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            account: address.toString(),
+          }),
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Deserialize the transaction from the response
+        const serializedTransaction = Buffer.from(data.transaction, 'base64');
+        const transaction = VersionedTransaction.deserialize(serializedTransaction);
+        
+        // Get the latest blockhash for transaction confirmation
+        const latestBlockhash = await connection.getLatestBlockhash();
+        
+        // Update the transaction's blockhash
+        if (transaction.message.version === 0) {
+          // For VersionedMessage V0
+          transaction.message.recentBlockhash = latestBlockhash.blockhash;
+        } else {
+          // For legacy messages
+          (transaction.message as any).recentBlockhash = latestBlockhash.blockhash;
+        }
+        
+        // Sign and send the transaction
+        const signature = await wallet.sendTransaction(transaction, connection);
+        
+        // Confirm the transaction
+        await connection.confirmTransaction({ signature, ...latestBlockhash }, 'confirmed');
+        
+        console.log('Transaction signature:', signature);
+        return { signature, ...data };
+      } catch (error) {
+        console.error('Error initializing account:', error);
+        throw error;
+      }
+    },
+    onSuccess: (data) => {
+      if (data.signature) {
+        transactionToast(data.signature);
+        toast.success('Account initialized successfully');
+      }
+      
+      // Invalidate relevant queries to refresh data
+      return Promise.all([
+        client.invalidateQueries({
+          queryKey: ['get-balance', { endpoint: connection.rpcEndpoint, address }],
+        }),
+        client.invalidateQueries({
+          queryKey: ['get-signatures', { endpoint: connection.rpcEndpoint, address }],
+        }),
+        client.invalidateQueries({
+          queryKey: ['get-token-accounts', { endpoint: connection.rpcEndpoint, address }],
+        }),
+      ]);
+    },
+    onError: (error) => {
+      toast.error(`Initialization failed! ${error}`);
+    },
+  });
+}

@@ -15,6 +15,7 @@ import {
   useRequestAirdrop,
   useTransferSol,
 } from './account-data-access'
+import { useInitializeAccount } from './account-data-access'
 
 export function AccountBalance({ address }: { address: PublicKey }) {
   const query = useGetBalance({ address })
@@ -66,6 +67,12 @@ export function AccountButtons({ address }: { address: PublicKey }) {
   const [showAirdropModal, setShowAirdropModal] = useState(false)
   const [showReceiveModal, setShowReceiveModal] = useState(false)
   const [showSendModal, setShowSendModal] = useState(false)
+  
+  const { mutate: initializeAccount, isPending: isInitializing } = useInitializeAccount({ address })
+  
+  const handleInitialize = () => {
+    initializeAccount()
+  }
 
   return (
     <div>
@@ -89,6 +96,16 @@ export function AccountButtons({ address }: { address: PublicKey }) {
         </button>
         <button className="btn btn-xs lg:btn-md btn-outline" onClick={() => setShowReceiveModal(true)}>
           Receive
+        </button>
+        <button 
+          className="btn btn-xs lg:btn-md btn-outline" 
+          onClick={handleInitialize}
+          disabled={isInitializing}
+        >
+          {isInitializing ? 
+            <span className="loading loading-spinner loading-xs"></span> : 
+            'Initialize'
+          }
         </button>
       </div>
     </div>
