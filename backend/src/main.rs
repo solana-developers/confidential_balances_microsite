@@ -19,8 +19,6 @@ mod routes;
 use routes::{
     health_check,
     hello_world,
-    get_actions_json,
-    get_action_metadata,
     create_memo_transaction,
 };
 
@@ -52,8 +50,6 @@ async fn main() {
     let app = Router::new()
         .route("/", get(hello_world))
         .route("/health", get(health_check))
-        .route("/actions", get(get_actions_json))
-        .route("/actions/memo", get(get_action_metadata))
         .route("/txn", post(create_memo_transaction))
         .layer(cors)
         .layer(TraceLayer::new_for_http());
