@@ -1,9 +1,7 @@
 use axum::{
     routing::{get, post},
     Router,
-    extract::{Json, Query},
-    http::{StatusCode, Method, HeaderValue},
-    response::{IntoResponse, Response},
+    http::Method,
 };
 use std::net::SocketAddr;
 use tower_http::{
@@ -11,21 +9,20 @@ use tower_http::{
     cors::{CorsLayer, Any},
 };
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use serde::{Deserialize, Serialize};
-use solana_sdk::{
-    pubkey::Pubkey,
-    transaction::{Transaction, VersionedTransaction},
-    message::{Message, VersionedMessage, v0},
-    instruction::{Instruction, AccountMeta},
-    system_program,
-    hash::Hash,
-    signature::Keypair,
+
+// Import our modules
+mod models;
+mod errors;
+mod routes;
+
+// Use our route handlers
+use routes::{
+    health_check,
+    hello_world,
+    get_actions_json,
+    get_action_metadata,
+    create_memo_transaction,
 };
-use spl_memo::id as memo_program_id;
-use bs58;
-use bincode;
-use base64;
-use std::collections::HashMap;
 
 #[tokio::main]
 async fn main() {
@@ -49,17 +46,17 @@ async fn main() {
             axum::http::header::CONTENT_TYPE,
             axum::http::header::AUTHORIZATION,
             axum::http::header::ACCEPT_ENCODING,
-            axum::http::header::CONTENT_ENCODING,
         ]);
 
-    // Build our application with a route
+    // Build our application with routes
     let app = Router::new()
         .route("/", get(hello_world))
         .route("/health", get(health_check))
-        .route("/txn", get(get_action_metadata).post(create_memo_transaction))
-        .route("/actions.json", get(get_actions_json))
-        .layer(TraceLayer::new_for_http())
-        .layer(cors);
+        .route("/actions", get(get_actions_json))
+        .route("/actions/memo", get(get_action_metadata))
+        .route("/txn", post(create_memo_transaction))
+        .layer(cors)
+        .layer(TraceLayer::new_for_http());
 
     // Run the server
     let addr = SocketAddr::from(([127, 0, 0, 1], 3003));
@@ -70,168 +67,4 @@ async fn main() {
     tracing::info!("listening on {}", listener.local_addr().unwrap());
     
     axum::serve(listener, app).await.unwrap();
-}
-
-// Handler for the root path that returns a hello world message
-async fn hello_world() -> &'static str {
-    "Hello, World!"
-}
-
-// Health check endpoint
-async fn health_check() -> &'static str {
-    "OK"
-}
-
-// Handler for actions.json
-async fn get_actions_json() -> Json<serde_json::Value> {
-    Json(serde_json::json!({
-        "rules": [
-            {
-                "pathPattern": "/txn",
-                "apiPath": "/txn"
-            }
-        ]
-    }))
-}
-
-// Solana Actions metadata response
-#[derive(Serialize)]
-struct ActionMetadata {
-    name: String,
-    description: String,
-    icon: String,
-    label: String,
-    #[serde(rename = "requiredInputs")]
-    required_inputs: Vec<ActionInput>,
-    #[serde(rename = "postUiAction")]
-    post_ui_action: Option<String>,
-}
-
-#[derive(Serialize)]
-struct ActionInput {
-    name: String,
-    label: String,
-    kind: String,
-    #[serde(rename = "validations")]
-    validations: HashMap<String, serde_json::Value>,
-}
-
-// Handler for GET /txn - Returns the Solana Actions metadata
-async fn get_action_metadata() -> Json<ActionMetadata> {
-    let mut validations = HashMap::new();
-    validations.insert("required".to_string(), serde_json::Value::Bool(true));
-    
-    Json(ActionMetadata {
-        name: "Memo Action".to_string(),
-        description: "Create a transaction with a memo saying 'Hello'".to_string(),
-        icon: "https://solana.com/favicon.ico".to_string(), // Example icon URL
-        label: "Create Memo".to_string(),
-        required_inputs: vec![
-            ActionInput {
-                name: "account".to_string(),
-                label: "Solana Account".to_string(),
-                kind: "pubkey".to_string(),
-                validations,
-            },
-        ],
-        post_ui_action: Some("sign".to_string()),
-    })
-}
-
-// Request model for the transaction endpoint
-#[derive(Deserialize)]
-struct TransactionRequest {
-    account: String,
-}
-
-// Response model for the transaction endpoint
-#[derive(Serialize)]
-struct TransactionResponse {
-    transaction: String,
-    message: String,
-}
-
-// Error response
-enum AppError {
-    InvalidAddress,
-    SerializationError,
-}
-
-impl IntoResponse for AppError {
-    fn into_response(self) -> Response {
-        match self {
-            AppError::InvalidAddress => (
-                StatusCode::BAD_REQUEST,
-                "Invalid Solana account address".to_string(),
-            ).into_response(),
-            AppError::SerializationError => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Failed to serialize transaction".to_string(),
-            ).into_response(),
-        }
-    }
-}
-
-// Handler for creating a memo transaction
-async fn create_memo_transaction(
-    Json(request): Json<TransactionRequest>,
-) -> Result<Json<TransactionResponse>, AppError> {
-    // Parse the account address from base58
-    let account_pubkey = match bs58::decode(&request.account).into_vec() {
-        Ok(bytes) => {
-            if bytes.len() != 32 {
-                return Err(AppError::InvalidAddress);
-            }
-            Pubkey::new_from_array(bytes.try_into().unwrap())
-        },
-        Err(_) => return Err(AppError::InvalidAddress),
-    };
-
-    // Create a memo instruction with the user's account as a signer
-    let memo_instruction = Instruction {
-        program_id: memo_program_id(),
-        accounts: vec![
-            AccountMeta::new(account_pubkey, true), // true indicates this account is a signer
-        ],
-        data: "Hello".as_bytes().to_vec(),
-    };
-    
-    // Create a V0 message with the dummy blockhash
-    let v0_message = v0::Message::try_compile(
-        &account_pubkey,
-        &[memo_instruction],
-        &[],
-        Hash::default(),
-    ).map_err(|_| AppError::SerializationError)?;
-
-    // Get the number of required signatures before moving v0_message
-    let num_required_signatures = v0_message.header.num_required_signatures as usize;
-    
-    // Create a versioned message
-    let versioned_message = VersionedMessage::V0(v0_message);
-    
-    // Create a versioned transaction with placeholder signatures for required signers
-    // The number of signatures must match the number of required signers in the message
-    let mut signatures = Vec::with_capacity(num_required_signatures);
-    
-    // Add empty signatures as placeholders (will be replaced by the wallet)
-    for _ in 0..num_required_signatures {
-        signatures.push(solana_sdk::signature::Signature::default());
-    }
-    
-    let versioned_transaction = VersionedTransaction {
-        signatures,
-        message: versioned_message,
-    };
-    
-    // Serialize the transaction to base64
-    let serialized_transaction = match bincode::serialize(&versioned_transaction) {
-        Ok(bytes) => base64::encode(bytes),
-        Err(_) => return Err(AppError::SerializationError),
-    };
-    
-    Ok(Json(TransactionResponse {
-        transaction: serialized_transaction,
-        message: "Transaction created successfully".to_string(),
-    }))
 } 
