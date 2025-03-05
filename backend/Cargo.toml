@@ -1,0 +1,20 @@
+[package]
+name = "axum-hello-world"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = "0.8.1"
+tokio = { version = "1.34.0", features = ["full"] }
+tower = "0.5.2"
+tower-http = { version = "0.6.2", features = ["trace", "cors"] }
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+# Solana dependencies
+solana-sdk = "1.18.0"
+solana-program = "1.18.0"
+spl-memo = "4.0.0"
+bs58 = "0.5.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+bincode = "1.3.3" 
