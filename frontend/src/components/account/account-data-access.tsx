@@ -204,7 +204,7 @@ export function useInitializeAccount({ address }: { address: PublicKey }) {
         
         console.log('AES signature:', aesSignatureBase64);
 
-        const mintBase64 = Buffer.from("GyRRg4bEhVN75JtoANe4vyEw2zpWYduuCGDxCEZu7KTe").toString('base64');
+        const mintBase64 = Buffer.from("Dsurjp9dMjFmxq4J3jzZ8As32TgwLCftGyATiQUFu11D").toString('base64');
         const authorityBase64 = Buffer.from(address.toString()).toString('base64');
         
         // Now proceed with the transaction

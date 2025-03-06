@@ -97,6 +97,8 @@ export function AccountButtons({ address }: { address: PublicKey }) {
         <button className="btn btn-xs lg:btn-md btn-outline" onClick={() => setShowReceiveModal(true)}>
           Receive
         </button>
+      </div>
+      <div className="mt-2">
         <button 
           className="btn btn-xs lg:btn-md btn-outline" 
           onClick={handleInitialize}
@@ -104,8 +106,17 @@ export function AccountButtons({ address }: { address: PublicKey }) {
         >
           {isInitializing ? 
             <span className="loading loading-spinner loading-xs"></span> : 
-            'Initialize'
+            'Initialize ATA'
           }
+        </button>
+        <button className="btn btn-xs lg:btn-md btn-outline">
+          Deposit
+        </button>
+        <button className="btn btn-xs lg:btn-md btn-outline">
+          Withdraw
+        </button>
+        <button className="btn btn-xs lg:btn-md btn-outline">
+          Transfer
         </button>
       </div>
     </div>

@@ -10,16 +10,11 @@ use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
 use crate::models::{TransactionRequest, TransactionResponse, CreateCbAtaRequest};
 use crate::errors::AppError;
 
-use std::str::FromStr;
-use std::error::Error;
 
-//use utils::{get_or_create_keypair, get_rpc_client, print_transaction_url};
-use solana_sdk::{signer::Signer, transaction::Transaction};
 use spl_associated_token_account::{
     get_associated_token_address_with_program_id, instruction::create_associated_token_account,
 };
 use spl_token_2022::{
-    error::TokenError,
     extension::{
         confidential_transfer::instruction::{configure_account, PubkeyValidityProofData},
         ExtensionType,
