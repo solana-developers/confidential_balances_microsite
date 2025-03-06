@@ -20,6 +20,7 @@ use routes::{
     health_check,
     hello_world,
     create_memo_transaction,
+    create_cb_ata,
 };
 
 #[tokio::main]
@@ -51,6 +52,7 @@ async fn main() {
         .route("/", get(hello_world))
         .route("/health", get(health_check))
         .route("/txn", post(create_memo_transaction))
+        .route("/create-cb-ata", post(create_cb_ata))
         .layer(cors)
         .layer(TraceLayer::new_for_http());
 

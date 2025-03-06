@@ -8,6 +8,7 @@ use axum::{
 pub enum AppError {
     InvalidAddress,
     SerializationError,
+    ProofGeneration,
 }
 
 impl IntoResponse for AppError {
@@ -20,6 +21,10 @@ impl IntoResponse for AppError {
             AppError::SerializationError => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Failed to serialize transaction".to_string(),
+            ).into_response(),
+            AppError::ProofGeneration => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to generate proof".to_string(),
             ).into_response(),
         }
     }
