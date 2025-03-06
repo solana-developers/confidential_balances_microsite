@@ -14,6 +14,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { useTransactionToast } from '../ui/ui-layout'
+import { getMint } from '@solana/spl-token'
 
 export function useGetBalance({ address }: { address: PublicKey }) {
   const { connection } = useConnection()
@@ -208,14 +209,16 @@ export function useInitializeAccount({ address }: { address: PublicKey }) {
         const authorityBase64 = Buffer.from(address.toString()).toString('base64');
         
         // Now proceed with the transaction
-        const response = await fetch(`${process.env.BACKEND_API_ENDPOINT}/create-cb-ata`, {
+        const route = `${process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT}/create-cb-ata`;
+        console.log('route', route);
+        const response = await fetch(route, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             mint: mintBase64,
-            authority: authorityBase64,
+            ata_authority: authorityBase64,
             elgamal_signature: elGamalSignatureBase64,
             aes_signature: aesSignatureBase64
           }),
@@ -320,7 +323,8 @@ export function useCreateConfidentialBalancesATA({ address }: { address: PublicK
         console.log('AES signature:', aesSignatureBase64);
         
         // Now proceed with the transaction
-        const response = await fetch(`${process.env.BACKEND_API_ENDPOINT}/create-cb-ata`, {
+        const route = `${process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT}/create-cb-ata`;
+        const response = await fetch(route, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -409,4 +413,161 @@ export function useCreateConfidentialBalancesATA({ address }: { address: PublicK
       }
     },
   });
+}
+
+export function useDepositCb({ address }: { address: PublicKey }) {
+  const { connection } = useConnection()
+  const client = useQueryClient()
+  const transactionToast = useTransactionToast()
+  const wallet = useWallet()
+
+  return useMutation({
+    mutationKey: ['deposit-cb', { endpoint: connection.rpcEndpoint, address }],
+    mutationFn: async ({ lamportAmount, mintDecimals }: { lamportAmount: string, mintDecimals: number }) => {
+      try {
+        if (!wallet.publicKey) {
+          throw new Error("Wallet not connected");
+        }
+
+        const mintBase64 = Buffer.from("Dsurjp9dMjFmxq4J3jzZ8As32TgwLCftGyATiQUFu11D").toString('base64');
+        const authorityBase64 = Buffer.from(address.toString()).toString('base64');
+        
+        // Call the deposit-cb endpoint
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT}/deposit-cb`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            mint: mintBase64,
+            ata_authority: authorityBase64,
+            mint_decimals: mintDecimals,
+            lamport_amount: lamportAmount
+          }),
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Deserialize the transaction from the response
+        const serializedTransaction = Buffer.from(data.transaction, 'base64');
+        const transaction = VersionedTransaction.deserialize(serializedTransaction);
+        
+        // Get the latest blockhash for transaction confirmation
+        const latestBlockhash = await connection.getLatestBlockhash();
+        
+        // Update the transaction's blockhash
+        if (transaction.message.version === 0) {
+          // For VersionedMessage V0
+          transaction.message.recentBlockhash = latestBlockhash.blockhash;
+        } else {
+          // For legacy messages
+          (transaction.message as any).recentBlockhash = latestBlockhash.blockhash;
+        }
+        
+        // Sign and send the transaction
+        const signature = await wallet.sendTransaction(transaction, connection);
+        
+        // Confirm the transaction
+        await connection.confirmTransaction({ signature, ...latestBlockhash }, 'confirmed');
+        
+        console.log('Deposit transaction signature:', signature);
+        return { 
+          signature,
+          ...data 
+        };
+      } catch (error) {
+        console.error('Error depositing to confidential balance account:', error);
+        throw error;
+      }
+    },
+    onSuccess: (data) => {
+      if (data.signature) {
+        transactionToast(data.signature);
+        toast.success('Deposit transaction successful');
+      }
+      
+      // Invalidate relevant queries to refresh data
+      return Promise.all([
+        client.invalidateQueries({
+          queryKey: ['get-balance', { endpoint: connection.rpcEndpoint, address }],
+        }),
+        client.invalidateQueries({
+          queryKey: ['get-signatures', { endpoint: connection.rpcEndpoint, address }],
+        }),
+        client.invalidateQueries({
+          queryKey: ['get-token-accounts', { endpoint: connection.rpcEndpoint, address }],
+        }),
+      ]);
+    },
+    onError: (error) => {
+      toast.error(`Deposit failed! ${error}`);
+    },
+  });
+}
+
+// Add a hook to get mint account information
+export function useGetMintInfo({ mintAddress }: { mintAddress: string }) {
+  const { connection } = useConnection()
+  
+  return useQuery({
+    queryKey: ['get-mint-info', { endpoint: connection.rpcEndpoint, mintAddress }],
+    queryFn: async () => {
+      try {
+        const mintPublicKey = new PublicKey(mintAddress)
+        
+        // Try to get the mint info using Token-2022 program first
+        try {
+          console.log('Attempting to fetch mint info using Token-2022 program...')
+          const mintInfo = await getMint(
+            connection, 
+            mintPublicKey,
+            'confirmed',
+            TOKEN_2022_PROGRAM_ID
+          )
+          console.log('Successfully fetched Token-2022 mint:', mintInfo)
+          return {
+            ...mintInfo,
+            isToken2022: true
+          }
+        } catch (error) {
+          console.log('Not a Token-2022 mint, trying standard Token program...', error)
+          
+          // If that fails, try the standard Token program
+          try {
+            const mintInfo = await getMint(
+              connection, 
+              mintPublicKey,
+              'confirmed',
+              TOKEN_PROGRAM_ID
+            )
+            console.log('Successfully fetched standard Token mint:', mintInfo)
+            return {
+              ...mintInfo,
+              isToken2022: false
+            }
+          } catch (secondError) {
+            console.error('Failed to fetch mint with standard Token program:', secondError)
+            
+            // Check if the account exists but is not a token mint
+            const accountInfo = await connection.getAccountInfo(mintPublicKey)
+            if (accountInfo) {
+              console.log('Account exists but is not a token mint:', accountInfo)
+              throw new Error(`Account exists but is not owned by a Token program. Owner: ${accountInfo.owner.toBase58()}`)
+            } else {
+              console.log('Account does not exist')
+              throw new Error('Mint account does not exist')
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching mint info:', error)
+        throw error
+      }
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  })
 }

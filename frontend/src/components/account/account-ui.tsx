@@ -1,21 +1,25 @@
 'use client'
 
 import { useWallet } from '@solana/wallet-adapter-react'
-import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js'
+import { PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js'
 import { IconRefresh } from '@tabler/icons-react'
 import { useQueryClient } from '@tanstack/react-query'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { AppModal, ellipsify } from '../ui/ui-layout'
 import { useCluster } from '../cluster/cluster-data-access'
 import { ExplorerLink } from '../cluster/cluster-ui'
+import { TOKEN_2022_PROGRAM_ID } from '@solana/spl-token'
 import {
   useGetBalance,
   useGetSignatures,
   useGetTokenAccounts,
   useRequestAirdrop,
   useTransferSol,
+  useDepositCb,
+  useInitializeAccount,
+  useGetMintInfo,
 } from './account-data-access'
-import { useInitializeAccount } from './account-data-access'
+import { toast } from 'react-hot-toast'
 
 export function AccountBalance({ address }: { address: PublicKey }) {
   const query = useGetBalance({ address })
@@ -67,6 +71,7 @@ export function AccountButtons({ address }: { address: PublicKey }) {
   const [showAirdropModal, setShowAirdropModal] = useState(false)
   const [showReceiveModal, setShowReceiveModal] = useState(false)
   const [showSendModal, setShowSendModal] = useState(false)
+  const [showDepositModal, setShowDepositModal] = useState(false)
   
   const { mutate: initializeAccount, isPending: isInitializing } = useInitializeAccount({ address })
   
@@ -79,6 +84,7 @@ export function AccountButtons({ address }: { address: PublicKey }) {
       <ModalAirdrop hide={() => setShowAirdropModal(false)} address={address} show={showAirdropModal} />
       <ModalReceive address={address} show={showReceiveModal} hide={() => setShowReceiveModal(false)} />
       <ModalSend address={address} show={showSendModal} hide={() => setShowSendModal(false)} />
+      <ModalDeposit show={showDepositModal} hide={() => setShowDepositModal(false)} address={address} />
       <div className="space-x-2">
         <button
           disabled={cluster.network?.includes('mainnet')}
@@ -109,7 +115,10 @@ export function AccountButtons({ address }: { address: PublicKey }) {
             'Initialize ATA'
           }
         </button>
-        <button className="btn btn-xs lg:btn-md btn-outline">
+        <button 
+          className="btn btn-xs lg:btn-md btn-outline"
+          onClick={() => setShowDepositModal(true)}
+        >
           Deposit
         </button>
         <button className="btn btn-xs lg:btn-md btn-outline">
@@ -118,7 +127,7 @@ export function AccountButtons({ address }: { address: PublicKey }) {
         <button className="btn btn-xs lg:btn-md btn-outline">
           Transfer
         </button>
-      </div>
+      </div>      
     </div>
   )
 }
@@ -376,5 +385,187 @@ function ModalSend({ hide, show, address }: { hide: () => void; show: boolean; a
         onChange={(e) => setAmount(e.target.value)}
       />
     </AppModal>
+  )
+}
+
+function ModalDeposit({ show, hide, address }: { show: boolean; hide: () => void; address: PublicKey }) {
+  const [amount, setAmount] = useState('')
+  const depositMutation = useDepositCb({ address })
+  // Default mint address - replace with the actual mint address you're using
+  const mintAddress = "Dsurjp9dMjFmxq4J3jzZ8As32TgwLCftGyATiQUFu11D"
+  const mintInfoQuery = useGetMintInfo({ mintAddress })
+  const [decimals, setDecimals] = useState(9) // Default to 9 decimals until we load the actual value
+  
+  useEffect(() => {
+    if (mintInfoQuery.data) {
+      setDecimals(mintInfoQuery.data.decimals)
+      console.log(`Mint decimals: ${mintInfoQuery.data.decimals}`)
+      console.log(`Mint authority: ${mintInfoQuery.data.mintAuthority?.toBase58() || 'None'}`)
+      console.log(`Is Token-2022: ${mintInfoQuery.data.isToken2022 ? 'Yes' : 'No'}`)
+    }
+  }, [mintInfoQuery.data])
+  
+  const handleSubmit = async () => {
+    if (!amount || parseFloat(amount) <= 0) {
+      toast.error('Please enter a valid amount')
+      return
+    }
+    
+    try {
+      // Convert to token units based on mint decimals
+      const factor = Math.pow(10, decimals)
+      const tokenAmount = (parseFloat(amount) * factor).toString()
+      
+      await depositMutation.mutateAsync({ 
+        lamportAmount: tokenAmount,
+        mintDecimals: decimals
+      })
+      hide()
+      setAmount('')
+      toast.success('Deposit submitted successfully')
+    } catch (error) {
+      console.error('Deposit failed:', error)
+      toast.error(`Deposit failed: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }
+
+  // Calculate the token units based on the input amount
+  const tokenUnits = useMemo(() => {
+    if (!amount) return ''
+    const factor = Math.pow(10, decimals)
+    return `${parseFloat(amount) * factor} token units`
+  }, [amount, decimals])
+
+  // Get the token type from the mint info
+  const tokenType = useMemo(() => {
+    if (!mintInfoQuery.data) return 'Unknown';
+    return mintInfoQuery.data.isToken2022 ? 'Token-2022' : 'Standard Token';
+  }, [mintInfoQuery.data]);
+
+  return (
+    <AppModal
+      hide={hide}
+      show={show}
+      title="Deposit to Confidential Balance"
+      submitDisabled={!amount || parseFloat(amount) <= 0 || depositMutation.isPending || mintInfoQuery.isLoading}
+      submitLabel={depositMutation.isPending ? "Processing..." : "Confirm Deposit"}
+      submit={handleSubmit}
+    >
+      {mintInfoQuery.isLoading ? (
+        <div className="flex justify-center py-4">
+          <span className="loading loading-spinner"></span>
+          <span className="ml-2">Loading mint information...</span>
+        </div>
+      ) : mintInfoQuery.isError ? (
+        <div className="flex flex-col gap-2">
+          <div className="alert alert-error">
+            <p>Error loading mint information:</p>
+            <p className="text-sm break-all">{mintInfoQuery.error instanceof Error ? mintInfoQuery.error.message : 'Unknown error'}</p>
+          </div>
+          <div className="alert alert-info">
+            <p>This could be because:</p>
+            <ul className="list-disc list-inside text-sm">
+              <li>The mint address is not a valid token mint</li>
+              <li>The mint is using a different token program than expected</li>
+              <li>The account exists but is not a token mint account</li>
+            </ul>
+            <p className="mt-2 text-sm">Using default 9 decimals for calculations.</p>
+          </div>
+        </div>
+      ) : (
+        <div className="form-control">
+          <div className="mb-2 text-sm">
+            <span className="badge badge-info">{tokenType}</span>
+            <span className="ml-2 badge badge-ghost">{decimals} decimals</span>
+          </div>
+          <label className="label">
+            <span className="label-text">Amount (Tokens)</span>
+          </label>
+          <input
+            type="number"
+            placeholder="Enter amount"
+            className="input input-bordered w-full"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            disabled={depositMutation.isPending}
+            step={`${1 / Math.pow(10, decimals)}`} // Step based on mint decimals
+            min="0"
+            required
+          />
+          <label className="label">
+            <span className="label-text-alt">
+              {tokenUnits}
+            </span>
+          </label>
+        </div>
+      )}
+    </AppModal>
+  )
+}
+
+export function AccountActions({ address }: { address: PublicKey }) {
+  const [showAirdropModal, setShowAirdropModal] = useState(false)
+  const [showReceiveModal, setShowReceiveModal] = useState(false)
+  const [showSendModal, setShowSendModal] = useState(false)
+  const [showDepositModal, setShowDepositModal] = useState(false)
+  const wallet = useWallet()
+  const { cluster } = useCluster()
+  
+  const { mutate: initializeAccount, isPending: isInitializing } = useInitializeAccount({ address })
+  
+  const handleInitialize = () => {
+    initializeAccount()
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      <ModalAirdrop hide={() => setShowAirdropModal(false)} address={address} show={showAirdropModal} />
+      <ModalReceive address={address} show={showReceiveModal} hide={() => setShowReceiveModal(false)} />
+      <ModalSend address={address} show={showSendModal} hide={() => setShowSendModal(false)} />
+      <button
+        disabled={cluster.network?.includes('mainnet')}
+        className="btn btn-xs lg:btn-md btn-outline"
+        onClick={() => setShowAirdropModal(true)}
+      >
+        Airdrop
+      </button>
+      <button
+        disabled={wallet.publicKey?.toString() !== address.toString()}
+        className="btn btn-xs lg:btn-md btn-outline"
+        onClick={() => setShowSendModal(true)}
+      >
+        Send
+      </button>
+      <button className="btn btn-xs lg:btn-md btn-outline" onClick={() => setShowReceiveModal(true)}>
+        Receive
+      </button>
+      <button 
+        className="btn btn-xs lg:btn-md btn-outline" 
+        onClick={handleInitialize}
+        disabled={isInitializing}
+      >
+        {isInitializing ? 
+          <span className="loading loading-spinner loading-xs"></span> : 
+          'Initialize ATA'
+        }
+      </button>
+      <button 
+        className="btn btn-xs lg:btn-md btn-outline"
+        onClick={() => setShowDepositModal(true)}
+      >
+        Deposit
+      </button>
+      <button className="btn btn-xs lg:btn-md btn-outline">
+        Withdraw
+      </button>
+      <button className="btn btn-xs lg:btn-md btn-outline">
+        Transfer
+      </button>
+      <ModalDeposit 
+        show={showDepositModal} 
+        hide={() => setShowDepositModal(false)} 
+        address={address} 
+      />
+    </div>
   )
 }

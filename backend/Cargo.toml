@@ -5,23 +5,35 @@ edition = "2021"
 
 [dependencies]
 axum = "0.8.1"
-tokio = { version = "1.34.0", features = ["full"] }
 tower = "0.5.2"
 tower-http = { version = "0.6.2", features = ["trace", "cors"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 # Solana dependencies
-solana-sdk = "2.2.1"
 solana-program = "2.2.1"
 spl-memo = "6.0.0"
-bs58 = "0.5.0"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
 bincode = "1.3.3" 
-base64 = "0.22.1"
-solana-client = "2.2.1"
 
+# Solana dependencies
+solana-sdk = "2.1.11"
+solana-client = "2.1.11"
+solana-transaction-status-client-types = "2.1.11"
+solana-zk-sdk = "2.1.11"
 
-spl-associated-token-account = "6.0.0"
+# SPL dependencies
 spl-token-2022 = { git = "https://github.com/kilogold/token-2022.git", branch = "cli_transaction_generation" }
+spl-token-client = { git = "https://github.com/kilogold/token-2022.git", branch = "cli_transaction_generation" }
+spl-associated-token-account = { git = "https://github.com/solana-labs/solana-program-library.git", rev = "224a96b164357a221c7f7dae5e348f9c0f7a73da" }
+spl-token-confidential-transfer-proof-generation = { git = "https://github.com/kilogold/token-2022.git", branch = "cli_transaction_generation" }
 spl-token-confidential-transfer-proof-extraction = { git = "https://github.com/kilogold/token-2022.git", branch = "cli_transaction_generation" }
+
+# Other dependencies
+tk-rs = { git = "https://github.com/kilogold/tk-rs.git" }
+tokio = { version = "1.42.0", features = ["full"] }
+serde = { version = "1.0.215", features = ["derive"] }
+serde_json = "1.0.1"
+bs58 = "0.5.1"
+dotenvy = "0.15.7"
+google-cloud-kms = "0.6.0"
+base64 = "0.22.1"
+jito-sdk-rust = "0.1.0"

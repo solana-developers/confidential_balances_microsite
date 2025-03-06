@@ -17,7 +17,16 @@ pub struct TransactionResponse {
 #[derive(Deserialize)]
 pub struct CreateCbAtaRequest {
     pub mint: String,            // The mint address of the token
-    pub authority: String,        // The authority address for the confidential balance
+    pub ata_authority: String,   // The authority address for the confidential balance
     pub elgamal_signature: String, // ElGamal signature as base64 encoded bytes
     pub aes_signature: String,   // AES signature as base64 encoded bytes
+}
+
+// Request model for the deposit_cb endpoint
+#[derive(Deserialize)]
+pub struct DepositCbRequest {
+    pub mint: String,            // The mint address of the token
+    pub mint_decimals: u8,            // The decimals of the token
+    pub ata_authority: String,   // The authority address for the confidential balance
+    pub lamport_amount: String,          // The amount to deposit (as a string to handle large numbers)
 } 
