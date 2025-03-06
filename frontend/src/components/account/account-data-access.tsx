@@ -208,7 +208,7 @@ export function useInitializeAccount({ address }: { address: PublicKey }) {
         const authorityBase64 = Buffer.from(address.toString()).toString('base64');
         
         // Now proceed with the transaction
-        const response = await fetch('http://localhost:3003/create-cb-ata', {
+        const response = await fetch(`${process.env.BACKEND_API_ENDPOINT}/create-cb-ata`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -320,7 +320,7 @@ export function useCreateConfidentialBalancesATA({ address }: { address: PublicK
         console.log('AES signature:', aesSignatureBase64);
         
         // Now proceed with the transaction
-        const response = await fetch('http://localhost:3003/create-cb-ata', {
+        const response = await fetch(`${process.env.BACKEND_API_ENDPOINT}/create-cb-ata`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
