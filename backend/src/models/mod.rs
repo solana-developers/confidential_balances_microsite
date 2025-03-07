@@ -29,4 +29,14 @@ pub struct DepositCbRequest {
     pub mint_decimals: u8,            // The decimals of the token
     pub ata_authority: String,   // The authority address for the confidential balance
     pub lamport_amount: String,          // The amount to deposit (as a string to handle large numbers)
+}
+
+// Request model for the apply_cb endpoint
+#[derive(Deserialize)]
+pub struct ApplyCbRequest {
+    pub ata_authority: String,   // The authority address for the confidential balance
+    pub mint: String,            // The mint address of the token
+    pub elgamal_signature: String, // ElGamal signature as base64 encoded bytes
+    pub aes_signature: String,   // AES signature as base64 encoded bytes
+    pub token_account_data: String, // BASE64 encoded account data
 } 

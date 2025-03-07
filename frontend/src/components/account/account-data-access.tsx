@@ -15,6 +15,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { useTransactionToast } from '../ui/ui-layout'
 import { getMint } from '@solana/spl-token'
+import { getAssociatedTokenAddress } from '@solana/spl-token'
 
 export function useGetBalance({ address }: { address: PublicKey }) {
   const { connection } = useConnection()
@@ -569,5 +570,148 @@ export function useGetMintInfo({ mintAddress }: { mintAddress: string }) {
       }
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
+  })
+}
+
+export function useApplyPendingBalance({ address }: { address: PublicKey }) {
+  const { connection } = useConnection()
+  const client = useQueryClient()
+  const transactionToast = useTransactionToast()
+  const wallet = useWallet()
+
+  return useMutation({
+    mutationKey: ['apply-pending-balance', { endpoint: connection.rpcEndpoint, address }],
+    mutationFn: async ({ mint, mintDecimals }: { mint: PublicKey, mintDecimals: number }) => {
+      try {
+        // First, sign the messages for ElGamal and AES
+        if (!wallet.signMessage) {
+          throw new Error("Wallet does not support message signing")
+        }
+        
+        // Sign the ElGamal message
+        const elGamalMessageToSign = new TextEncoder().encode("ElGamalSecret")
+        const elGamalSignature = await wallet.signMessage(elGamalMessageToSign)
+        const elGamalSignatureBase64 = Buffer.from(elGamalSignature).toString('base64')
+        
+        console.log('ElGamal signature:', elGamalSignatureBase64)
+        
+        // Sign the AES message
+        const aesMessageToSign = new TextEncoder().encode("AESKey")
+        const aesSignature = await wallet.signMessage(aesMessageToSign)
+        const aesSignatureBase64 = Buffer.from(aesSignature).toString('base64')
+        
+        console.log('AES signature:', aesSignatureBase64)
+        
+        // Get the associated token address
+        const tokenAccountAddress = await getAssociatedTokenAddress(
+          mint,
+          address,
+          true, // allowOwnerOffCurve
+          TOKEN_2022_PROGRAM_ID
+        )
+
+        // Fetch the token account data
+        const accountInfo = await connection.getAccountInfo(tokenAccountAddress)
+        if (!accountInfo) {
+          throw new Error('Token account not found')
+        }
+        
+        // Prepare the request to the backend
+        // Convert pubkeys to base58 strings and then base64 encode them
+        const ataAuthorityBase58 = address.toString()
+        const mintBase58 = mint.toString()
+        
+        const request = {
+          ata_authority: Buffer.from(ataAuthorityBase58).toString('base64'),
+          mint: Buffer.from(mintBase58).toString('base64'),
+          elgamal_signature: elGamalSignatureBase64,
+          aes_signature: aesSignatureBase64,
+          token_account_data: Buffer.from(accountInfo.data).toString('base64')
+        }
+        
+        // Send the request to the backend
+        const route = `${process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT}/apply-cb`
+        const response = await fetch(route, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(request)
+        })
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`)
+        }
+        
+        const data = await response.json()
+        
+        // Deserialize the transaction from the response
+        const serializedTransaction = Buffer.from(data.transaction, 'base64')
+        const transaction = VersionedTransaction.deserialize(serializedTransaction)
+        
+        // Get the latest blockhash for transaction confirmation
+        const latestBlockhash = await connection.getLatestBlockhash()
+        
+        // Update the transaction's blockhash
+        if (transaction.message.version === 0) {
+          // For VersionedMessage V0
+          transaction.message.recentBlockhash = latestBlockhash.blockhash
+        } else {
+          // For legacy messages
+          (transaction.message as any).recentBlockhash = latestBlockhash.blockhash
+        }
+        
+        // Sign and send the transaction
+        const signature = await wallet.sendTransaction(transaction, connection)
+        
+        // Confirm the transaction
+        await connection.confirmTransaction({ signature, ...latestBlockhash }, 'confirmed')
+        
+        console.log('Apply pending balance transaction signature:', signature)
+        return { 
+          signature, 
+          elGamalSignature: elGamalSignatureBase64,
+          aesSignature: aesSignatureBase64,
+          ...data 
+        }
+      } catch (error) {
+        console.error('Error applying pending balance:', error)
+        throw error
+      }
+    },
+    onSuccess: (data) => {
+      if (data.signature) {
+        transactionToast(data.signature)
+        toast.success('Pending balance applied successfully')
+      }
+      
+      if (data.elGamalSignature) {
+        console.log('ElGamal signature collected:', data.elGamalSignature)
+      }
+      
+      if (data.aesSignature) {
+        console.log('AES signature collected:', data.aesSignature)
+      }
+      
+      // Invalidate relevant queries to refresh data
+      return Promise.all([
+        client.invalidateQueries({
+          queryKey: ['get-balance', { endpoint: connection.rpcEndpoint, address }],
+        }),
+        client.invalidateQueries({
+          queryKey: ['get-signatures', { endpoint: connection.rpcEndpoint, address }],
+        }),
+        client.invalidateQueries({
+          queryKey: ['get-token-accounts', { endpoint: connection.rpcEndpoint, address }],
+        }),
+      ])
+    },
+    onError: (error) => {
+      if (error instanceof Error && error.message.includes("message signing")) {
+        toast.error(`Message signing failed: ${error.message}`)
+      } else {
+        toast.error(`Failed to apply pending balance: ${error}`)
+      }
+    },
   })
 }

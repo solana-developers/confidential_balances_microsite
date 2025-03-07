@@ -1,30 +1,30 @@
-use axum::extract::Json;
-use solana_sdk::{
-    hash::Hash, 
-    message::{v0, VersionedMessage}, 
-    pubkey::Pubkey, 
-    signature::Signature, 
-    transaction::VersionedTransaction
-};
-use bs58;
-use bincode;
-use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
-
-use spl_associated_token_account::{
-    get_associated_token_address_with_program_id, instruction::create_associated_token_account,
-};
-use spl_token_2022::{
-    extension::{
-        confidential_transfer::instruction::{configure_account, deposit, PubkeyValidityProofData},
-        ExtensionType,
+use {
+    axum::extract::Json,
+    solana_sdk::{hash::Hash, message::{v0, VersionedMessage}, pubkey::Pubkey, signature::Signature, transaction::VersionedTransaction},
+    bs58,
+    bincode,
+    base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD},
+    spl_associated_token_account::{get_associated_token_address_with_program_id, instruction::create_associated_token_account},
+    spl_token_2022::{
+        error::TokenError,
+        extension::{
+            confidential_transfer::{
+                account_info::ApplyPendingBalanceAccountInfo,
+                instruction::{apply_pending_balance, configure_account, deposit, PubkeyValidityProofData},
+                ConfidentialTransferAccount
+            },
+            BaseStateWithExtensions,
+            ExtensionType,
+            StateWithExtensionsOwned
+        },
+        instruction::reallocate,
+        solana_zk_sdk::encryption::{auth_encryption::AeKey, elgamal::ElGamalKeypair}
     },
-    instruction::reallocate,
-    solana_zk_sdk::encryption::{auth_encryption::AeKey, elgamal::ElGamalKeypair},
+    spl_token_confidential_transfer_proof_extraction::instruction::{ProofData, ProofLocation},
+    crate::models::{CreateCbAtaRequest, TransactionResponse, DepositCbRequest, ApplyCbRequest},
+    crate::errors::AppError,
 };
-use spl_token_confidential_transfer_proof_extraction::instruction::{ProofData, ProofLocation};
 
-use crate::models::{CreateCbAtaRequest, TransactionResponse, DepositCbRequest};
-use crate::errors::AppError;
 
 // Helper function to parse a base64-encoded base58 address into a Pubkey
 fn parse_base64_base58_pubkey(encoded_address: &str) -> Result<Pubkey, AppError> {
@@ -232,7 +232,7 @@ pub async fn deposit_cb(
     println!("🚀 Starting deposit_cb handler");
     
     // Parse the authority address
-    println!("🔑 Parsing authority address");
+    println!("� Parsing authority address");
     let token_account_authority = parse_base64_base58_pubkey(&request.ata_authority)?;
     println!("✅ Authority parsed successfully: {}", token_account_authority);
     
@@ -253,7 +253,6 @@ pub async fn deposit_cb(
             return Err(AppError::InvalidAmount);
         }
     };
-
 
     let depositor_token_account = get_associated_token_address_with_program_id(
         &token_account_authority, // Token account owner
@@ -314,5 +313,130 @@ pub async fn deposit_cb(
     Ok(Json(TransactionResponse {
         transaction: serialized_transaction,
         message: "Deposit CB transaction not yet implemented".to_string(),
+    }))
+}
+
+pub async fn apply_cb(
+    Json(request): Json<ApplyCbRequest>,
+) -> Result<Json<TransactionResponse>, AppError> {
+    println!("🔄 Processing apply_cb request for mint: {}", request.mint);
+    
+    // Parse the authority address
+    let ata_authority = parse_base64_base58_pubkey(&request.ata_authority)?;
+    println!("✅ Parsed authority pubkey: {}", ata_authority);
+    
+    // Parse the mint address
+    let mint_pubkey = parse_base64_base58_pubkey(&request.mint)?;
+    println!("✅ Parsed mint pubkey: {}", mint_pubkey);
+    
+    // Parse ElGamal signature
+    println!("🔐 Decoding ElGamal signature: {}", request.elgamal_signature);
+    let decoded_elgamal_signature = BASE64_STANDARD.decode(&request.elgamal_signature)?;
+    let elgamal_signature = Signature::try_from(decoded_elgamal_signature.as_slice())
+        .map_err(|_| AppError::SerializationError)?;
+    
+    let elgamal_keypair = ElGamalKeypair::new_from_signature(&elgamal_signature)
+        .map_err(|_| AppError::SerializationError)?;
+    
+    // Parse AES signature
+    println!("🔐 Decoding AES signature: {}", request.aes_signature);
+    let decoded_aes_signature = BASE64_STANDARD.decode(&request.aes_signature)?;
+    let aes_signature = Signature::try_from(decoded_aes_signature.as_slice())
+        .map_err(|_| AppError::SerializationError)?;
+    
+    let aes_key = AeKey::new_from_signature(&aes_signature)
+        .map_err(|_| AppError::SerializationError)?;
+    
+    // Decode token account data from request instead of fetching it
+    println!("📦 Decoding token account data from request");
+    let token_account_data = BASE64_STANDARD.decode(&request.token_account_data)?;
+    
+    // Deserialize the account data
+    let token_account_info = StateWithExtensionsOwned::<spl_token_2022::state::Account>::unpack(token_account_data)?;
+    println!("✅ Successfully decoded token account data from owner {}", token_account_info.base.owner.to_string());
+    
+    
+    // Get the associated token account address
+    let ata = get_associated_token_address_with_program_id(
+        &ata_authority,
+        &mint_pubkey,
+        &spl_token_2022::id(),
+    );
+    println!("✅ Calculated ATA address: {}", ata);
+
+    // Unpack the ConfidentialTransferAccount extension portion of the token account data
+    let confidential_transfer_account =
+        token_account_info.get_extension::<ConfidentialTransferAccount>()?;
+
+    // ConfidentialTransferAccount extension information needed to construct an `ApplyPendingBalance` instruction.
+    let apply_pending_balance_account_info =
+        ApplyPendingBalanceAccountInfo::new(confidential_transfer_account);
+
+    // Return the number of times the pending balance has been credited
+    let expected_pending_balance_credit_counter =
+        apply_pending_balance_account_info.pending_balance_credit_counter();
+
+    // Update the decryptable available balance (add pending balance to available balance)
+    let new_decryptable_available_balance = apply_pending_balance_account_info
+        .new_decryptable_available_balance(&elgamal_keypair.secret(), &aes_key)
+        .map_err(|_| AppError::TokenError(TokenError::AccountDecryption))?;
+
+    // Create a `ApplyPendingBalance` instruction
+    let apply_pending_balance_instruction = apply_pending_balance(
+        &spl_token_2022::id(),
+        &ata,         // Token account
+        expected_pending_balance_credit_counter, // Expected number of times the pending balance has been credited
+        &new_decryptable_available_balance.into(), // Cipher text of the new decryptable available balance
+        &ata_authority,                       // Token account owner
+        &[&ata_authority],                    // Additional signers
+    ).map_err(|_| AppError::SerializationError)?;
+    
+    // Create a dummy recent blockhash
+    let dummy_blockhash = Hash::new_unique();
+
+    // Create a V0 message with the dummy blockhash
+    println!("📝 Creating V0 message");
+    let v0_message = v0::Message::try_compile(
+        &ata_authority,
+        &[apply_pending_balance_instruction],
+        &[],
+        dummy_blockhash,
+    ).map_err(|_| AppError::SerializationError)?;
+    println!("✅ V0 message created successfully");
+    
+    // Get the number of required signatures before moving v0_message
+    let num_required_signatures = v0_message.header.num_required_signatures as usize;
+    println!("🔑 Transaction requires {} signatures", num_required_signatures);
+    
+    // Create a versioned message
+    println!("📝 Creating versioned message");
+    let versioned_message = VersionedMessage::V0(v0_message);
+    
+    // Create a versioned transaction with placeholder signatures for required signers
+    println!("📝 Creating versioned transaction with placeholder signatures");
+    let mut signatures = Vec::with_capacity(num_required_signatures);
+    
+    // Add empty signatures as placeholders (will be replaced by the wallet)
+    for _ in 0..num_required_signatures {
+        signatures.push(solana_sdk::signature::Signature::default());
+    }
+    
+    let versioned_transaction = VersionedTransaction {
+        signatures,
+        message: versioned_message,
+    };
+    
+    // Serialize the transaction to base64
+    println!("🔄 Serializing transaction");
+    let serialized_transaction = match bincode::serialize(&versioned_transaction) {
+        Ok(bytes) => BASE64_STANDARD.encode(bytes),
+        Err(_) => return Err(AppError::SerializationError),
+    };
+    println!("✅ Transaction created successfully");
+    
+    // Return the transaction
+    Ok(Json(TransactionResponse {
+        transaction: serialized_transaction,
+        message: format!("Created apply_cb transaction for mint: {} using client-provided account data", mint_pubkey),
     }))
 } 

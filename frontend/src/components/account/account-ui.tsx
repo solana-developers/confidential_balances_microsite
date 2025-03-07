@@ -18,6 +18,7 @@ import {
   useDepositCb,
   useInitializeAccount,
   useGetMintInfo,
+  useApplyPendingBalance,
 } from './account-data-access'
 import { toast } from 'react-hot-toast'
 
@@ -65,7 +66,11 @@ export function AccountBalanceCheck({ address }: { address: PublicKey }) {
   return null
 }
 
-export function AccountButtons({ address }: { address: PublicKey }) {
+export function AccountButtons({ address, mint, decimals }: { 
+  address: PublicKey, 
+  mint?: PublicKey,
+  decimals?: number 
+}) {
   const wallet = useWallet()
   const { cluster } = useCluster()
   const [showAirdropModal, setShowAirdropModal] = useState(false)
@@ -74,9 +79,19 @@ export function AccountButtons({ address }: { address: PublicKey }) {
   const [showDepositModal, setShowDepositModal] = useState(false)
   
   const { mutate: initializeAccount, isPending: isInitializing } = useInitializeAccount({ address })
+  const { mutate: applyPendingBalance, isPending: isApplying } = useApplyPendingBalance({ address })
+  
+  const defaultMint = new PublicKey('Dsurjp9dMjFmxq4J3jzZ8As32TgwLCftGyATiQUFu11D')
   
   const handleInitialize = () => {
     initializeAccount()
+  }
+
+  const handleApply = () => {
+    applyPendingBalance({
+      mint: mint || defaultMint,
+      mintDecimals: decimals || 9
+    })
   }
 
   return (
@@ -120,6 +135,16 @@ export function AccountButtons({ address }: { address: PublicKey }) {
           onClick={() => setShowDepositModal(true)}
         >
           Deposit
+        </button>
+        <button 
+          className="btn btn-xs lg:btn-md btn-outline"
+          onClick={handleApply}
+          disabled={isApplying || !wallet.publicKey?.equals(address)}
+        >
+          {isApplying ? 
+            <span className="loading loading-spinner loading-xs"></span> : 
+            'Apply'
+          }
         </button>
         <button className="btn btn-xs lg:btn-md btn-outline">
           Withdraw
