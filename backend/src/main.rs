@@ -23,6 +23,7 @@ use routes::{
     create_cb_ata,
     deposit_cb,
     apply_cb,
+    transfer_cb,
 };
 
 #[tokio::main]
@@ -57,6 +58,7 @@ async fn main() {
         .route("/create-cb-ata", post(create_cb_ata))
         .route("/deposit-cb", post(deposit_cb))
         .route("/apply-cb", post(apply_cb))
+        .route("/transfer-cb", post(transfer_cb))
         .layer(cors)
         .layer(TraceLayer::new_for_http());
 

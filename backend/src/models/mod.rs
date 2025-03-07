@@ -13,6 +13,13 @@ pub struct TransactionResponse {
     pub message: String,
 }
 
+// Response model for the multi-transaction endpoint
+#[derive(Serialize)]
+pub struct MultiTransactionResponse {
+    pub transactions: Vec<String>,
+    pub message: String,
+}
+
 // Request model for the create_cb_ata endpoint (cb = Confidential Balances)
 #[derive(Deserialize)]
 pub struct CreateCbAtaRequest {
@@ -39,4 +46,16 @@ pub struct ApplyCbRequest {
     pub elgamal_signature: String, // ElGamal signature as base64 encoded bytes
     pub aes_signature: String,   // AES signature as base64 encoded bytes
     pub token_account_data: String, // BASE64 encoded account data
+}
+
+// Request model for the transfer_cb endpoint
+#[derive(Deserialize)]
+pub struct TransferCbRequest {
+    pub elgamal_signature: String,       //Sender's ElGamal signature as base64 encoded bytes
+    pub aes_signature: String,           // Sender's AES signature as base64 encoded bytes
+    pub sender_token_account: String,    // The sender's token account info
+    pub recipient_token_account: String, // The recipient's token account info
+    pub mint_token_account: String,      // The mint token account info
+    pub amount: u64,                     // The transfer amount as u64
+    pub mint_decimals: u8,               // The decimals of the token
 } 

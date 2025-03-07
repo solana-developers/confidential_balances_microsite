@@ -19,6 +19,7 @@ solana-sdk = "2.1.11"
 solana-client = "2.1.11"
 solana-transaction-status-client-types = "2.1.11"
 solana-zk-sdk = "2.1.11"
+solana-message = "2.1.11"
 
 # SPL dependencies
 spl-token-2022 = { git = "https://github.com/kilogold/token-2022.git", branch = "cli_transaction_generation" }
@@ -38,3 +39,4 @@ google-cloud-kms = "0.6.0"
 base64 = "0.22.1"
 jito-sdk-rust = "0.1.0"
 axum-macros = "0.5.0"
+bytemuck = "1.20.0"

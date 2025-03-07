@@ -4,6 +4,7 @@ use axum::{
 };
 use std::fmt;
 use solana_program::program_error::ProgramError;
+use solana_zk_sdk::errors::ElGamalError;
 
 // Error response
 #[derive(Debug)]
@@ -12,6 +13,7 @@ pub enum AppError {
     InvalidAmount,
     SerializationError,
     ProofGeneration,
+    MintMismatch,
     // Add variants for underlying errors
     TokenError(spl_token_2022::error::TokenError),
     BincodeError(bincode::Error),
@@ -19,6 +21,8 @@ pub enum AppError {
     Utf8Error(std::string::FromUtf8Error),
     Base58Error(bs58::decode::Error),
     ProgramError(ProgramError),
+    ElGamalError(ElGamalError),
+    CompileError(solana_message::CompileError),
 }
 
 // Implement Display for better error messages
@@ -29,12 +33,15 @@ impl fmt::Display for AppError {
             Self::InvalidAmount => write!(f, "Invalid amount format"),
             Self::SerializationError => write!(f, "Failed to serialize transaction"),
             Self::ProofGeneration => write!(f, "Failed to generate proof"),
+            Self::MintMismatch => write!(f, "Sender and recipient token accounts have different mints"),
             Self::TokenError(e) => write!(f, "Token error: {}", e),
             Self::BincodeError(e) => write!(f, "Bincode error: {}", e),
             Self::Base64Error(e) => write!(f, "Base64 decoding error: {}", e),
             Self::Utf8Error(e) => write!(f, "UTF-8 decoding error: {}", e),
             Self::Base58Error(e) => write!(f, "Base58 decoding error: {}", e),
             Self::ProgramError(e) => write!(f, "Solana program error: {}", e),
+            Self::ElGamalError(e) => write!(f, "ElGamal encryption error: {}", e),
+            Self::CompileError(e) => write!(f, "Compile error: {}", e),
         }
     }
 }
@@ -42,7 +49,7 @@ impl fmt::Display for AppError {
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let status = match &self {
-            AppError::InvalidAddress | AppError::InvalidAmount => StatusCode::BAD_REQUEST,
+            AppError::InvalidAddress | AppError::InvalidAmount | AppError::MintMismatch => StatusCode::BAD_REQUEST,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         };
         
@@ -85,4 +92,16 @@ impl From<ProgramError> for AppError {
     fn from(error: ProgramError) -> Self {
         Self::ProgramError(error)
     }
+}
+
+impl From<ElGamalError> for AppError {
+    fn from(error: ElGamalError) -> Self {
+        Self::ElGamalError(error)
+    }
 } 
+
+impl From<solana_message::CompileError> for AppError {
+    fn from(error: solana_message::CompileError) -> Self {
+        Self::CompileError(error)
+    }
+}
