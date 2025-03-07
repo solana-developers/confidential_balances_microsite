@@ -1,5 +1,5 @@
 use {
-    crate::{errors::AppError, models::{ApplyCbRequest, CreateCbAtaRequest, DepositCbRequest, MultiTransactionResponse, TransactionResponse, TransferCbRequest}}, axum::extract::Json, base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _}, bincode, bs58, serde::Serialize, solana_sdk::{hash::Hash, message::{v0, VersionedMessage}, pubkey::Pubkey, signature::{Keypair, Signature}, signer::Signer, system_instruction, transaction::VersionedTransaction}, solana_zk_sdk::zk_elgamal_proof_program::{self, instruction::{close_context_state, ContextStateInfo}}, spl_associated_token_account::{get_associated_token_address_with_program_id, instruction::create_associated_token_account}, spl_token_2022::{
+    crate::{errors::AppError, models::{ApplyCbRequest, CreateCbAtaRequest, DepositCbRequest, MultiTransactionResponse, TransactionResponse, TransferCbRequest}}, axum::extract::Json, base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _}, bincode, bs58, solana_sdk::{hash::Hash, message::{v0, VersionedMessage}, pubkey::Pubkey, signature::{Keypair, Signature}, signer::Signer, system_instruction, transaction::VersionedTransaction}, solana_zk_sdk::zk_elgamal_proof_program::{self, instruction::{close_context_state, ContextStateInfo}}, spl_associated_token_account::{get_associated_token_address_with_program_id, instruction::create_associated_token_account}, spl_token_2022::{
         error::TokenError,
         extension::{
             confidential_transfer::{
@@ -13,7 +13,7 @@ use {
         },
         instruction::reallocate,
         solana_zk_sdk::encryption::{auth_encryption::AeKey, elgamal::ElGamalKeypair}
-    }, spl_token_client::{client::{ProgramRpcClient, ProgramRpcClientSendTransaction}, token::{ProofAccount, ProofAccountWithCiphertext, Token}}, spl_token_confidential_transfer_proof_extraction::instruction::{ProofData, ProofLocation}, spl_token_confidential_transfer_proof_generation::transfer::TransferProofData, std::sync::Arc
+    }, spl_token_confidential_transfer_proof_extraction::instruction::{ProofData, ProofLocation}, spl_token_confidential_transfer_proof_generation::transfer::TransferProofData
 };
 
 
@@ -732,57 +732,39 @@ pub async fn transfer_cb(
     // Transaction 4: Execute transfer (below)
     // Transfer with Split Proofs -------------------------------------------
     let tx4 = {
+        let new_decryptable_available_balance = sender_transfer_account_info
+        .new_decryptable_available_balance(request.amount, &sender_aes_key)
+        .map_err(|_| TokenError::AccountDecryption)?
+        .into();
 
-        let token = {
-            let rpc_client = solana_client::rpc_client::RpcClient::new_with_commitment(
-                "https://api.devnet.solana.com",
-                solana_sdk::commitment_config::CommitmentConfig::confirmed(),
-            );
-    
-            let program_client: ProgramRpcClient<ProgramRpcClientSendTransaction> =
-                ProgramRpcClient::new(rpc_client.get_inner_client().clone(), ProgramRpcClientSendTransaction);
-    
-            // Create a "token" client, to use various helper functions for Token Extensions
-            Token::new(
-                Arc::new(program_client),
-                &spl_token_2022::id(),
-                &mint,
-                Some(request.mint_decimals),
-                Arc::new(Keypair::new()), //HACK: Broken.
-            )
-        };
-
-        let equality_proof_context_proof_account = ProofAccount::ContextAccount(equality_proof_context_state_account.pubkey());
-        let ciphertext_validity_proof_context_proof_account =
-            ProofAccount::ContextAccount(ciphertext_validity_proof_context_state_account.pubkey());
-        let range_proof_context_proof_account = ProofAccount::ContextAccount(range_proof_context_state_account.pubkey());
-    
-        let ciphertext_validity_proof_account_with_ciphertext = ProofAccountWithCiphertext {
-            proof_account: ciphertext_validity_proof_context_proof_account,
-            ciphertext_lo: ciphertext_validity_proof_data_with_ciphertext.ciphertext_lo,
-            ciphertext_hi: ciphertext_validity_proof_data_with_ciphertext.ciphertext_hi,
-        };
-    
-        let tx4 = token.confidential_transfer_transfer_tx(
+        let instructions = transfer(
+            &spl_token_2022::id(),
             &sender_token_account,
+            &mint,
             &recipient_token_account,
+            &new_decryptable_available_balance,
+            &ciphertext_validity_proof_data_with_ciphertext.ciphertext_lo,
+            &ciphertext_validity_proof_data_with_ciphertext.ciphertext_hi,
             &sender_ata_authority,
-            Some(&equality_proof_context_proof_account),
-            Some(&ciphertext_validity_proof_account_with_ciphertext),
-            Some(&range_proof_context_proof_account),
-            request.amount,
-            Some(sender_transfer_account_info),
-            &sender_elgamal_keypair,
-            &sender_aes_key,
-            &recipient_elgamal_pubkey,
-            auditor_elgamal_pubkey_option.as_ref(),
-            &[Keypair::new()], //HACK: Broken
-        ).await.map_err(|_| AppError::SerializationError)?;
+            &vec![],
+            ProofLocation::ContextStateAccount(&equality_proof_context_state_account.pubkey()),
+            ProofLocation::ContextStateAccount(&ciphertext_validity_proof_context_state_account.pubkey()),
+            ProofLocation::ContextStateAccount(&range_proof_context_state_account.pubkey()),
+        )?;
 
-        VersionedTransaction{
-            signatures: vec![],
-            message: VersionedMessage::V0(v0::Message::default()),
-        }   
+        let message = v0::Message::try_compile(
+            &sender_ata_authority,
+            &instructions,
+            &[],
+            dummy_blockhash,
+        )?;
+        
+        // Create a versioned transaction with a placeholder signature for the sender
+        VersionedTransaction {
+            // Single placeholder signature for the sender
+            signatures: vec![Signature::default()],
+            message: VersionedMessage::V0(message),
+        }
     };
 
     // Transaction 5: (below)
