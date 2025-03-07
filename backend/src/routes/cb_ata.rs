@@ -473,6 +473,8 @@ pub async fn transfer_cb(
 
         let instruction_type = zk_proof_type_to_instruction(ZK::PROOF_TYPE)?;
 
+        println!("🔧 Creating context state account with inputs: fee_payer={}, context_state_account={}, rent={}, space={}", 
+            fee_payer_pubkey, context_state_account_pubkey, rent, space);
         let create_account_ix = system_instruction::create_account(
             fee_payer_pubkey,
             context_state_account_pubkey,
@@ -489,6 +491,12 @@ pub async fn transfer_cb(
     }
 
     println!("📝 Processing transfer-cb request");
+
+    // Decode amount from request
+    println!("📦 Decoding amount from request");
+    let transfer_amount_lamports = request.amount.parse::<u64>()
+        .map_err(|_| AppError::InvalidAmount)?;
+    println!("✅ Successfully decoded amount: {}", transfer_amount_lamports);
     
     // Decode sender token account data from request
     println!("📦 Decoding sender token account data from request");
@@ -618,7 +626,7 @@ pub async fn transfer_cb(
         ciphertext_validity_proof_data_with_ciphertext,
         range_proof_data,
     } = sender_transfer_account_info.generate_split_transfer_proof_data(
-        request.amount,
+        transfer_amount_lamports,
         &sender_elgamal_keypair,
         &sender_aes_key,
         &recipient_elgamal_pubkey,
@@ -733,7 +741,7 @@ pub async fn transfer_cb(
     // Transfer with Split Proofs -------------------------------------------
     let tx4 = {
         let new_decryptable_available_balance = sender_transfer_account_info
-        .new_decryptable_available_balance(request.amount, &sender_aes_key)
+        .new_decryptable_available_balance(transfer_amount_lamports, &sender_aes_key)
         .map_err(|_| TokenError::AccountDecryption)?
         .into();
 

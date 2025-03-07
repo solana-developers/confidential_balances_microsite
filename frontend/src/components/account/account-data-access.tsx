@@ -662,7 +662,9 @@ export function useApplyPendingBalance({ address }: { address: PublicKey }) {
         }
         
         // Sign and send the transaction
-        const signature = await wallet.sendTransaction(transaction, connection)
+        const signature = await wallet.sendTransaction(transaction, connection, {
+          skipPreflight: true // Skip client-side verification to avoid potential issues
+        })
         
         // Confirm the transaction
         await connection.confirmTransaction({ signature, ...latestBlockhash }, 'confirmed')
@@ -712,6 +714,184 @@ export function useApplyPendingBalance({ address }: { address: PublicKey }) {
       } else {
         toast.error(`Failed to apply pending balance: ${error}`)
       }
+    },
+  })
+}
+
+export function useTransferCb({ address }: { address: PublicKey }) {
+  const { connection } = useConnection()
+  const client = useQueryClient()
+  const transactionToast = useTransactionToast()
+  const wallet = useWallet()
+
+  return useMutation({
+    mutationKey: ['transfer-cb', { endpoint: connection.rpcEndpoint, address }],
+    mutationFn: async ({ amount, recipientAddress }: { amount: number, recipientAddress: string }) => {
+      try {
+        if (!wallet.publicKey) {
+          throw new Error("Wallet not connected")
+        }
+
+        // First, sign the messages for ElGamal and AES
+        if (!wallet.signMessage) {
+          throw new Error("Wallet does not support message signing")
+        }
+        
+        // Sign the ElGamal message
+        const elGamalMessageToSign = new TextEncoder().encode("ElGamalSecret")
+        const elGamalSignature = await wallet.signMessage(elGamalMessageToSign)
+        const elGamalSignatureBase64 = Buffer.from(elGamalSignature).toString('base64')
+        
+        console.log('ElGamal signature:', elGamalSignatureBase64)
+        
+        // Sign the AES message
+        const aesMessageToSign = new TextEncoder().encode("AESKey")
+        const aesSignature = await wallet.signMessage(aesMessageToSign)
+        const aesSignatureBase64 = Buffer.from(aesSignature).toString('base64')
+        
+        console.log('AES signature:', aesSignatureBase64)
+
+        // Get the associated token account for the sender
+        const mintAddress = "Dsurjp9dMjFmxq4J3jzZ8As32TgwLCftGyATiQUFu11D"
+        const mintPublicKey = new PublicKey(mintAddress)
+        const senderTokenAccount = await getAssociatedTokenAddress(
+          mintPublicKey,
+          address,
+          false,
+          TOKEN_2022_PROGRAM_ID
+        )
+        
+        // Get the token account data for sender
+        const senderAccountInfo = await connection.getAccountInfo(senderTokenAccount)
+        if (!senderAccountInfo) {
+          throw new Error("Sender token account not found")
+        }
+        
+        // Get the recipient's public key and associated token account
+        const recipientPublicKey = new PublicKey(recipientAddress)
+        const recipientTokenAccount = await getAssociatedTokenAddress(
+          mintPublicKey,
+          recipientPublicKey,
+          false,
+          TOKEN_2022_PROGRAM_ID
+        )
+        
+        // Get the token account data for recipient
+        const recipientAccountInfo = await connection.getAccountInfo(recipientTokenAccount)
+        if (!recipientAccountInfo) {
+          throw new Error("Recipient token account not found")
+        }
+        
+        // Get the mint account data
+        const mintAccountInfo = await connection.getAccountInfo(mintPublicKey)
+        if (!mintAccountInfo) {
+          throw new Error("Mint account not found")
+        }
+        
+        // Call the transfer-cb endpoint
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT}/transfer-cb`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            elgamal_signature: elGamalSignatureBase64,
+            aes_signature: aesSignatureBase64,
+            sender_token_account: Buffer.from(senderAccountInfo.data).toString('base64'),
+            recipient_token_account: Buffer.from(recipientAccountInfo.data).toString('base64'),
+            mint_token_account: Buffer.from(mintAccountInfo.data).toString('base64'),
+            amount: amount.toString()  // Convert to string to avoid precision issues with large numbers
+          }),
+        })
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`)
+        }
+        
+        const data = await response.json()
+        
+        // The response may contain multiple transactions
+        // We need to sign and send each of them in sequence
+        const signatures: string[] = []
+        
+        // Process each transaction in the response
+        for (const transactionBase64 of data.transactions) {
+          // Deserialize the transaction
+          const serializedTransaction = Buffer.from(transactionBase64, 'base64')
+          const transaction = VersionedTransaction.deserialize(serializedTransaction)
+          
+          // Get the latest blockhash for transaction confirmation
+          const latestBlockhash = await connection.getLatestBlockhash()
+          
+          // Update the transaction's blockhash
+          if (transaction.message.version === 0) {
+            // For VersionedMessage V0
+            transaction.message.recentBlockhash = latestBlockhash.blockhash
+          } else {
+            // For legacy messages
+            (transaction.message as any).recentBlockhash = latestBlockhash.blockhash
+          }
+          
+          try {
+            // Simulate the transaction first to catch any potential errors
+            console.log('Simulating transaction before sending...')
+            const simulation = await connection.simulateTransaction(transaction)
+            
+            if (simulation.value.err) {
+              console.error('Transaction simulation failed:', simulation.value.err)
+              throw new Error(`Transaction simulation failed: ${JSON.stringify(simulation.value.err)}`)
+            }
+            
+            console.log('Transaction simulation successful, proceeding to send')
+            
+            // Sign and send the transaction
+            const signature = await wallet.sendTransaction(transaction, connection, {
+              skipPreflight: true // Skip client-side verification to avoid potential issues
+            })
+            signatures.push(signature)
+            
+            // Confirm the transaction
+            await connection.confirmTransaction({ signature, ...latestBlockhash }, 'confirmed')
+            console.log('Transfer transaction signature:', signature)
+          } catch (error) {
+            console.error('Error processing transaction:', error)
+            throw error
+          }
+        }
+        
+        return { 
+          signatures,
+          ...data 
+        }
+      } catch (error) {
+        console.error('Error transferring from confidential balance:', error)
+        throw error
+      }
+    },
+    onSuccess: (data) => {
+      if (data.signatures && data.signatures.length > 0) {
+        // Display toast for each signature
+        data.signatures.forEach((signature: string) => {
+          transactionToast(signature)
+        })
+        toast.success('Transfer transaction successful')
+      }
+      
+      // Invalidate relevant queries to refresh data
+      return Promise.all([
+        client.invalidateQueries({
+          queryKey: ['get-balance', { endpoint: connection.rpcEndpoint, address }],
+        }),
+        client.invalidateQueries({
+          queryKey: ['get-signatures', { endpoint: connection.rpcEndpoint, address }],
+        }),
+        client.invalidateQueries({
+          queryKey: ['get-token-accounts', { endpoint: connection.rpcEndpoint, address }],
+        }),
+      ])
+    },
+    onError: (error) => {
+      toast.error(`Transfer failed! ${error}`)
     },
   })
 }

@@ -56,5 +56,5 @@ pub struct TransferCbRequest {
     pub sender_token_account: String,    // The sender's token account info
     pub recipient_token_account: String, // The recipient's token account info
     pub mint_token_account: String,      // The mint token account info
-    pub amount: u64,                     // The transfer amount as u64
+    pub amount: String,                     // The transfer amount as u64
 } 
