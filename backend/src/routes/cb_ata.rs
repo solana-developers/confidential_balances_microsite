@@ -826,7 +826,7 @@ pub async fn withdraw_cb(
 
     // Decode recipient token account info
     let recipient_token_account_info = {
-        let recipient_token_account_data = BASE64_STANDARD.decode(&request.recipient_token_account_info)?;
+        let recipient_token_account_data = BASE64_STANDARD.decode(&request.recipient_token_account)?;
         StateWithExtensionsOwned::<spl_token_2022::state::Account>::unpack(recipient_token_account_data)?
     };
 
@@ -956,10 +956,16 @@ pub async fn withdraw_cb(
         .new_decryptable_available_balance(withdraw_amount, &receiver_aes_key)
         .map_err(|_| TokenError::AccountDecryption)?
         .into();
+
+        let recipient_token_account = get_associated_token_address_with_program_id(
+            &recipient_token_account_info.base.owner,
+            &recipient_token_account_info.base.mint,
+            &spl_token_2022::id(),
+        );
         
         let instructions = withdraw(
             &spl_token_2022::id(),
-            &Keypair::new().pubkey(),
+            &recipient_token_account,
             &recipient_token_account_info.base.mint,
             withdraw_amount,
             mint_account_info.base.decimals,

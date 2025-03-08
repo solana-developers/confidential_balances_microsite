@@ -892,3 +892,163 @@ export function useTransferCb({ address }: { address: PublicKey }) {
     },
   })
 }
+
+export function useWithdrawCb({ address }: { address: PublicKey }) {
+  const { connection } = useConnection()
+  const client = useQueryClient()
+  const transactionToast = useTransactionToast()
+  const wallet = useWallet()
+
+  return useMutation({
+    mutationKey: ['withdraw-cb', { endpoint: connection.rpcEndpoint, address }],
+    mutationFn: async ({ amount }: { amount: number }) => {
+      try {
+        if (!wallet.publicKey) {
+          throw new Error("Wallet not connected")
+        }
+
+        // First, sign the messages for ElGamal and AES
+        if (!wallet.signMessage) {
+          throw new Error("Wallet does not support message signing")
+        }
+        
+        // Sign the ElGamal message
+        const elGamalMessageToSign = new TextEncoder().encode("ElGamalSecret")
+        const elGamalSignature = await wallet.signMessage(elGamalMessageToSign)
+        const elGamalSignatureBase64 = Buffer.from(elGamalSignature).toString('base64')
+        
+        console.log('ElGamal signature:', elGamalSignatureBase64)
+        
+        // Sign the AES message
+        const aesMessageToSign = new TextEncoder().encode("AESKey")
+        const aesSignature = await wallet.signMessage(aesMessageToSign)
+        const aesSignatureBase64 = Buffer.from(aesSignature).toString('base64')
+        
+        console.log('AES signature:', aesSignatureBase64)
+
+        // Get the recipient token account (which is the user's regular token account)
+        const mintAddress = "Dsurjp9dMjFmxq4J3jzZ8As32TgwLCftGyATiQUFu11D"
+        const mintPublicKey = new PublicKey(mintAddress)
+        const recipientTokenAccount = await getAssociatedTokenAddress(
+          mintPublicKey,
+          address,
+          false,
+          TOKEN_2022_PROGRAM_ID
+        )
+        
+        // Get the recipient token account data
+        const recipientAccountInfo = await connection.getAccountInfo(recipientTokenAccount)
+        if (!recipientAccountInfo) {
+          throw new Error("Recipient token account not found")
+        }
+        
+        // Get the mint account data
+        const mintAccountInfo = await connection.getAccountInfo(mintPublicKey)
+        if (!mintAccountInfo) {
+          throw new Error("Mint account not found")
+        }
+
+        // Get the latest blockhash
+        const latestBlockhash = await connection.getLatestBlockhash()
+        
+        // Add logging to debug
+        console.log('Submitting withdraw request with amount:', amount)
+        
+        // Call the withdraw-cb endpoint
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT}/withdraw-cb`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            elgamal_signature: elGamalSignatureBase64,
+            aes_signature: aesSignatureBase64,
+            recipient_token_account: Buffer.from(recipientAccountInfo.data).toString('base64'),
+            mint_account_info: Buffer.from(mintAccountInfo.data).toString('base64'),
+            withdraw_amount_lamports: amount.toString(),
+            priority_fee: "100000000",  // Add 0.1 SOL priority fee as string
+            latest_blockhash: latestBlockhash.blockhash
+          }),
+        })
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`)
+        }
+        
+        const data = await response.json()
+        
+        // The response may contain multiple transactions
+        // We need to sign and send each of them in sequence
+        const signatures: string[] = []
+        
+        // Process each transaction in the response
+        for (const transactionBase64 of data.transactions) {
+          // Deserialize the transaction
+          const serializedTransaction = Buffer.from(transactionBase64, 'base64')
+          const transaction = VersionedTransaction.deserialize(serializedTransaction)
+          
+          // Verify the backend used our provided blockhash
+          console.log(`Transaction blockhash: ${transaction.message.recentBlockhash}`)
+          console.log(`Original provided blockhash: ${latestBlockhash.blockhash}`)
+          
+          try {
+            // Simulate the transaction first to catch any potential errors
+            console.log('Simulating transaction before sending...')
+            const simulation = await connection.simulateTransaction(transaction)
+            
+            if (simulation.value.err) {
+              console.error('Transaction simulation failed:', simulation.value.err)
+              throw new Error(`Transaction simulation failed: ${JSON.stringify(simulation.value.err)}`)
+            }
+            
+            console.log('Transaction simulation successful, proceeding to send')
+            
+            // Sign and send the transaction
+            const signature = await wallet.sendTransaction(transaction, connection)
+            signatures.push(signature)
+
+            // Confirm the transaction
+            await connection.confirmTransaction({ signature, ...latestBlockhash }, 'confirmed')
+            console.log('Withdraw transaction signature:', signature)
+          } catch (error) {
+            console.error('Error processing transaction:', error)
+            throw error
+          }
+        }
+        
+        return { 
+          signatures,
+          ...data 
+        }
+      } catch (error) {
+        console.error('Error withdrawing from confidential balance:', error)
+        throw error
+      }
+    },
+    onSuccess: (data) => {
+      if (data.signatures && data.signatures.length > 0) {
+        // Display toast for each signature
+        data.signatures.forEach((signature: string) => {
+          transactionToast(signature)
+        })
+        toast.success('Withdraw transaction successful')
+      }
+      
+      // Invalidate relevant queries to refresh data
+      return Promise.all([
+        client.invalidateQueries({
+          queryKey: ['get-balance', { endpoint: connection.rpcEndpoint, address }],
+        }),
+        client.invalidateQueries({
+          queryKey: ['get-signatures', { endpoint: connection.rpcEndpoint, address }],
+        }),
+        client.invalidateQueries({
+          queryKey: ['get-token-accounts', { endpoint: connection.rpcEndpoint, address }],
+        }),
+      ])
+    },
+    onError: (error) => {
+      toast.error(`Withdraw failed! ${error}`)
+    },
+  })
+}

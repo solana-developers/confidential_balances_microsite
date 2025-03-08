@@ -64,11 +64,11 @@ pub struct TransferCbRequest {
 // Request model for the withdraw_cb endpoint
 #[derive(Deserialize)]
 pub struct WithdrawCbRequest {
-    pub elgamal_signature: String,            // ElGamal signature as base64 encoded bytes
-    pub aes_signature: String,                // AES signature as base64 encoded bytes
-    pub recipient_token_account_info: String, // The recipient's token account info
-    pub mint_account_info: String,            // The mint account info
-    pub latest_blockhash: String,             // The latest blockhash
-    pub priority_fee: String,                 // The priority fee as u64
-    pub withdraw_amount_lamports: String,     // The amount to withdraw as u64
+    pub elgamal_signature: String,       // ElGamal signature as base64 encoded bytes
+    pub aes_signature: String,           // AES signature as base64 encoded bytes
+    pub recipient_token_account: String, // The recipient's token account info
+    pub mint_account_info: String,       // The mint account info
+    pub withdraw_amount_lamports: String, // The amount to withdraw as u64
+    pub latest_blockhash: String,        // The latest blockhash
+    pub priority_fee: String,            // The priority fee as u64
 } 
