@@ -24,6 +24,7 @@ use routes::{
     deposit_cb,
     apply_cb,
     transfer_cb,
+    withdraw_cb,
 };
 
 #[tokio::main]
@@ -59,6 +60,7 @@ async fn main() {
         .route("/deposit-cb", post(deposit_cb))
         .route("/apply-cb", post(apply_cb))
         .route("/transfer-cb", post(transfer_cb))
+        .route("/withdraw-cb", post(withdraw_cb))
         .layer(cors)
         .layer(TraceLayer::new_for_http());
 
