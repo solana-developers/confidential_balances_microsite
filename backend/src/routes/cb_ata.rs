@@ -662,11 +662,53 @@ pub async fn transfer_cb(
     // Transact Proofs ------------------------------------------------------------------------------------
     let dummy_blockhash = Hash::default();
 
+    // Parse priority fee
+    let priority_fee = match request.priority_fee.parse::<u64>() {
+        Ok(fee) => fee,
+        Err(_) => {
+            println!("⚠️ Invalid priority fee format: {}, defaulting to 0", request.priority_fee);
+            0
+        }
+    };
+
     // Transaction 1: Allocate all proof accounts at once.
     let tx1 = {
+        // Create instructions vector
+        let mut instructions = Vec::new();
+        
+        // Add priority fee instructions if the fee is greater than 0
+        if priority_fee > 0 {
+            // Convert lamports to micro-lamports per compute unit
+            // For example, 10,000,000 lamports with 200,000 compute units = 50,000 micro-lamports per CU
+            let micro_lamports = priority_fee * 1_000_000 / 200_000;
+            
+            // Add compute budget program instructions
+            let compute_budget_program_id = solana_sdk::compute_budget::id();
+            
+            // Set compute unit limit (optional but recommended)
+            instructions.push(solana_sdk::instruction::Instruction::new_with_borsh(
+                compute_budget_program_id,
+                &solana_sdk::compute_budget::ComputeBudgetInstruction::SetComputeUnitLimit(200_000),
+                vec![],
+            ));
+            
+            // Set compute unit price (priority fee)
+            instructions.push(solana_sdk::instruction::Instruction::new_with_borsh(
+                compute_budget_program_id,
+                &solana_sdk::compute_budget::ComputeBudgetInstruction::SetComputeUnitPrice(micro_lamports),
+                vec![],
+            ));
+        }
+        
+        // Add the original instructions
+        instructions.push(range_create_ix.clone());
+        instructions.push(equality_create_ix.clone());
+        instructions.push(cv_create_ix.clone());
+        
+        // Rest of the code remains the same...
         let message = v0::Message::try_compile(
             &sender_ata_authority,
-            &[range_create_ix.clone(), equality_create_ix.clone(), cv_create_ix.clone()],
+            &instructions,
             &[],
             dummy_blockhash,
         )?;
@@ -709,7 +751,7 @@ pub async fn transfer_cb(
             &sender_ata_authority,
             &[range_verify_ix],
             &[],
-            dummy_blockhash,
+            Hash::default(),
         )?;
         
         // Create a versioned transaction with a placeholder signature for the sender
@@ -726,7 +768,7 @@ pub async fn transfer_cb(
             &sender_ata_authority,
             &[equality_verify_ix, cv_verify_ix],
             &[],
-            dummy_blockhash,
+            Hash::default(),
         )?;
         
         // Create a versioned transaction with a placeholder signature for the sender
@@ -764,7 +806,7 @@ pub async fn transfer_cb(
             &sender_ata_authority,
             &instructions,
             &[],
-            dummy_blockhash,
+            Hash::default(),
         )?;
         
         // Create a versioned transaction with a placeholder signature for the sender
@@ -816,7 +858,7 @@ pub async fn transfer_cb(
                 close_range_proof_instruction,
             ],
             &[],
-            dummy_blockhash,
+            Hash::default(),
         )?;
         
         // Create a versioned transaction with a placeholder signature for the sender

@@ -800,7 +800,8 @@ export function useTransferCb({ address }: { address: PublicKey }) {
             sender_token_account: Buffer.from(senderAccountInfo.data).toString('base64'),
             recipient_token_account: Buffer.from(recipientAccountInfo.data).toString('base64'),
             mint_token_account: Buffer.from(mintAccountInfo.data).toString('base64'),
-            amount: amount.toString()  // Convert to string to avoid precision issues with large numbers
+            amount: amount.toString(),  // Convert to string to avoid precision issues with large numbers
+            priority_fee: "100000000"  // Add 0.1 SOL (10,000,000 lamports) priority fee as string
           }),
         })
         
