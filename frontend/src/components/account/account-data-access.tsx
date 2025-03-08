@@ -787,6 +787,9 @@ export function useTransferCb({ address }: { address: PublicKey }) {
         if (!mintAccountInfo) {
           throw new Error("Mint account not found")
         }
+
+        // Get the latest blockhash
+        const latestBlockhash = await connection.getLatestBlockhash()
         
         // Call the transfer-cb endpoint
         const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT}/transfer-cb`, {
@@ -801,7 +804,8 @@ export function useTransferCb({ address }: { address: PublicKey }) {
             recipient_token_account: Buffer.from(recipientAccountInfo.data).toString('base64'),
             mint_token_account: Buffer.from(mintAccountInfo.data).toString('base64'),
             amount: amount.toString(),  // Convert to string to avoid precision issues with large numbers
-            priority_fee: "100000000"  // Add 0.1 SOL (10,000,000 lamports) priority fee as string
+            priority_fee: "100000000",  // Add 0.1 SOL (10,000,000 lamports) priority fee as string
+            latest_blockhash: latestBlockhash.blockhash
           }),
         })
         
@@ -821,17 +825,9 @@ export function useTransferCb({ address }: { address: PublicKey }) {
           const serializedTransaction = Buffer.from(transactionBase64, 'base64')
           const transaction = VersionedTransaction.deserialize(serializedTransaction)
           
-          // Get the latest blockhash for transaction confirmation
-          const latestBlockhash = await connection.getLatestBlockhash()
-          
-          // Update the transaction's blockhash
-          if (transaction.message.version === 0) {
-            // For VersionedMessage V0
-            transaction.message.recentBlockhash = latestBlockhash.blockhash
-          } else {
-            // For legacy messages
-            (transaction.message as any).recentBlockhash = latestBlockhash.blockhash
-          }
+          // Verify the backend used our provided blockhash
+          console.log(`Transaction blockhash: ${transaction.message.recentBlockhash}`)
+          console.log(`Original provided blockhash: ${latestBlockhash.blockhash}`)
           
           try {
             // Simulate the transaction first to catch any potential errors
@@ -846,11 +842,11 @@ export function useTransferCb({ address }: { address: PublicKey }) {
             console.log('Transaction simulation successful, proceeding to send')
             
             // Sign and send the transaction
-            const signature = await wallet.sendTransaction(transaction, connection, {
-              skipPreflight: true // Skip client-side verification to avoid potential issues
-            })
+            // // @ts-ignore - We've already checked wallet is connected above
+            // const signature = await wallet.signTransaction!(transaction);
+            const signature = await wallet.sendTransaction(transaction, connection)
             signatures.push(signature)
-            
+
             // Confirm the transaction
             await connection.confirmTransaction({ signature, ...latestBlockhash }, 'confirmed')
             console.log('Transfer transaction signature:', signature)

@@ -5,6 +5,7 @@ use axum::{
 use std::fmt;
 use solana_program::program_error::ProgramError;
 use solana_zk_sdk::errors::ElGamalError;
+use solana_sdk::signature::SignerError;
 
 // Error response
 #[derive(Debug)]
@@ -23,6 +24,7 @@ pub enum AppError {
     ProgramError(ProgramError),
     ElGamalError(ElGamalError),
     CompileError(solana_message::CompileError),
+    SignerError(SignerError),
 }
 
 // Implement Display for better error messages
@@ -42,6 +44,7 @@ impl fmt::Display for AppError {
             Self::ProgramError(e) => write!(f, "Solana program error: {}", e),
             Self::ElGamalError(e) => write!(f, "ElGamal encryption error: {}", e),
             Self::CompileError(e) => write!(f, "Compile error: {}", e),
+            Self::SignerError(e) => write!(f, "Signer error: {}", e),
         }
     }
 }
@@ -103,5 +106,11 @@ impl From<ElGamalError> for AppError {
 impl From<solana_message::CompileError> for AppError {
     fn from(error: solana_message::CompileError) -> Self {
         Self::CompileError(error)
+    }
+}
+
+impl From<SignerError> for AppError {
+    fn from(error: SignerError) -> Self {
+        Self::SignerError(error)
     }
 }

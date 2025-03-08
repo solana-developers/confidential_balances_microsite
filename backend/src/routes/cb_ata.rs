@@ -1,5 +1,5 @@
 use {
-    crate::{errors::AppError, models::{ApplyCbRequest, CreateCbAtaRequest, DepositCbRequest, MultiTransactionResponse, TransactionResponse, TransferCbRequest}}, axum::extract::Json, base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _}, bincode, bs58, solana_sdk::{hash::Hash, message::{v0, VersionedMessage}, pubkey::Pubkey, signature::{Keypair, Signature}, signer::Signer, system_instruction, transaction::VersionedTransaction}, solana_zk_sdk::zk_elgamal_proof_program::{self, instruction::{close_context_state, ContextStateInfo}}, spl_associated_token_account::{get_associated_token_address_with_program_id, instruction::create_associated_token_account}, spl_token_2022::{
+    crate::{errors::AppError, models::{ApplyCbRequest, CreateCbAtaRequest, DepositCbRequest, MultiTransactionResponse, TransactionResponse, TransferCbRequest}}, axum::extract::Json, base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _}, bincode, bs58, solana_sdk::{hash::Hash, message::{v0, VersionedMessage}, pubkey::Pubkey, signature::{Keypair, NullSigner, Signature}, signer::Signer, system_instruction, transaction::VersionedTransaction}, solana_zk_sdk::zk_elgamal_proof_program::{self, instruction::{close_context_state, ContextStateInfo}}, spl_associated_token_account::{get_associated_token_address_with_program_id, instruction::create_associated_token_account}, spl_token_2022::{
         error::TokenError,
         extension::{
             confidential_transfer::{
@@ -13,7 +13,7 @@ use {
         },
         instruction::reallocate,
         solana_zk_sdk::encryption::{auth_encryption::AeKey, elgamal::ElGamalKeypair}
-    }, spl_token_confidential_transfer_proof_extraction::instruction::{ProofData, ProofLocation}, spl_token_confidential_transfer_proof_generation::transfer::TransferProofData
+    }, spl_token_confidential_transfer_proof_extraction::instruction::{ProofData, ProofLocation}, spl_token_confidential_transfer_proof_generation::transfer::TransferProofData, std::str::FromStr
 };
 
 
@@ -660,7 +660,7 @@ pub async fn transfer_cb(
     )?;
 
     // Transact Proofs ------------------------------------------------------------------------------------
-    let dummy_blockhash = Hash::default();
+    let client_blockhash = Hash::from_str(&request.latest_blockhash).map_err(|_| AppError::SerializationError)?;
 
     // Parse priority fee
     let priority_fee = match request.priority_fee.parse::<u64>() {
@@ -710,39 +710,19 @@ pub async fn transfer_cb(
             &sender_ata_authority,
             &instructions,
             &[],
-            dummy_blockhash,
+            client_blockhash,
         )?;
-        
-        // Get the number of required signatures
-        let num_required_signatures = message.header.num_required_signatures as usize;        
         
         // Create a versioned message
         let versioned_message = VersionedMessage::V0(message.clone());
-        
-        // Create a transaction with empty signatures
-        let mut tx = VersionedTransaction {
-            signatures: vec![Signature::default(); num_required_signatures],
-            message: versioned_message,
-        };
-        
-        // Partially sign the transaction with context state accounts
-        // The sender will sign later
-        for (i, pubkey) in message.account_keys.iter().enumerate().skip(1) {
-            if i >= num_required_signatures {
-                break;
-            }
-            
-            if *pubkey == range_proof_context_state_account.pubkey() {
-                tx.signatures[i] = range_proof_context_state_account.sign_message(&message.serialize());
-            } else if *pubkey == equality_proof_context_state_account.pubkey() {
-                tx.signatures[i] = equality_proof_context_state_account.sign_message(&message.serialize());
-            } else if *pubkey == ciphertext_validity_proof_context_state_account.pubkey() {
-                tx.signatures[i] = ciphertext_validity_proof_context_state_account.sign_message(&message.serialize());
-            }
-            // No else needed - we just don't sign for other accounts
-        }
-        
-        tx
+
+        VersionedTransaction::try_new(versioned_message, 
+        &[
+            &NullSigner::new(&sender_ata_authority) as &dyn Signer,
+            &range_proof_context_state_account,
+            &equality_proof_context_state_account,
+            &ciphertext_validity_proof_context_state_account,
+        ])?
     };
     
     // Transaction 2: Encode Range Proof on its own (because it's the largest).
@@ -751,7 +731,7 @@ pub async fn transfer_cb(
             &sender_ata_authority,
             &[range_verify_ix],
             &[],
-            Hash::default(),
+            client_blockhash,
         )?;
         
         // Create a versioned transaction with a placeholder signature for the sender
@@ -768,7 +748,7 @@ pub async fn transfer_cb(
             &sender_ata_authority,
             &[equality_verify_ix, cv_verify_ix],
             &[],
-            Hash::default(),
+            client_blockhash,
         )?;
         
         // Create a versioned transaction with a placeholder signature for the sender
@@ -806,7 +786,7 @@ pub async fn transfer_cb(
             &sender_ata_authority,
             &instructions,
             &[],
-            Hash::default(),
+            client_blockhash,
         )?;
         
         // Create a versioned transaction with a placeholder signature for the sender
@@ -858,7 +838,7 @@ pub async fn transfer_cb(
                 close_range_proof_instruction,
             ],
             &[],
-            Hash::default(),
+            client_blockhash,
         )?;
         
         // Create a versioned transaction with a placeholder signature for the sender

@@ -58,4 +58,5 @@ pub struct TransferCbRequest {
     pub mint_token_account: String,      // The mint token account info
     pub amount: String,                     // The transfer amount as u64
     pub priority_fee: String,             // The priority fee as u64
+    pub latest_blockhash: String,         // The latest blockhash
 } 
