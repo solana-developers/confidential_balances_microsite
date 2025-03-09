@@ -106,7 +106,7 @@ export function AccountButtons({ address, mint, decimals }: {
       <ModalReceive address={address} show={showReceiveModal} hide={() => setShowReceiveModal(false)} />
       <ModalSend address={address} show={showSendModal} hide={() => setShowSendModal(false)} />
       <ModalDeposit show={showDepositModal} hide={() => setShowDepositModal(false)} address={address} />
-      <ModalTransferCb show={showTransferModal} hide={() => setShowTransferModal(false)} address={address} />
+      <ModalTransfer show={showTransferModal} hide={() => setShowTransferModal(false)} address={address} />
       <ModalWithdraw show={showWithdraw} hide={() => setShowWithdraw(false)} address={address} />
       <div className="space-x-2">
         <button
@@ -660,7 +660,7 @@ function ModalWithdraw({ show, hide, address }: { show: boolean; hide: () => voi
   )
 }
 
-function ModalTransferCb({ show, hide, address }: { show: boolean; hide: () => void; address: PublicKey }) {
+function ModalTransfer({ show, hide, address }: { show: boolean; hide: () => void; address: PublicKey }) {
   const [amount, setAmount] = useState('')
   const [recipientAddress, setRecipientAddress] = useState('')
   const transferMutation = useTransferCb({ address })
@@ -934,7 +934,7 @@ export function AccountActions({ address }: { address: PublicKey }) {
       <ModalWithdraw show={showWithdraw} hide={() => setShowWithdraw(false)} address={address} />
       <ModalSend show={showSend} hide={() => setShowSend(false)} address={address} />
       <ModalAirdrop show={showAirdrop} hide={() => setShowAirdrop(false)} address={address} />
-      <ModalTransferCb show={showTransfer} hide={() => setShowTransfer(false)} address={address} />
+      <ModalTransfer show={showTransfer} hide={() => setShowTransfer(false)} address={address} />
     </div>
   )
 }
