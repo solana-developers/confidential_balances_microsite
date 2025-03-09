@@ -1,5 +1,21 @@
 use {
-    crate::{errors::AppError, models::{ApplyCbRequest, CreateCbAtaRequest, DepositCbRequest, MultiTransactionResponse, TransactionResponse, TransferCbRequest, WithdrawCbRequest}}, axum::extract::Json, base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _}, bincode, bs58, solana_sdk::{hash::Hash, message::{v0, VersionedMessage}, pubkey::Pubkey, signature::{Keypair, NullSigner, Signature}, signer::Signer, system_instruction, transaction::VersionedTransaction}, solana_zk_sdk::zk_elgamal_proof_program::{self, instruction::{close_context_state, ContextStateInfo}}, spl_associated_token_account::{get_associated_token_address_with_program_id, instruction::create_associated_token_account}, spl_token_2022::{
+    crate::{errors::AppError, models::{
+        ApplyCbRequest, 
+        CreateCbAtaRequest, 
+        DepositCbRequest, 
+        MultiTransactionResponse, 
+        TransactionResponse, 
+        TransferCbRequest, 
+        WithdrawCbRequest,
+        TransferCbSpaceResponse,
+        WithdrawCbSpaceResponse
+    }}, 
+    axum::extract::Json, 
+    base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _}, 
+    bincode, bs58, solana_sdk::{hash::Hash, message::{v0, VersionedMessage}, pubkey::Pubkey, signature::{Keypair, NullSigner, Signature}, signer::Signer, system_instruction, transaction::VersionedTransaction}, 
+    solana_zk_sdk::zk_elgamal_proof_program::{self, instruction::{close_context_state, ContextStateInfo}}, 
+    spl_associated_token_account::{get_associated_token_address_with_program_id, instruction::create_associated_token_account}, 
+    spl_token_2022::{
         error::TokenError,
         extension::{
             confidential_transfer::{
@@ -446,6 +462,14 @@ pub async fn transfer_cb(
         .map_err(|_| AppError::InvalidAmount)?;
     println!("✅ Successfully decoded amount: {}", transfer_amount_lamports);
     
+    // Parse rent values for proof account creation
+    let equality_proof_rent = request.equality_proof_rent.parse::<u64>()
+        .map_err(|_| AppError::SerializationError)?;
+    let ciphertext_validity_proof_rent = request.ciphertext_validity_proof_rent.parse::<u64>()
+        .map_err(|_| AppError::SerializationError)?;
+    let range_proof_rent = request.range_proof_rent.parse::<u64>()
+        .map_err(|_| AppError::SerializationError)?;
+    
     // Decode sender token account data from request
     println!("📦 Decoding sender token account data from request");
     let sender_token_account_info = {
@@ -589,6 +613,7 @@ pub async fn transfer_cb(
         &range_proof_context_state_account.pubkey(),
         &context_state_authority,
         &range_proof_data,
+        range_proof_rent,
     )?;
 
     // Equality Proof Instructions---------------------------------------------------------------------------
@@ -597,6 +622,7 @@ pub async fn transfer_cb(
         &equality_proof_context_state_account.pubkey(),
         &context_state_authority,
         &equality_proof_data,
+        equality_proof_rent,
     )?;
 
     // Ciphertext Validity Proof Instructions ----------------------------------------------------------------
@@ -605,6 +631,7 @@ pub async fn transfer_cb(
         &ciphertext_validity_proof_context_state_account.pubkey(),
         &context_state_authority,
         &ciphertext_validity_proof_data_with_ciphertext.proof_data,
+        ciphertext_validity_proof_rent,
     )?;
 
     // Transact Proofs ------------------------------------------------------------------------------------
@@ -830,6 +857,12 @@ pub async fn withdraw_cb(
         StateWithExtensionsOwned::<spl_token_2022::state::Account>::unpack(recipient_token_account_data)?
     };
 
+    // Parse rent values for proof account creation
+    let equality_proof_rent = request.equality_proof_rent.parse::<u64>()
+        .map_err(|_| AppError::SerializationError)?;
+    let range_proof_rent = request.range_proof_rent.parse::<u64>()
+        .map_err(|_| AppError::SerializationError)?;
+
     // Decode mint account info
     let mint_account_info = {
         let mint_account_data = BASE64_STANDARD.decode(&request.mint_account_info)?;
@@ -903,6 +936,7 @@ pub async fn withdraw_cb(
         &range_proof_context_state_keypair.pubkey(),
         &context_state_authority,
         &range_proof_data,
+        range_proof_rent,
     )?;
 
     // Equality Proof Instructions---------------------------------------------------------------------------
@@ -911,6 +945,7 @@ pub async fn withdraw_cb(
         &equality_proof_context_state_keypair.pubkey(),
         &context_state_authority,
         &equality_proof_data,
+        equality_proof_rent,
     )?;
 
     let tx1 = {
@@ -1042,12 +1077,9 @@ pub async fn withdraw_cb(
     Ok(Json(response))
 }
 
-
-/// HACK: This should be implemented in the original spl_token_client crate.
-/// HACK: This backend should not be making any RPC calls by design (risky dependency problem at scale).
-
 /// Refactored version of spl_token_client::token::Token::confidential_transfer_create_context_state_account().
-/// Instead of sending transactions internally, this function now returns the instructions to be used externally.
+/// Instead of sending transactions internally or calculating rent via RPC, this function now accepts 
+/// the rent value from the caller and returns the instructions to be used externally.
 fn get_zk_proof_context_state_account_creation_instructions<
     ZK: bytemuck::Pod + zk_elgamal_proof_program::proof_data::ZkProofData<U>,
     U: bytemuck::Pod,
@@ -1056,26 +1088,14 @@ fn get_zk_proof_context_state_account_creation_instructions<
     context_state_account_pubkey: &Pubkey,
     context_state_authority_pubkey: &Pubkey,
     proof_data: &ZK,
+    rent: u64,
 ) -> Result<(solana_sdk::instruction::Instruction, solana_sdk::instruction::Instruction), AppError> {
     use std::mem::size_of;
     use spl_token_confidential_transfer_proof_extraction::instruction::zk_proof_type_to_instruction;
 
     let space = size_of::<zk_elgamal_proof_program::state::ProofContextState<U>>();
     println!("📊 Context state account space required: {} bytes", space);
-    
-    let rent = {
-        
-        let client = solana_client::rpc_client::RpcClient::new_with_commitment(
-            "https://api.devnet.solana.com",
-            solana_sdk::commitment_config::CommitmentConfig::confirmed(),
-        );
-        
-        let rent = client
-            .get_minimum_balance_for_rent_exemption(space)
-            .map_err(|_| AppError::SerializationError)?;
-        println!("💰 Minimum rent for context state account: {} lamports", rent);
-        rent
-    };
+    println!("💰 Using provided rent for context state account: {} lamports", rent);
 
     let context_state_info = ContextStateInfo {
         context_state_account: context_state_account_pubkey,
@@ -1099,4 +1119,47 @@ fn get_zk_proof_context_state_account_creation_instructions<
 
     // Return a tuple containing the create account instruction and verify proof instruction.
     Ok((create_account_ix, verify_proof_ix))
+}
+
+/// GET handler to provide space requirements for transfer-cb operation
+pub async fn transfer_cb_space() -> Result<Json<TransferCbSpaceResponse>, AppError> {
+    println!("📊 Processing transfer-cb-space request");
+    
+    let equality_proof_space = size_of::<zk_elgamal_proof_program::state::ProofContextState<
+        solana_zk_sdk::zk_elgamal_proof_program::proof_data::ciphertext_commitment_equality::CiphertextCommitmentEqualityProofContext
+    >>();
+    
+    let ciphertext_validity_proof_space = size_of::<zk_elgamal_proof_program::state::ProofContextState<
+        solana_zk_sdk::zk_elgamal_proof_program::proof_data::batched_grouped_ciphertext_validity::BatchedGroupedCiphertext3HandlesValidityProofContext
+    >>();
+
+    let range_proof_space = size_of::<zk_elgamal_proof_program::state::ProofContextState<
+        solana_zk_sdk::zk_elgamal_proof_program::proof_data::batched_range_proof::batched_range_proof_u128::BatchedRangeProofU128Data
+    >>();
+    
+    Ok(Json(TransferCbSpaceResponse {
+        equality_proof_space,
+        ciphertext_validity_proof_space,
+        range_proof_space,
+        message: "Space requirements for transfer-cb proofs".to_string(),
+    }))
+}
+
+/// GET handler to provide space requirements for withdraw-cb operation
+pub async fn withdraw_cb_space() -> Result<Json<WithdrawCbSpaceResponse>, AppError> {
+    println!("📊 Processing withdraw-cb-space request");
+    
+    let equality_proof_space = size_of::<zk_elgamal_proof_program::state::ProofContextState<
+        solana_zk_sdk::zk_elgamal_proof_program::proof_data::ciphertext_commitment_equality::CiphertextCommitmentEqualityProofContext
+    >>();
+    
+    let range_proof_space = size_of::<zk_elgamal_proof_program::state::ProofContextState<
+        solana_zk_sdk::zk_elgamal_proof_program::proof_data::batched_range_proof::batched_range_proof_u128::BatchedRangeProofU128Data
+    >>();
+    
+    Ok(Json(WithdrawCbSpaceResponse {
+        equality_proof_space,
+        range_proof_space,
+        message: "Space requirements for withdraw-cb proofs".to_string(),
+    }))
 }

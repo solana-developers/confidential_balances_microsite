@@ -781,7 +781,32 @@ export function useTransferCB({ senderTokenAccountPubkey }: { senderTokenAccount
         // Get the latest blockhash
         const latestBlockhash = await connection.getLatestBlockhash()
         
-        // Call the transfer-cb endpoint
+        // Step 1: Get the space requirements for each proof account
+        console.log('Fetching proof space requirements...')
+        const spaceResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT}/transfer-cb`, {
+          method: 'GET',
+        })
+        
+        if (!spaceResponse.ok) {
+          throw new Error(`HTTP error getting space requirements! Status: ${spaceResponse.status}`)
+        }
+        
+        const spaceData = await spaceResponse.json()
+        console.log('Space requirements:', spaceData)
+        
+        // Step 2: Calculate rent for each proof account
+        console.log('Calculating rent for proof accounts...')
+        const equalityProofRent = await connection.getMinimumBalanceForRentExemption(spaceData.equality_proof_space)
+        const ciphertextValidityProofRent = await connection.getMinimumBalanceForRentExemption(spaceData.ciphertext_validity_proof_space)
+        const rangeProofRent = await connection.getMinimumBalanceForRentExemption(spaceData.range_proof_space)
+        
+        console.log('Rent requirements:')
+        console.log('- Equality proof rent:', equalityProofRent, 'lamports')
+        console.log('- Ciphertext validity proof rent:', ciphertextValidityProofRent, 'lamports')
+        console.log('- Range proof rent:', rangeProofRent, 'lamports')
+        
+        // Step 3: Call the transfer-cb endpoint with rent information
+        console.log('Submitting transfer request...')
         const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT}/transfer-cb`, {
           method: 'POST',
           headers: {
@@ -795,7 +820,10 @@ export function useTransferCB({ senderTokenAccountPubkey }: { senderTokenAccount
             mint_token_account: Buffer.from(mintAccountInfo.data).toString('base64'),
             amount: amount.toString(),  // Convert to string to avoid precision issues with large numbers
             priority_fee: "100000000",  // Add 0.1 SOL (10,000,000 lamports) priority fee as string
-            latest_blockhash: latestBlockhash.blockhash
+            latest_blockhash: latestBlockhash.blockhash,
+            equality_proof_rent: equalityProofRent.toString(),
+            ciphertext_validity_proof_rent: ciphertextValidityProofRent.toString(),
+            range_proof_rent: rangeProofRent.toString()
           }),
         })
         
@@ -940,10 +968,33 @@ export function useWithdrawCB({ tokenAccountPubkey }: { tokenAccountPubkey: Publ
         // Get the latest blockhash
         const latestBlockhash = await connection.getLatestBlockhash()
         
+        // Step 1: Get the space requirements for each proof account
+        console.log('Fetching proof space requirements...')
+        const spaceResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT}/withdraw-cb`, {
+          method: 'GET',
+        })
+        
+        if (!spaceResponse.ok) {
+          throw new Error(`HTTP error getting space requirements! Status: ${spaceResponse.status}`)
+        }
+        
+        const spaceData = await spaceResponse.json()
+        console.log('Space requirements:', spaceData)
+        
+        // Step 2: Calculate rent for each proof account
+        console.log('Calculating rent for proof accounts...')
+        const equalityProofRent = await connection.getMinimumBalanceForRentExemption(spaceData.equality_proof_space)
+        const rangeProofRent = await connection.getMinimumBalanceForRentExemption(spaceData.range_proof_space)
+        
+        console.log('Rent requirements:')
+        console.log('- Equality proof rent:', equalityProofRent, 'lamports')
+        console.log('- Range proof rent:', rangeProofRent, 'lamports')
+        
         // Add logging to debug
         console.log('Submitting withdraw request with amount:', amount)
         
-        // Call the withdraw-cb endpoint
+        // Step 3: Call the withdraw-cb endpoint with rent information
+        console.log('Submitting withdraw request...')
         const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT}/withdraw-cb`, {
           method: 'POST',
           headers: {
@@ -956,7 +1007,9 @@ export function useWithdrawCB({ tokenAccountPubkey }: { tokenAccountPubkey: Publ
             mint_account_info: Buffer.from(mintAccountInfo.data).toString('base64'),
             withdraw_amount_lamports: amount.toString(),
             priority_fee: "100000000",  // Add 0.1 SOL priority fee as string
-            latest_blockhash: latestBlockhash.blockhash
+            latest_blockhash: latestBlockhash.blockhash,
+            equality_proof_rent: equalityProofRent.toString(),
+            range_proof_rent: rangeProofRent.toString()
           }),
         })
         

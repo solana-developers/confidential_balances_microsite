@@ -57,6 +57,9 @@ pub struct TransferCbRequest {
     pub amount: String,                     // The transfer amount as u64
     pub priority_fee: String,             // The priority fee as u64
     pub latest_blockhash: String,         // The latest blockhash
+    pub equality_proof_rent: String,      // Rent for equality proof context state account
+    pub ciphertext_validity_proof_rent: String, // Rent for ciphertext validity proof context state account
+    pub range_proof_rent: String,         // Rent for range proof context state account
 }
 
 // Request model for the withdraw_cb endpoint
@@ -69,4 +72,23 @@ pub struct WithdrawCbRequest {
     pub withdraw_amount_lamports: String, // The amount to withdraw as u64
     pub latest_blockhash: String,        // The latest blockhash
     pub priority_fee: String,            // The priority fee as u64
+    pub equality_proof_rent: String,      // Rent for equality proof context state account
+    pub range_proof_rent: String,         // Rent for range proof context state account
+}
+
+// Response model for the transfer-cb GET endpoint providing space requirements
+#[derive(Serialize)]
+pub struct TransferCbSpaceResponse {
+    pub equality_proof_space: usize,
+    pub ciphertext_validity_proof_space: usize,
+    pub range_proof_space: usize,
+    pub message: String,
+}
+
+// Response model for the withdraw-cb GET endpoint providing space requirements
+#[derive(Serialize)]
+pub struct WithdrawCbSpaceResponse {
+    pub equality_proof_space: usize,
+    pub range_proof_space: usize,
+    pub message: String,
 } 
