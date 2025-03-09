@@ -160,7 +160,6 @@ pub async fn create_cb_ata(
         ProofData::InstructionData(&proof_data),
     );
 
-    // Instructions to configure the token account, including the proof instruction
     println!("📋 Creating configure_account instruction");
     let configure_account_instruction = configure_account(
         &spl_token_2022::id(),                 // Program ID
@@ -174,7 +173,6 @@ pub async fn create_cb_ata(
     )?;
     println!("✅ Configure account instructions created successfully");
 
-    // Instructions to configure account must come after `initialize_account` instruction
     println!("🔄 Combining all instructions");
     let mut instructions = vec![
         create_associated_token_account_instruction,
@@ -183,11 +181,8 @@ pub async fn create_cb_ata(
     instructions.extend(configure_account_instruction);
     println!("✅ Combined {} instructions", instructions.len());
 
-    // Use a dummy non-zero blockhash that the frontend will replace
-    println!("🧱 Using dummy blockhash");
     let dummy_blockhash = Hash::default();
 
-    // Create a V0 message with the dummy blockhash
     println!("📝 Creating V0 message");
     let v0_message = v0::Message::try_compile(
         &token_account_authority,
@@ -197,27 +192,17 @@ pub async fn create_cb_ata(
     ).map_err(|_| AppError::SerializationError)?;
     println!("✅ V0 message created successfully");
 
-    // Get the number of required signatures before moving v0_message
     let num_required_signatures = v0_message.header.num_required_signatures as usize;
     println!("🔑 Transaction requires {} signatures", num_required_signatures);
     
-    // Create a versioned message
     println!("📝 Creating versioned message");
     let versioned_message = VersionedMessage::V0(v0_message);
     
-    // Create a versioned transaction with placeholder signatures for required signers
     println!("📝 Creating versioned transaction with placeholder signatures");
-    let mut signatures = Vec::with_capacity(num_required_signatures);
-    
-    // Add empty signatures as placeholders (will be replaced by the wallet)
-    for _ in 0..num_required_signatures {
-        signatures.push(solana_sdk::signature::Signature::default());
-    }
-    
-    let versioned_transaction = VersionedTransaction {
-        signatures,
-        message: versioned_message,
-    };
+    let versioned_transaction = VersionedTransaction::try_new(versioned_message, 
+    &[
+        &NullSigner::new(&token_account_authority) as &dyn Signer,
+    ])?;
     
     // Serialize the transaction to base64
     println!("🔄 Serializing transaction to base64");

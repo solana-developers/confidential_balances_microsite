@@ -266,14 +266,14 @@ export function useGetSingleTokenAccount({ address }: { address: PublicKey }) {
   })
 }
 
-export function useCreateAssociatedTokenAccountCB({ address }: { address: PublicKey }) {
+export function useCreateAssociatedTokenAccountCB({ walletAddressPubkey }: { walletAddressPubkey: PublicKey }) {
   const { connection } = useConnection()
   const client = useQueryClient()
   const transactionToast = useTransactionToast()
   const wallet = useWallet()
 
   return useMutation({
-    mutationKey: ['initialize-account', { endpoint: connection.rpcEndpoint, address }],
+    mutationKey: ['initialize-account', { endpoint: connection.rpcEndpoint, walletAddressPubkey }],
     mutationFn: async (params: { mintAddress: string }) => {
       try {
         // First, sign the message "ElGamalSecret"
@@ -297,11 +297,10 @@ export function useCreateAssociatedTokenAccountCB({ address }: { address: Public
 
         const mintAddress = params.mintAddress;
         const mintBase64 = Buffer.from(mintAddress).toString('base64');
-        const authorityBase64 = Buffer.from(address.toString()).toString('base64');
+        const authorityBase64 = Buffer.from(walletAddressPubkey.toString()).toString('base64');
         
         // Now proceed with the transaction
         const route = `${process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT}/create-cb-ata`;
-        console.log('route', route);
         const response = await fetch(route, {
           method: 'POST',
           headers: {
@@ -364,13 +363,13 @@ export function useCreateAssociatedTokenAccountCB({ address }: { address: Public
       // Invalidate relevant queries to refresh data
       return Promise.all([
         client.invalidateQueries({
-          queryKey: ['get-balance', { endpoint: connection.rpcEndpoint, address }],
+          queryKey: ['get-balance', { endpoint: connection.rpcEndpoint, walletAddressPubkey }],
         }),
         client.invalidateQueries({
-          queryKey: ['get-signatures', { endpoint: connection.rpcEndpoint, address }],
+          queryKey: ['get-signatures', { endpoint: connection.rpcEndpoint, walletAddressPubkey }],
         }),
         client.invalidateQueries({
-          queryKey: ['get-token-accounts', { endpoint: connection.rpcEndpoint, address }],
+          queryKey: ['get-token-accounts', { endpoint: connection.rpcEndpoint, walletAddressPubkey }],
         }),
       ]);
     },

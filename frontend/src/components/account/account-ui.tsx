@@ -104,19 +104,15 @@ export function AccountButtons({ address }: {
   address: PublicKey
 }) {
   const [showInitializeModal, setShowInitializeModal] = useState(false)
-  const { mutate: initializeAccount, isPending: isInitializing } = useCreateAssociatedTokenAccountCB({ address })
+  const { mutate: initializeAccount, isPending: isInitializing } = useCreateAssociatedTokenAccountCB({ walletAddressPubkey: address })
   
-  const handleInitialize = (params: { mintAddress: string }) => {
-    initializeAccount(params)
-  }
-
   return (
     <div>
       <ModalInitATA 
         show={showInitializeModal} 
         hide={() => setShowInitializeModal(false)} 
         address={address} 
-        initializeAccount={handleInitialize} 
+        initializeAccount={initializeAccount} 
         isInitializing={isInitializing} 
       />
       
