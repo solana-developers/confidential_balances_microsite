@@ -464,7 +464,7 @@ export function useApplyCB({ address }: { address: PublicKey }) {
 
   return useMutation({
     mutationKey: ['apply-pending-balance', { endpoint: connection.rpcEndpoint, address }],
-    mutationFn: async ({ mint, mintDecimals }: { mint: PublicKey, mintDecimals: number }) => {
+    mutationFn: async ({ tokenAccount }: { tokenAccount: string }) => {
       try {
         // First, sign the messages for ElGamal and AES
         if (!wallet.signMessage) {
@@ -485,13 +485,8 @@ export function useApplyCB({ address }: { address: PublicKey }) {
         
         console.log('AES signature:', aesSignatureBase64)
         
-        // Get the associated token address
-        const tokenAccountAddress = await getAssociatedTokenAddress(
-          mint,
-          address,
-          true, // allowOwnerOffCurve
-          TOKEN_2022_PROGRAM_ID
-        )
+        // Get the token account address from the provided string
+        const tokenAccountAddress = new PublicKey(tokenAccount)
 
         // Fetch the token account data
         const accountInfo = await connection.getAccountInfo(tokenAccountAddress)
@@ -499,14 +494,16 @@ export function useApplyCB({ address }: { address: PublicKey }) {
           throw new Error('Token account not found')
         }
         
+        // Extract mint from token account data
+        // This is a simplified approach - in a real implementation, you would parse the token account data
+        // to extract the mint address
+        
         // Prepare the request to the backend
         // Convert pubkeys to base58 strings and then base64 encode them
         const ataAuthorityBase58 = address.toString()
-        const mintBase58 = mint.toString()
         
         const request = {
           ata_authority: Buffer.from(ataAuthorityBase58).toString('base64'),
-          mint: Buffer.from(mintBase58).toString('base64'),
           elgamal_signature: elGamalSignatureBase64,
           aes_signature: aesSignatureBase64,
           token_account_data: Buffer.from(accountInfo.data).toString('base64')
