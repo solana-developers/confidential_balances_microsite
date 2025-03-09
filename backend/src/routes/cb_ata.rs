@@ -310,15 +310,23 @@ pub async fn deposit_cb(
 pub async fn apply_cb(
     Json(request): Json<ApplyCbRequest>,
 ) -> Result<Json<TransactionResponse>, AppError> {
-    println!("🔄 Processing apply_cb request for mint: {}", request.mint);
+    println!("🔄 Processing apply_cb request");
     
     // Parse the authority address
     let ata_authority = parse_base64_base58_pubkey(&request.ata_authority)?;
     println!("✅ Parsed authority pubkey: {}", ata_authority);
     
+    // Deserialize the account data
+    println!("📦 Decoding token account data from request");
+    let token_account_info = {
+        // Decode token account data from request instead of fetching it
+        let token_account_data = BASE64_STANDARD.decode(&request.token_account_data)?;
+        StateWithExtensionsOwned::<spl_token_2022::state::Account>::unpack(token_account_data)?
+    };
+    println!("✅ Successfully decoded ATA data from owner {}", token_account_info.base.owner.to_string());
+    
     // Parse the mint address
-    let mint_pubkey = parse_base64_base58_pubkey(&request.mint)?;
-    println!("✅ Parsed mint pubkey: {}", mint_pubkey);
+    let mint_pubkey = token_account_info.base.mint;
     
     // Parse ElGamal signature
     println!("🔐 Decoding ElGamal signature: {}", request.elgamal_signature);
@@ -337,15 +345,6 @@ pub async fn apply_cb(
     
     let aes_key = AeKey::new_from_signature(&aes_signature)
         .map_err(|_| AppError::SerializationError)?;
-    
-    // Decode token account data from request instead of fetching it
-    println!("📦 Decoding token account data from request");
-    let token_account_data = BASE64_STANDARD.decode(&request.token_account_data)?;
-    
-    // Deserialize the account data
-    let token_account_info = StateWithExtensionsOwned::<spl_token_2022::state::Account>::unpack(token_account_data)?;
-    println!("✅ Successfully decoded token account data from owner {}", token_account_info.base.owner.to_string());
-    
     
     // Get the associated token account address
     let ata = get_associated_token_address_with_program_id(
@@ -1066,9 +1065,12 @@ fn get_zk_proof_context_state_account_creation_instructions<
     );
 
     let space = size_of::<zk_elgamal_proof_program::state::ProofContextState<U>>();
+    println!("📊 Context state account space required: {} bytes", space);
+    
     let rent = client
         .get_minimum_balance_for_rent_exemption(space)
         .map_err(|_| AppError::SerializationError)?;
+    println!("💰 Minimum rent for context state account: {} lamports", rent);
 
     let context_state_info = ContextStateInfo {
         context_state_account: context_state_account_pubkey,
