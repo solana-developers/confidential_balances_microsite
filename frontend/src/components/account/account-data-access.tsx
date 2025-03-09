@@ -185,7 +185,7 @@ export function useCreateAssociatedTokenAccountCB({ address }: { address: Public
 
   return useMutation({
     mutationKey: ['initialize-account', { endpoint: connection.rpcEndpoint, address }],
-    mutationFn: async () => {
+    mutationFn: async (params: { mintAddress: string }) => {
       try {
         // First, sign the message "ElGamalSecret"
         if (!wallet.signMessage) {
@@ -206,7 +206,8 @@ export function useCreateAssociatedTokenAccountCB({ address }: { address: Public
         
         console.log('AES signature:', aesSignatureBase64);
 
-        const mintBase64 = Buffer.from("Dsurjp9dMjFmxq4J3jzZ8As32TgwLCftGyATiQUFu11D").toString('base64');
+        const mintAddress = params.mintAddress;
+        const mintBase64 = Buffer.from(mintAddress).toString('base64');
         const authorityBase64 = Buffer.from(address.toString()).toString('base64');
         
         // Now proceed with the transaction
@@ -302,13 +303,17 @@ export function useDepositCb({ address }: { address: PublicKey }) {
 
   return useMutation({
     mutationKey: ['deposit-cb', { endpoint: connection.rpcEndpoint, address }],
-    mutationFn: async ({ lamportAmount, mintDecimals }: { lamportAmount: string, mintDecimals: number }) => {
+    mutationFn: async ({ lamportAmount, mintDecimals, mintAddress }: { 
+      lamportAmount: string, 
+      mintDecimals: number,
+      mintAddress: string 
+    }) => {
       try {
         if (!wallet.publicKey) {
           throw new Error("Wallet not connected");
         }
 
-        const mintBase64 = Buffer.from("Dsurjp9dMjFmxq4J3jzZ8As32TgwLCftGyATiQUFu11D").toString('base64');
+        const mintBase64 = Buffer.from(mintAddress).toString('base64');
         const authorityBase64 = Buffer.from(address.toString()).toString('base64');
         
         // Call the deposit-cb endpoint
@@ -604,7 +609,11 @@ export function useTransferCB({ address }: { address: PublicKey }) {
 
   return useMutation({
     mutationKey: ['transfer-cb', { endpoint: connection.rpcEndpoint, address }],
-    mutationFn: async ({ amount, recipientAddress }: { amount: number, recipientAddress: string }) => {
+    mutationFn: async ({ amount, recipientAddress, mintAddress }: { 
+      amount: number, 
+      recipientAddress: string,
+      mintAddress: string
+    }) => {
       try {
         if (!wallet.publicKey) {
           throw new Error("Wallet not connected")
@@ -630,7 +639,6 @@ export function useTransferCB({ address }: { address: PublicKey }) {
         console.log('AES signature:', aesSignatureBase64)
 
         // Get the associated token account for the sender
-        const mintAddress = "Dsurjp9dMjFmxq4J3jzZ8As32TgwLCftGyATiQUFu11D"
         const mintPublicKey = new PublicKey(mintAddress)
         const senderTokenAccount = await getAssociatedTokenAddress(
           mintPublicKey,
@@ -779,7 +787,10 @@ export function useWithdrawCB({ address }: { address: PublicKey }) {
 
   return useMutation({
     mutationKey: ['withdraw-cb', { endpoint: connection.rpcEndpoint, address }],
-    mutationFn: async ({ amount }: { amount: number }) => {
+    mutationFn: async ({ amount, mintAddress }: { 
+      amount: number,
+      mintAddress: string
+    }) => {
       try {
         if (!wallet.publicKey) {
           throw new Error("Wallet not connected")
@@ -805,7 +816,6 @@ export function useWithdrawCB({ address }: { address: PublicKey }) {
         console.log('AES signature:', aesSignatureBase64)
 
         // Get the recipient token account (which is the user's regular token account)
-        const mintAddress = "Dsurjp9dMjFmxq4J3jzZ8As32TgwLCftGyATiQUFu11D"
         const mintPublicKey = new PublicKey(mintAddress)
         const recipientTokenAccount = await getAssociatedTokenAddress(
           mintPublicKey,

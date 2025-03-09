@@ -83,19 +83,23 @@ export function AccountButtons({ address, mint, decimals }: {
   const [showDepositModal, setShowDepositModal] = useState(false)
   const [showTransferModal, setShowTransferModal] = useState(false)
   const [showWithdraw, setShowWithdraw] = useState(false)
+  const [showInitializeModal, setShowInitializeModal] = useState(false)
   
   const { mutate: initializeAccount, isPending: isInitializing } = useCreateAssociatedTokenAccountCB({ address })
   const { mutate: applyPendingBalance, isPending: isApplying } = useApplyCB({ address })
   
-  const defaultMint = new PublicKey('Dsurjp9dMjFmxq4J3jzZ8As32TgwLCftGyATiQUFu11D')
-  
-  const handleInitialize = () => {
-    initializeAccount()
+  const handleInitialize = (params: { mintAddress: string }) => {
+    initializeAccount(params)
   }
 
   const handleApply = () => {
+    if (!mint) {
+      toast.error("Mint address is required")
+      return
+    }
+    
     applyPendingBalance({
-      mint: mint || defaultMint,
+      mint,
       mintDecimals: decimals || 9
     })
   }
@@ -108,6 +112,7 @@ export function AccountButtons({ address, mint, decimals }: {
       <ModalDeposit show={showDepositModal} hide={() => setShowDepositModal(false)} address={address} />
       <ModalTransfer show={showTransferModal} hide={() => setShowTransferModal(false)} address={address} />
       <ModalWithdraw show={showWithdraw} hide={() => setShowWithdraw(false)} address={address} />
+      <ModalInitAta show={showInitializeModal} hide={() => setShowInitializeModal(false)} address={address} initializeAccount={handleInitialize} isInitializing={isInitializing} />
       <div className="space-x-2">
         <button
           disabled={cluster.network?.includes('mainnet')}
@@ -130,7 +135,7 @@ export function AccountButtons({ address, mint, decimals }: {
       <div className="mt-2">
         <button 
           className="btn btn-xs lg:btn-md btn-outline" 
-          onClick={handleInitialize}
+          onClick={() => setShowInitializeModal(true)}
           disabled={isInitializing}
         >
           {isInitializing ? 
@@ -430,10 +435,26 @@ function ModalSend({ hide, show, address }: { hide: () => void; show: boolean; a
 function ModalDeposit({ show, hide, address }: { show: boolean; hide: () => void; address: PublicKey }) {
   const [amount, setAmount] = useState('')
   const depositMutation = useDepositCb({ address })
-  // Default mint address - replace with the actual mint address you're using
-  const mintAddress = "Dsurjp9dMjFmxq4J3jzZ8As32TgwLCftGyATiQUFu11D"
-  const mintInfoQuery = useGetMintInfo({ mintAddress })
+  const [mintAddress, setMintAddress] = useState('')
+  const [validMintAddress, setValidMintAddress] = useState(false)
+  const mintInfoQuery = useGetMintInfo({ mintAddress: validMintAddress ? mintAddress : '' })
   const [decimals, setDecimals] = useState(9) // Default to 9 decimals until we load the actual value
+  
+  // Validate the input mint address when it changes
+  useEffect(() => {
+    // Only validate when we have a string that's the right length for a base58 Solana address (typically 32-44 chars)
+    if (mintAddress.length >= 32 && mintAddress.length <= 44) {
+      try {
+        // Try to create a PublicKey to validate the address
+        new PublicKey(mintAddress)
+        setValidMintAddress(true)
+      } catch (error) {
+        setValidMintAddress(false)
+      }
+    } else {
+      setValidMintAddress(false)
+    }
+  }, [mintAddress])
   
   useEffect(() => {
     if (mintInfoQuery.data) {
@@ -450,6 +471,11 @@ function ModalDeposit({ show, hide, address }: { show: boolean; hide: () => void
       return
     }
     
+    if (!validMintAddress) {
+      toast.error('Please enter a valid mint address')
+      return
+    }
+    
     try {
       // Convert to token units based on mint decimals
       const factor = Math.pow(10, decimals)
@@ -457,7 +483,8 @@ function ModalDeposit({ show, hide, address }: { show: boolean; hide: () => void
       
       await depositMutation.mutateAsync({ 
         lamportAmount: tokenAmount,
-        mintDecimals: decimals
+        mintDecimals: decimals,
+        mintAddress
       })
       hide()
       setAmount('')
@@ -479,23 +506,42 @@ function ModalDeposit({ show, hide, address }: { show: boolean; hide: () => void
   const tokenType = useMemo(() => {
     if (!mintInfoQuery.data) return 'Unknown';
     return mintInfoQuery.data.isToken2022 ? 'Token-2022' : 'Standard Token';
-  }, [mintInfoQuery.data]);
+  }, [mintInfoQuery.data])
 
   return (
     <AppModal
       hide={hide}
       show={show}
       title="Deposit to Confidential Balance"
-      submitDisabled={!amount || parseFloat(amount) <= 0 || depositMutation.isPending || mintInfoQuery.isLoading}
+      submitDisabled={!amount || parseFloat(amount) <= 0 || !validMintAddress || depositMutation.isPending || mintInfoQuery.isLoading}
       submitLabel={depositMutation.isPending ? "Processing..." : "Confirm Deposit"}
       submit={handleSubmit}
     >
+      <div className="form-control mb-4">
+        <label className="label">
+          <span className="label-text">Token Mint Address</span>
+        </label>
+        <input
+          type="text"
+          placeholder="Enter Solana mint address in base58"
+          className={`input input-bordered w-full ${validMintAddress ? 'input-success' : mintAddress ? 'input-error' : ''}`}
+          value={mintAddress}
+          onChange={(e) => setMintAddress(e.target.value)}
+          disabled={depositMutation.isPending}
+        />
+        {mintAddress && !validMintAddress && (
+          <label className="label">
+            <span className="label-text-alt text-error">Invalid mint address format</span>
+          </label>
+        )}
+      </div>
+
       {mintInfoQuery.isLoading ? (
         <div className="flex justify-center py-4">
           <span className="loading loading-spinner"></span>
           <span className="ml-2">Loading mint information...</span>
         </div>
-      ) : mintInfoQuery.isError ? (
+      ) : mintInfoQuery.error ? (
         <div className="flex flex-col gap-2">
           <div className="alert alert-error">
             <p>Error loading mint information:</p>
@@ -511,7 +557,7 @@ function ModalDeposit({ show, hide, address }: { show: boolean; hide: () => void
             <p className="mt-2 text-sm">Using default 9 decimals for calculations.</p>
           </div>
         </div>
-      ) : (
+      ) : validMintAddress && mintInfoQuery.data ? (
         <div className="form-control">
           <div className="mb-2 text-sm">
             <span className="badge badge-info">{tokenType}</span>
@@ -537,7 +583,7 @@ function ModalDeposit({ show, hide, address }: { show: boolean; hide: () => void
             </span>
           </label>
         </div>
-      )}
+      ) : null}
     </AppModal>
   )
 }
@@ -545,10 +591,26 @@ function ModalDeposit({ show, hide, address }: { show: boolean; hide: () => void
 function ModalWithdraw({ show, hide, address }: { show: boolean; hide: () => void; address: PublicKey }) {
   const [amount, setAmount] = useState('')
   const withdrawMutation = useWithdrawCB({ address })
-  // Default mint address - replace with the actual mint address you're using
-  const mintAddress = "Dsurjp9dMjFmxq4J3jzZ8As32TgwLCftGyATiQUFu11D"
-  const mintInfoQuery = useGetMintInfo({ mintAddress })
+  const [mintAddress, setMintAddress] = useState('')
+  const [validMintAddress, setValidMintAddress] = useState(false)
+  const mintInfoQuery = useGetMintInfo({ mintAddress: validMintAddress ? mintAddress : '' })
   const [decimals, setDecimals] = useState(9) // Default to 9 decimals until we load the actual value
+  
+  // Validate the input mint address when it changes
+  useEffect(() => {
+    // Only validate when we have a string that's the right length for a base58 Solana address (typically 32-44 chars)
+    if (mintAddress.length >= 32 && mintAddress.length <= 44) {
+      try {
+        // Try to create a PublicKey to validate the address
+        new PublicKey(mintAddress)
+        setValidMintAddress(true)
+      } catch (error) {
+        setValidMintAddress(false)
+      }
+    } else {
+      setValidMintAddress(false)
+    }
+  }, [mintAddress])
   
   useEffect(() => {
     if (mintInfoQuery.data) {
@@ -567,6 +629,11 @@ function ModalWithdraw({ show, hide, address }: { show: boolean; hide: () => voi
       return
     }
     
+    if (!validMintAddress) {
+      toast.error('Please enter a valid mint address')
+      return
+    }
+    
     try {
       // Convert to token units based on mint decimals
       const factor = Math.pow(10, decimals)
@@ -575,7 +642,8 @@ function ModalWithdraw({ show, hide, address }: { show: boolean; hide: () => voi
       console.log('Withdraw amount in token units:', tokenAmount)
       
       await withdrawMutation.mutateAsync({ 
-        amount: tokenAmount
+        amount: tokenAmount,
+        mintAddress
       })
       hide()
       setAmount('')
@@ -604,16 +672,35 @@ function ModalWithdraw({ show, hide, address }: { show: boolean; hide: () => voi
       hide={hide}
       show={show}
       title="Withdraw from Confidential Balance"
-      submitDisabled={!amount || parseFloat(amount) <= 0 || withdrawMutation.isPending || mintInfoQuery.isLoading}
+      submitDisabled={!amount || parseFloat(amount) <= 0 || !validMintAddress || withdrawMutation.isPending || mintInfoQuery.isLoading}
       submitLabel={withdrawMutation.isPending ? "Processing..." : "Confirm Withdraw"}
       submit={handleSubmit}
     >
+      <div className="form-control mb-4">
+        <label className="label">
+          <span className="label-text">Token Mint Address</span>
+        </label>
+        <input
+          type="text"
+          placeholder="Enter Solana mint address in base58"
+          className={`input input-bordered w-full ${validMintAddress ? 'input-success' : mintAddress ? 'input-error' : ''}`}
+          value={mintAddress}
+          onChange={(e) => setMintAddress(e.target.value)}
+          disabled={withdrawMutation.isPending}
+        />
+        {mintAddress && !validMintAddress && (
+          <label className="label">
+            <span className="label-text-alt text-error">Invalid mint address format</span>
+          </label>
+        )}
+      </div>
+
       {mintInfoQuery.isLoading ? (
         <div className="flex justify-center py-4">
           <span className="loading loading-spinner"></span>
           <span className="ml-2">Loading mint information...</span>
         </div>
-      ) : mintInfoQuery.isError ? (
+      ) : mintInfoQuery.error ? (
         <div className="flex flex-col gap-2">
           <div className="alert alert-error">
             <p>Error loading mint information:</p>
@@ -629,7 +716,7 @@ function ModalWithdraw({ show, hide, address }: { show: boolean; hide: () => voi
             <p className="mt-2 text-sm">Using default 9 decimals for calculations.</p>
           </div>
         </div>
-      ) : (
+      ) : validMintAddress && mintInfoQuery.data ? (
         <div className="form-control">
           <div className="mb-2 text-sm">
             <span className="badge badge-info">{tokenType}</span>
@@ -655,7 +742,7 @@ function ModalWithdraw({ show, hide, address }: { show: boolean; hide: () => voi
             </span>
           </label>
         </div>
-      )}
+      ) : null}
     </AppModal>
   )
 }
@@ -664,14 +751,30 @@ function ModalTransfer({ show, hide, address }: { show: boolean; hide: () => voi
   const [amount, setAmount] = useState('')
   const [recipientAddress, setRecipientAddress] = useState('')
   const transferMutation = useTransferCB({ address })
-  // Default mint address - same as in ModalDeposit
-  const mintAddress = "Dsurjp9dMjFmxq4J3jzZ8As32TgwLCftGyATiQUFu11D"
-  const mintInfoQuery = useGetMintInfo({ mintAddress })
+  const [mintAddress, setMintAddress] = useState('')
+  const [validMintAddress, setValidMintAddress] = useState(false)
+  const mintInfoQuery = useGetMintInfo({ mintAddress: validMintAddress ? mintAddress : '' })
   const [decimals, setDecimals] = useState(9) // Default to 9 decimals until we load the actual value
   const { connection } = useConnection()
   const [isValidatingRecipient, setIsValidatingRecipient] = useState(false)
   const [recipientValidationError, setRecipientValidationError] = useState('')
   const [recipientValid, setRecipientValid] = useState(false)
+  
+  // Validate the mint address
+  useEffect(() => {
+    // Only validate when we have a string that's the right length for a base58 Solana address (typically 32-44 chars)
+    if (mintAddress.length >= 32 && mintAddress.length <= 44) {
+      try {
+        // Try to create a PublicKey to validate the address
+        new PublicKey(mintAddress)
+        setValidMintAddress(true)
+      } catch (error) {
+        setValidMintAddress(false)
+      }
+    } else {
+      setValidMintAddress(false)
+    }
+  }, [mintAddress])
   
   useEffect(() => {
     if (mintInfoQuery.data) {
@@ -680,126 +783,95 @@ function ModalTransfer({ show, hide, address }: { show: boolean; hide: () => voi
     }
   }, [mintInfoQuery.data])
   
-  // Validate recipient address
-  useEffect(() => {
-    const validateRecipient = async () => {
-      if (!recipientAddress.trim()) {
-        setRecipientValidationError('')
-        setRecipientValid(false)
-        return
-      }
-
-      try {
-        setIsValidatingRecipient(true)
-        setRecipientValidationError('')
-        
-        // Validate Solana address format
-        let recipientPubkey: PublicKey
-        try {
-          recipientPubkey = new PublicKey(recipientAddress)
-        } catch (error) {
-          setRecipientValidationError('Invalid Solana address format')
-          setRecipientValid(false)
-          return
-        }
-        
-        // Get associated token account for recipient
-        const mintPubkey = new PublicKey(mintAddress)
+  const validateRecipient = async () => {
+    if (!recipientAddress) {
+      setRecipientValidationError('')
+      setRecipientValid(false)
+      return
+    }
+    
+    setIsValidatingRecipient(true)
+    setRecipientValidationError('')
+    try {
+      // First, validate the address is a valid Solana public key
+      const recipientPublicKey = new PublicKey(recipientAddress)
+      
+      // Next, check if the associated token account exists for this recipient
+      if (validMintAddress) {
+        const mintPublicKey = new PublicKey(mintAddress)
         const recipientTokenAccount = await getAssociatedTokenAddress(
-          mintPubkey,
-          recipientPubkey,
+          mintPublicKey,
+          recipientPublicKey,
           false,
           TOKEN_2022_PROGRAM_ID
         )
         
-        // Get the account info to verify it exists
-        const recipientAccountInfo = await connection.getAccountInfo(recipientTokenAccount)
-        if (!recipientAccountInfo) {
-          setRecipientValidationError('Recipient token account not found')
-          setRecipientValid(false)
-          return
-        }
+        // Check if the token account exists
+        const tokenAccountInfo = await connection.getAccountInfo(recipientTokenAccount)
         
-        // If we got here, the recipient is valid
+        if (!tokenAccountInfo) {
+          setRecipientValidationError("Recipient's token account does not exist. They need to initialize their token account first.")
+          setRecipientValid(false)
+        } else {
+          setRecipientValid(true)
+        }
+      } else {
+        // If we don't have a valid mint yet, just validate the address format
         setRecipientValid(true)
-      } catch (error) {
-        console.error('Error validating recipient:', error)
-        setRecipientValidationError(`Error: ${error instanceof Error ? error.message : String(error)}`)
-        setRecipientValid(false)
-      } finally {
-        setIsValidatingRecipient(false)
       }
+    } catch (error) {
+      console.error('Error validating recipient:', error)
+      setRecipientValidationError(error instanceof Error ? error.message : 'Invalid recipient address')
+      setRecipientValid(false)
+    } finally {
+      setIsValidatingRecipient(false)
     }
-    
-    // Debounce validation to avoid excessive API calls
-    const timeoutId = setTimeout(validateRecipient, 500)
-    return () => clearTimeout(timeoutId)
-  }, [recipientAddress, connection, mintAddress])
+  }
   
+  // Validate recipient when address changes or when a valid mint is selected
+  useEffect(() => {
+    if (recipientAddress) {
+      const timer = setTimeout(() => {
+        validateRecipient()
+      }, 500)
+      return () => clearTimeout(timer)
+    }
+  }, [recipientAddress, validMintAddress, mintAddress])
+
   const handleSubmit = async () => {
     if (!amount || parseFloat(amount) <= 0) {
       toast.error('Please enter a valid amount')
       return
     }
     
-    if (!recipientValid) {
-      toast.error('Invalid recipient')
+    if (!recipientAddress || !recipientValid) {
+      toast.error('Please enter a valid recipient address')
+      return
+    }
+    
+    if (!validMintAddress) {
+      toast.error('Please enter a valid mint address')
       return
     }
     
     try {
       // Convert to token units based on mint decimals
       const factor = Math.pow(10, decimals)
+      const tokenAmount = parseFloat(amount) * factor
       
-      // Use BigInt for calculation to handle large token amounts correctly
-      // Note: We use Math.round to handle floating point imprecision before converting to BigInt
-      const tokenAmountFloat = parseFloat(amount) * factor
-      const tokenAmount = Math.round(tokenAmountFloat)
+      await transferMutation.mutateAsync({
+        amount: tokenAmount,
+        recipientAddress,
+        mintAddress
+      })
       
-      if (!Number.isSafeInteger(tokenAmount)) {
-        console.warn(
-          `Warning: Token amount ${tokenAmount} exceeds safe integer range. ` +
-          `This may cause precision issues.`
-        )
-      }
-      
-      // Show a loading toast that we'll update with progress
-      const loadingToastId = toast.loading('Preparing transfer transaction...')
-      
-      try {
-        await transferMutation.mutateAsync({ 
-          amount: tokenAmount,
-          recipientAddress: recipientAddress
-        })
-        
-        // Success - update the loading toast and show success
-        toast.dismiss(loadingToastId)
-        hide()
-        setAmount('')
-        setRecipientAddress('')
-        toast.success('Transfer submitted successfully')
-      } catch (error) {
-        // Dismiss the loading toast and show error
-        toast.dismiss(loadingToastId)
-        
-        console.error('Transfer failed:', error)
-        
-        // Provide more specific error messages based on the error
-        if (error instanceof Error) {
-          if (error.message.includes('Transaction simulation failed')) {
-            toast.error('Transaction simulation failed. This may be due to insufficient funds or an issue with the recipient account.')
-          } else if (error.message.includes('User rejected')) {
-            toast.error('Transaction was rejected by the wallet.')
-          } else {
-            toast.error(`Transfer failed: ${error.message}`)
-          }
-        } else {
-          toast.error(`Transfer failed: ${String(error)}`)
-        }
-      }
+      hide()
+      setAmount('')
+      setRecipientAddress('')
+      toast.success('Transfer submitted successfully')
     } catch (error) {
-      console.error('Error preparing transfer:', error)
-      toast.error(`Error preparing transfer: ${error instanceof Error ? error.message : String(error)}`)
+      console.error('Transfer failed:', error)
+      toast.error(`Transfer failed: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -810,6 +882,12 @@ function ModalTransfer({ show, hide, address }: { show: boolean; hide: () => voi
     return `${parseFloat(amount) * factor} token units`
   }, [amount, decimals])
 
+  // Get the token type from the mint info
+  const tokenType = useMemo(() => {
+    if (!mintInfoQuery.data) return 'Unknown';
+    return mintInfoQuery.data.isToken2022 ? 'Token-2022' : 'Standard Token';
+  }, [mintInfoQuery.data]);
+
   return (
     <AppModal
       hide={hide}
@@ -818,85 +896,224 @@ function ModalTransfer({ show, hide, address }: { show: boolean; hide: () => voi
       submitDisabled={
         !amount || 
         parseFloat(amount) <= 0 || 
-        !recipientValid || 
+        !recipientAddress || 
+        !recipientValid ||
+        !validMintAddress ||
         transferMutation.isPending || 
-        mintInfoQuery.isLoading ||
         isValidatingRecipient
       }
       submitLabel={transferMutation.isPending ? "Processing..." : "Confirm Transfer"}
       submit={handleSubmit}
     >
+      <div className="form-control mb-4">
+        <label className="label">
+          <span className="label-text">Token Mint Address</span>
+        </label>
+        <input
+          type="text"
+          placeholder="Enter Solana mint address in base58"
+          className={`input input-bordered w-full ${validMintAddress ? 'input-success' : mintAddress ? 'input-error' : ''}`}
+          value={mintAddress}
+          onChange={(e) => setMintAddress(e.target.value)}
+          disabled={transferMutation.isPending}
+        />
+        {mintAddress && !validMintAddress && (
+          <label className="label">
+            <span className="label-text-alt text-error">Invalid mint address format</span>
+          </label>
+        )}
+      </div>
+
       {mintInfoQuery.isLoading ? (
         <div className="flex justify-center py-4">
           <span className="loading loading-spinner"></span>
           <span className="ml-2">Loading mint information...</span>
         </div>
-      ) : mintInfoQuery.isError ? (
-        <div className="flex flex-col gap-2">
+      ) : mintInfoQuery.error && validMintAddress ? (
+        <div className="flex flex-col gap-2 mb-4">
           <div className="alert alert-error">
             <p>Error loading mint information:</p>
             <p className="text-sm break-all">{mintInfoQuery.error instanceof Error ? mintInfoQuery.error.message : 'Unknown error'}</p>
           </div>
-          <div className="alert alert-info">
-            <p>Using default 9 decimals for calculations.</p>
+        </div>
+      ) : validMintAddress && mintInfoQuery.data ? (
+        <div className="mb-4">
+          <div className="mb-2 text-sm">
+            <span className="badge badge-info">{tokenType}</span>
+            <span className="ml-2 badge badge-ghost">{decimals} decimals</span>
           </div>
         </div>
-      ) : (
-        <div className="form-control space-y-4">
-          <div>
-            <label className="label">
-              <span className="label-text">Recipient Address</span>
-            </label>
-            <input
-              type="text"
-              placeholder="Enter recipient Solana address"
-              className={`input input-bordered w-full ${recipientValidationError ? 'input-error' : ''}`}
-              value={recipientAddress}
-              onChange={(e) => setRecipientAddress(e.target.value)}
-              disabled={transferMutation.isPending}
-              required
-            />
-            {isValidatingRecipient && (
-              <div className="flex items-center mt-1 text-sm">
-                <span className="loading loading-spinner loading-xs mr-1"></span>
-                Validating recipient...
-              </div>
-            )}
-            {recipientValidationError && (
-              <div className="text-error text-sm mt-1">{recipientValidationError}</div>
-            )}
-            {recipientValid && !recipientValidationError && (
-              <div className="text-success text-sm mt-1">✓ Valid recipient</div>
-            )}
-          </div>
+      ) : null}
+
+      <div className="form-control mb-4">
+        <label className="label">
+          <span className="label-text">Recipient Address</span>
+        </label>
+        <input
+          type="text"
+          placeholder="Enter recipient's Solana address"
+          className={`input input-bordered w-full ${
+            recipientValid ? 'input-success' : recipientValidationError ? 'input-error' : ''
+          }`}
+          value={recipientAddress}
+          onChange={(e) => setRecipientAddress(e.target.value)}
+          disabled={transferMutation.isPending}
+        />
+        {isValidatingRecipient && (
+          <label className="label">
+            <span className="label-text-alt">
+              <span className="loading loading-spinner loading-xs mr-1"></span>
+              Validating...
+            </span>
+          </label>
+        )}
+        {recipientValidationError && (
+          <label className="label">
+            <span className="label-text-alt text-error">{recipientValidationError}</span>
+          </label>
+        )}
+      </div>
+
+      <div className="form-control">
+        <label className="label">
+          <span className="label-text">Amount (Tokens)</span>
+        </label>
+        <input
+          type="number"
+          placeholder="Enter amount"
+          className="input input-bordered w-full"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          disabled={transferMutation.isPending}
+          step={`${1 / Math.pow(10, decimals)}`}
+          min="0"
+          required
+        />
+        <label className="label">
+          <span className="label-text-alt">
+            {tokenUnits}
+          </span>
+        </label>
+      </div>
+    </AppModal>
+  )
+}
+
+function ModalInitAta({ show, hide, address, initializeAccount, isInitializing }: { 
+  show: boolean; 
+  hide: () => void; 
+  address: PublicKey;
+  initializeAccount: (params: { mintAddress: string }) => void;
+  isInitializing: boolean;
+}) {
+  const [mintAddress, setMintAddress] = useState('')
+  const [validMintAddress, setValidMintAddress] = useState(false)
+  const mintInfoQuery = useGetMintInfo({ mintAddress: validMintAddress ? mintAddress : '' })
+
+  // Validate the input mint address when it changes
+  useEffect(() => {
+    // Only validate when we have a string that's the right length for a base58 Solana address (typically 32-44 chars)
+    if (mintAddress.length >= 32 && mintAddress.length <= 44) {
+      try {
+        // Try to create a PublicKey to validate the address
+        new PublicKey(mintAddress)
+        setValidMintAddress(true)
+      } catch (error) {
+        setValidMintAddress(false)
+      }
+    } else {
+      setValidMintAddress(false)
+    }
+  }, [mintAddress])
+
+  const handleSubmit = () => {
+    if (!validMintAddress) {
+      toast.error('Please enter a valid mint address')
+      return
+    }
+    
+    try {
+      initializeAccount({ mintAddress })
+      hide()
+      toast.success('Initialize ATA transaction submitted')
+    } catch (error) {
+      console.error('Initialize ATA failed:', error)
+      toast.error(`Initialize ATA failed: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }
+
+  // Get the token type from the mint info
+  const tokenType = useMemo(() => {
+    if (!mintInfoQuery.data) return 'Unknown'
+    return mintInfoQuery.data.isToken2022 ? 'Token-2022' : 'Standard Token'
+  }, [mintInfoQuery.data])
+
+  return (
+    <AppModal
+      hide={hide}
+      show={show}
+      title="Initialize Associated Token Account"
+      submitDisabled={!validMintAddress || isInitializing}
+      submitLabel={isInitializing ? "Processing..." : "Initialize"}
+      submit={handleSubmit}
+    >
+      <div className="form-control">
+        <label className="label">
+          <span className="label-text">Token Mint Address</span>
+        </label>
+        <input
+          type="text"
+          placeholder="Enter Solana mint address in base58"
+          className={`input input-bordered w-full ${validMintAddress ? 'input-success' : mintAddress ? 'input-error' : ''}`}
+          value={mintAddress}
+          onChange={(e) => setMintAddress(e.target.value)}
+          disabled={isInitializing}
+        />
+        {mintAddress && !validMintAddress && (
+          <label className="label">
+            <span className="label-text-alt text-error">Invalid mint address format</span>
+          </label>
+        )}
+      </div>
+
+      {validMintAddress && (
+        <div className="mt-4 p-4 bg-base-200 rounded-lg">
+          <h3 className="font-medium mb-2">Mint Information</h3>
           
-          <div>
-            <label className="label">
-              <span className="label-text">Amount (Tokens)</span>
-            </label>
-            <input
-              type="number"
-              placeholder="Enter amount"
-              className="input input-bordered w-full"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              disabled={transferMutation.isPending}
-              step={`${1 / Math.pow(10, decimals)}`} // Step based on mint decimals
-              min="0"
-              required
-            />
-            <label className="label">
-              <span className="label-text-alt">
-                {tokenUnits}
-              </span>
-            </label>
-          </div>
-          
-          <div className="alert alert-info">
-            <p>Note: Transfers are confidential and will not be visible on explorers.</p>
-          </div>
+          {mintInfoQuery.isLoading ? (
+            <div className="flex items-center justify-center py-2">
+              <span className="loading loading-spinner loading-sm mr-2"></span>
+              <span>Loading mint data...</span>
+            </div>
+          ) : mintInfoQuery.error ? (
+            <div className="alert alert-error text-sm">
+              <p>Error loading mint information:</p>
+              <p className="break-all">{mintInfoQuery.error instanceof Error ? mintInfoQuery.error.message : 'Unknown error'}</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="font-medium">Token Type:</div>
+              <div>{tokenType}</div>
+              
+              <div className="font-medium">Decimals:</div>
+              <div>{mintInfoQuery.data?.decimals}</div>
+              
+              <div className="font-medium">Supply:</div>
+              <div>{mintInfoQuery.data?.supply?.toString() || '0'}</div>
+              
+              <div className="font-medium">Authority:</div>
+              <div className="break-all">{mintInfoQuery.data?.mintAuthority?.toBase58() || 'None'}</div>
+              
+              <div className="font-medium">Freeze Authority:</div>
+              <div className="break-all">{mintInfoQuery.data?.freezeAuthority?.toBase58() || 'None'}</div>
+            </div>
+          )}
         </div>
       )}
+
+      <div className="mt-4 text-sm text-base-content/70">
+        <p>This will create an Associated Token Account (ATA) for this mint address with your wallet as the owner.</p>
+      </div>
     </AppModal>
   )
 }
