@@ -711,18 +711,18 @@ export function useApplyCB({ address }: { address: PublicKey }) {
   })
 }
 
-export function useTransferCB({ address }: { address: PublicKey }) {
+export function useTransferCB({ senderTokenAccountPubkey }: { senderTokenAccountPubkey: PublicKey }) {
   const { connection } = useConnection()
   const client = useQueryClient()
   const transactionToast = useTransactionToast()
   const wallet = useWallet()
 
   return useMutation({
-    mutationKey: ['transfer-cb', { endpoint: connection.rpcEndpoint, address }],
+    mutationKey: ['transfer-cb', { endpoint: connection.rpcEndpoint, senderTokenAccountPubkey }],
     mutationFn: async ({ amount, recipientAddress, mintAddress }: { 
       amount: number, 
       recipientAddress: string,
-      mintAddress: string
+      mintAddress: string,
     }) => {
       try {
         if (!wallet.publicKey) {
@@ -748,41 +748,35 @@ export function useTransferCB({ address }: { address: PublicKey }) {
         
         console.log('AES signature:', aesSignatureBase64)
 
-        // Get the associated token account for the sender
-        const mintPublicKey = new PublicKey(mintAddress)
-        const senderTokenAccount = await getAssociatedTokenAddress(
-          mintPublicKey,
-          address,
-          false,
-          TOKEN_2022_PROGRAM_ID
-        )
         
         // Get the token account data for sender
-        const senderAccountInfo = await connection.getAccountInfo(senderTokenAccount)
-        if (!senderAccountInfo) {
-          throw new Error("Sender token account not found")
-        }
-        
-        // Get the recipient's public key and associated token account
-        const recipientPublicKey = new PublicKey(recipientAddress)
-        const recipientTokenAccount = await getAssociatedTokenAddress(
-          mintPublicKey,
-          recipientPublicKey,
-          false,
-          TOKEN_2022_PROGRAM_ID
-        )
+        const senderATAInfo = (await (async ()=>{
+            const acctInfo = await connection.getAccountInfo(senderTokenAccountPubkey)
+            if (!acctInfo) {
+                throw new Error("Sender token account not found")
+            }
+            return acctInfo;
+        })()); 
         
         // Get the token account data for recipient
-        const recipientAccountInfo = await connection.getAccountInfo(recipientTokenAccount)
-        if (!recipientAccountInfo) {
-          throw new Error("Recipient token account not found")
-        }
-        
+        const recipientATAInfo = (await (async ()=>{
+            const recipientTokenAccountPubkey = new PublicKey(recipientAddress)
+            const acctInfo = await connection.getAccountInfo(recipientTokenAccountPubkey)
+            if (!acctInfo) {
+                throw new Error("Recipient token account not found")
+            }
+            return acctInfo;
+        })());
+
         // Get the mint account data
-        const mintAccountInfo = await connection.getAccountInfo(mintPublicKey)
-        if (!mintAccountInfo) {
-          throw new Error("Mint account not found")
-        }
+        const mintAccountInfo = (await (async ()=>{
+            const mintAccountPubkey = new PublicKey(mintAddress)
+            const acctInfo = await connection.getAccountInfo(mintAccountPubkey)
+            if (!acctInfo) {
+                throw new Error("Mint account not found")
+            }
+            return acctInfo;
+        })());
 
         // Get the latest blockhash
         const latestBlockhash = await connection.getLatestBlockhash()
@@ -796,8 +790,8 @@ export function useTransferCB({ address }: { address: PublicKey }) {
           body: JSON.stringify({
             elgamal_signature: elGamalSignatureBase64,
             aes_signature: aesSignatureBase64,
-            sender_token_account: Buffer.from(senderAccountInfo.data).toString('base64'),
-            recipient_token_account: Buffer.from(recipientAccountInfo.data).toString('base64'),
+            sender_token_account: Buffer.from(senderATAInfo.data).toString('base64'),
+            recipient_token_account: Buffer.from(recipientATAInfo.data).toString('base64'),
             mint_token_account: Buffer.from(mintAccountInfo.data).toString('base64'),
             amount: amount.toString(),  // Convert to string to avoid precision issues with large numbers
             priority_fee: "100000000",  // Add 0.1 SOL (10,000,000 lamports) priority fee as string
@@ -873,13 +867,13 @@ export function useTransferCB({ address }: { address: PublicKey }) {
       // Invalidate relevant queries to refresh data
       return Promise.all([
         client.invalidateQueries({
-          queryKey: ['get-balance', { endpoint: connection.rpcEndpoint, address }],
+          queryKey: ['get-balance', { endpoint: connection.rpcEndpoint, senderTokenAccountPubkey }],
         }),
         client.invalidateQueries({
-          queryKey: ['get-signatures', { endpoint: connection.rpcEndpoint, address }],
+          queryKey: ['get-signatures', { endpoint: connection.rpcEndpoint, senderTokenAccountPubkey }],
         }),
         client.invalidateQueries({
-          queryKey: ['get-token-accounts', { endpoint: connection.rpcEndpoint, address }],
+          queryKey: ['get-token-accounts', { endpoint: connection.rpcEndpoint, senderTokenAccountPubkey }],
         }),
       ])
     },

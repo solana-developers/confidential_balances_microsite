@@ -26,6 +26,7 @@ import {
   useGetSingleTokenAccount,
 } from './account-data-access'
 import { toast } from 'react-hot-toast'
+import { AccountLayout } from '@solana/spl-token'
 
 export function AccountBalance({ address }: { address: PublicKey }) {
   const query = useGetBalance({ address })
@@ -679,121 +680,129 @@ function ModalWithdraw({ show, hide, tokenAccountPubkey }: { show: boolean; hide
 }
 
 function ModalTransfer({ show, hide, address }: { show: boolean; hide: () => void; address: PublicKey }) {
+  // Form state
   const [amount, setAmount] = useState('')
   const [recipientAddress, setRecipientAddress] = useState('')
-  const transferMutation = useTransferCB({ address })
-  const [mintAddress, setMintAddress] = useState('')
-  const [validMintAddress, setValidMintAddress] = useState(false)
-  const mintInfoQuery = useGetMintInfo({ mintAddress: validMintAddress ? mintAddress : '' })
-  const [decimals, setDecimals] = useState(9) // Default to 9 decimals until we load the actual value
+  const [addressType, setAddressType] = useState<'system' | 'token'>('system')
+  
+  // Validation state
+  const [validationState, setValidationState] = useState({
+    isValidating: false,
+    error: '',
+    isValid: false,
+    tokenAccount: null as PublicKey | null
+  })
+  
+  // Data fetching
   const { connection } = useConnection()
-  const [isValidatingRecipient, setIsValidatingRecipient] = useState(false)
-  const [recipientValidationError, setRecipientValidationError] = useState('')
-  const [recipientValid, setRecipientValid] = useState(false)
+  const transferMutation = useTransferCB({ senderTokenAccountPubkey: address })
+  const { data: tokenAccountInfo, isLoading: isTokenAccountLoading } = useGetSingleTokenAccount({ address })
+  const mintPublicKey = tokenAccountInfo?.tokenAccount?.mint
+  const mintInfoQuery = useGetMintInfo({ 
+    mintAddress: mintPublicKey?.toBase58() || '', 
+    enabled: !!mintPublicKey
+  })
+  const decimals = mintInfoQuery.data?.decimals || 9
+  const isLoading = isTokenAccountLoading || mintInfoQuery.isLoading
   
-  // Validate the mint address
-  useEffect(() => {
-    // Only validate when we have a string that's the right length for a base58 Solana address (typically 32-44 chars)
-    if (mintAddress.length >= 32 && mintAddress.length <= 44) {
-      try {
-        // Try to create a PublicKey to validate the address
-        new PublicKey(mintAddress)
-        setValidMintAddress(true)
-      } catch (error) {
-        setValidMintAddress(false)
-      }
-    } else {
-      setValidMintAddress(false)
-    }
-  }, [mintAddress])
+  // Derived values
+  const tokenUnits = useMemo(() => amount ? `${parseFloat(amount) * Math.pow(10, decimals)} token units` : '', [amount, decimals])
+  const tokenType = useMemo(() => mintInfoQuery.data?.isToken2022 ? 'Token-2022' : 'Standard Token', [mintInfoQuery.data])
   
+  // Reset validation when address type changes
   useEffect(() => {
-    if (mintInfoQuery.data) {
-      setDecimals(mintInfoQuery.data.decimals)
-      console.log(`Mint decimals: ${mintInfoQuery.data.decimals}`)
-    }
-  }, [mintInfoQuery.data])
+    setValidationState(prev => ({ ...prev, isValid: false, error: '', tokenAccount: null }))
+    if (recipientAddress && mintPublicKey) validateRecipient()
+  }, [addressType, recipientAddress, mintPublicKey])
   
   const validateRecipient = async () => {
-    if (!recipientAddress) {
-      setRecipientValidationError('')
-      setRecipientValid(false)
-      return
-    }
+    if (!recipientAddress || !mintPublicKey) return
     
-    setIsValidatingRecipient(true)
-    setRecipientValidationError('')
+    setValidationState(prev => ({ ...prev, isValidating: true, error: '', tokenAccount: null }))
+    
     try {
-      // First, validate the address is a valid Solana public key
-      const recipientPublicKey = new PublicKey(recipientAddress)
+      let tokenAccountToCheck: PublicKey
       
-      // Next, check if the associated token account exists for this recipient
-      if (validMintAddress) {
-        const mintPublicKey = new PublicKey(mintAddress)
-        const recipientTokenAccount = await getAssociatedTokenAddress(
+      // Determine account to check based on address type
+      if (addressType === 'system') {
+        const recipientPublicKey = new PublicKey(recipientAddress)
+        tokenAccountToCheck = await getAssociatedTokenAddress(
           mintPublicKey,
           recipientPublicKey,
           false,
           TOKEN_2022_PROGRAM_ID
         )
-        
-        // Check if the token account exists
-        const tokenAccountInfo = await connection.getAccountInfo(recipientTokenAccount)
-        
-        if (!tokenAccountInfo) {
-          setRecipientValidationError("Recipient's token account does not exist. They need to initialize their token account first.")
-          setRecipientValid(false)
-        } else {
-          setRecipientValid(true)
-        }
       } else {
-        // If we don't have a valid mint yet, just validate the address format
-        setRecipientValid(true)
+        tokenAccountToCheck = new PublicKey(recipientAddress)
       }
+      
+      // Check if account exists
+      const accountInfo = await connection.getAccountInfo(tokenAccountToCheck)
+      if (!accountInfo) {
+        const error = addressType === 'system' 
+          ? "Recipient's token account does not exist. They need to initialize their token account first."
+          : "This token account does not exist."
+        setValidationState(prev => ({ ...prev, error, isValid: false, isValidating: false }))
+        return
+      }
+      
+      // For token accounts, validate mint matches
+      if (addressType === 'token') {
+        try {
+          const tokenAccountData = AccountLayout.decode(accountInfo.data)
+          const accountMint = new PublicKey(tokenAccountData.mint)
+          
+          if (!accountMint.equals(mintPublicKey)) {
+            setValidationState(prev => ({ 
+              ...prev, 
+              error: "This token account is for a different mint. It cannot receive this type of token.", 
+              isValid: false,
+              isValidating: false
+            }))
+            return
+          }
+        } catch (e) {
+          setValidationState(prev => ({ 
+            ...prev, 
+            error: "The provided address is not a valid token account.", 
+            isValid: false,
+            isValidating: false
+          }))
+          return
+        }
+      }
+      
+      // All validations passed
+      setValidationState({ 
+        isValidating: false, 
+        error: '', 
+        isValid: true, 
+        tokenAccount: tokenAccountToCheck 
+      })
     } catch (error) {
       console.error('Error validating recipient:', error)
-      setRecipientValidationError(error instanceof Error ? error.message : 'Invalid recipient address')
-      setRecipientValid(false)
-    } finally {
-      setIsValidatingRecipient(false)
+      setValidationState({ 
+        isValidating: false, 
+        error: error instanceof Error ? error.message : 'Invalid address',
+        isValid: false,
+        tokenAccount: null
+      })
     }
   }
-  
-  // Validate recipient when address changes or when a valid mint is selected
-  useEffect(() => {
-    if (recipientAddress) {
-      const timer = setTimeout(() => {
-        validateRecipient()
-      }, 500)
-      return () => clearTimeout(timer)
-    }
-  }, [recipientAddress, validMintAddress, mintAddress])
 
   const handleSubmit = async () => {
-    if (!amount || parseFloat(amount) <= 0) {
-      toast.error('Please enter a valid amount')
-      return
-    }
-    
-    if (!recipientAddress || !recipientValid) {
-      toast.error('Please enter a valid recipient address')
-      return
-    }
-    
-    if (!validMintAddress) {
-      toast.error('Please enter a valid mint address')
+    if (!amount || parseFloat(amount) <= 0 || !validationState.isValid || !validationState.tokenAccount || !mintPublicKey) {
+      toast.error('Please complete all fields with valid information')
       return
     }
     
     try {
-      // Convert to token units based on mint decimals
-      const factor = Math.pow(10, decimals)
-      const tokenAmount = parseFloat(amount) * factor
+      const tokenAmount = parseFloat(amount) * Math.pow(10, decimals)
       
       await transferMutation.mutateAsync({
         amount: tokenAmount,
-        recipientAddress,
-        mintAddress
+        recipientAddress: validationState.tokenAccount.toBase58(),
+        mintAddress: mintPublicKey.toBase58(),
       })
       
       hide()
@@ -806,126 +815,117 @@ function ModalTransfer({ show, hide, address }: { show: boolean; hide: () => voi
     }
   }
 
-  // Calculate the token units based on the input amount
-  const tokenUnits = useMemo(() => {
-    if (!amount) return ''
-    const factor = Math.pow(10, decimals)
-    return `${parseFloat(amount) * factor} token units`
-  }, [amount, decimals])
-
-  // Get the token type from the mint info
-  const tokenType = useMemo(() => {
-    if (!mintInfoQuery.data) return 'Unknown';
-    return mintInfoQuery.data.isToken2022 ? 'Token-2022' : 'Standard Token';
-  }, [mintInfoQuery.data]);
-
   return (
     <AppModal
       hide={hide}
       show={show}
       title="Transfer Confidential Balance"
-      submitDisabled={
-        !amount || 
-        parseFloat(amount) <= 0 || 
-        !recipientAddress || 
-        !recipientValid ||
-        !validMintAddress ||
-        transferMutation.isPending || 
-        isValidatingRecipient
-      }
+      submitDisabled={!amount || parseFloat(amount) <= 0 || !validationState.isValid || transferMutation.isPending || validationState.isValidating || isLoading}
       submitLabel={transferMutation.isPending ? "Processing..." : "Confirm Transfer"}
       submit={handleSubmit}
     >
-      <div className="form-control mb-4">
-        <label className="label">
-          <span className="label-text">Token Mint Address</span>
-        </label>
-        <input
-          type="text"
-          placeholder="Enter Solana mint address in base58"
-          className={`input input-bordered w-full ${validMintAddress ? 'input-success' : mintAddress ? 'input-error' : ''}`}
-          value={mintAddress}
-          onChange={(e) => setMintAddress(e.target.value)}
-          disabled={transferMutation.isPending}
-        />
-        {mintAddress && !validMintAddress && (
-          <label className="label">
-            <span className="label-text-alt text-error">Invalid mint address format</span>
-          </label>
-        )}
-      </div>
-
-      {mintInfoQuery.isLoading ? (
+      {isLoading ? (
         <div className="flex justify-center py-4">
           <span className="loading loading-spinner"></span>
-          <span className="ml-2">Loading mint information...</span>
+          <span className="ml-2">Loading token information...</span>
         </div>
-      ) : mintInfoQuery.error && validMintAddress ? (
-        <div className="flex flex-col gap-2 mb-4">
-          <div className="alert alert-error">
-            <p>Error loading mint information:</p>
-            <p className="text-sm break-all">{mintInfoQuery.error instanceof Error ? mintInfoQuery.error.message : 'Unknown error'}</p>
+      ) : mintInfoQuery.error ? (
+        <div className="alert alert-error">
+          <p>Error loading token information</p>
+        </div>
+      ) : (
+        <>
+          <div className="mb-4">
+            <div className="mb-2 text-sm">
+              <span className="badge badge-info">{tokenType}</span>
+              <span className="ml-2 badge badge-ghost">{decimals} decimals</span>
+            </div>
           </div>
-        </div>
-      ) : validMintAddress && mintInfoQuery.data ? (
-        <div className="mb-4">
-          <div className="mb-2 text-sm">
-            <span className="badge badge-info">{tokenType}</span>
-            <span className="ml-2 badge badge-ghost">{decimals} decimals</span>
+
+          {/* Address Type Selection */}
+          <div className="form-control mb-4">
+            <label className="label justify-start">
+              <span className="label-text mr-4">Recipient:</span>
+              <div className="flex space-x-4">
+                <label className="flex items-center cursor-pointer">
+                  <input 
+                    type="radio" 
+                    name="address-type" 
+                    className="radio radio-sm radio-primary mr-2" 
+                    checked={addressType === 'system'} 
+                    onChange={() => setAddressType('system')}
+                  />
+                  <span className="label-text">Wallet</span>
+                </label>
+                <label className="flex items-center cursor-pointer">
+                  <input 
+                    type="radio" 
+                    name="address-type" 
+                    className="radio radio-sm radio-primary mr-2" 
+                    checked={addressType === 'token'} 
+                    onChange={() => setAddressType('token')}
+                  />
+                  <span className="label-text">Token Account</span>
+                </label>
+              </div>
+            </label>
           </div>
-        </div>
-      ) : null}
 
-      <div className="form-control mb-4">
-        <label className="label">
-          <span className="label-text">Recipient Address</span>
-        </label>
-        <input
-          type="text"
-          placeholder="Enter recipient's Solana address"
-          className={`input input-bordered w-full ${
-            recipientValid ? 'input-success' : recipientValidationError ? 'input-error' : ''
-          }`}
-          value={recipientAddress}
-          onChange={(e) => setRecipientAddress(e.target.value)}
-          disabled={transferMutation.isPending}
-        />
-        {isValidatingRecipient && (
-          <label className="label">
-            <span className="label-text-alt">
-              <span className="loading loading-spinner loading-xs mr-1"></span>
-              Validating...
-            </span>
-          </label>
-        )}
-        {recipientValidationError && (
-          <label className="label">
-            <span className="label-text-alt text-error">{recipientValidationError}</span>
-          </label>
-        )}
-      </div>
+          {/* Recipient Address Input */}
+          <div className="form-control mb-4">
+            <input
+              type="text"
+              placeholder={addressType === 'system' ? "Recipient's wallet address" : "Token account address"}
+              className={`input input-bordered w-full ${
+                validationState.isValid ? 'input-success' : validationState.error ? 'input-error' : ''
+              }`}
+              value={recipientAddress}
+              onChange={(e) => setRecipientAddress(e.target.value)}
+              disabled={transferMutation.isPending}
+            />
+            
+            {validationState.isValidating && (
+              <label className="label">
+                <span className="label-text-alt"><span className="loading loading-spinner loading-xs mr-1"></span>Validating...</span>
+              </label>
+            )}
+            
+            {validationState.error && (
+              <label className="label">
+                <span className="label-text-alt text-error">{validationState.error}</span>
+              </label>
+            )}
+            
+            {validationState.isValid && (
+              <label className="label">
+                <span className="label-text-alt text-success">
+                  ✓ {addressType === 'system' ? 'Valid wallet with initialized token account' : 'Valid token account'}
+                </span>
+              </label>
+            )}
+          </div>
 
-      <div className="form-control">
-        <label className="label">
-          <span className="label-text">Amount (Tokens)</span>
-        </label>
-        <input
-          type="number"
-          placeholder="Enter amount"
-          className="input input-bordered w-full"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          disabled={transferMutation.isPending}
-          step={`${1 / Math.pow(10, decimals)}`}
-          min="0"
-          required
-        />
-        <label className="label">
-          <span className="label-text-alt">
-            {tokenUnits}
-          </span>
-        </label>
-      </div>
+          {/* Amount Input */}
+          <div className="form-control">
+            <input
+              type="number"
+              placeholder="Amount (tokens)"
+              className="input input-bordered w-full"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              disabled={transferMutation.isPending}
+              step={`${1 / Math.pow(10, decimals)}`}
+              min="0"
+              required
+            />
+            {tokenUnits && (
+              <label className="label">
+                <span className="label-text-alt">{tokenUnits}</span>
+              </label>
+            )}
+          </div>
+        </>
+      )}
     </AppModal>
   )
 }
@@ -1007,3 +1007,4 @@ function ModalInitATA({ show, hide, address, initializeAccount, isInitializing }
     </AppModal>
   )
 }
+
