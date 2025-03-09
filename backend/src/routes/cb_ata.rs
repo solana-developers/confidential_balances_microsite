@@ -222,15 +222,13 @@ pub async fn deposit_cb(
 ) -> Result<Json<TransactionResponse>, AppError> {
     println!("🚀 Starting deposit_cb handler");
     
-    // Parse the authority address
-    println!("🔑 Parsing authority address");
-    let token_account_authority = parse_base64_base58_pubkey(&request.ata_authority)?;
-    println!("✅ Authority parsed successfully: {}", token_account_authority);
-    
-    // Parse the mint address
-    println!("🪙 Parsing mint address");
-    let mint = parse_base64_base58_pubkey(&request.mint)?;
-    println!("✅ Mint parsed successfully: {}", mint);
+    // Deserialize the account data
+    println!("📦 Decoding token account data from request");
+    let token_account_info = {
+        // Decode token account data from request instead of fetching it
+        let token_account_data = BASE64_STANDARD.decode(&request.token_account_data)?;
+        StateWithExtensionsOwned::<spl_token_2022::state::Account>::unpack(token_account_data)?
+    };
     
     // Parse the amount to deposit
     println!("💰 Parsing amount: {}", request.lamport_amount);
@@ -244,6 +242,9 @@ pub async fn deposit_cb(
             return Err(AppError::InvalidAmount);
         }
     };
+
+    let mint = token_account_info.base.mint;
+    let token_account_authority = token_account_info.base.owner;
 
     let depositor_token_account = get_associated_token_address_with_program_id(
         &token_account_authority, // Token account owner

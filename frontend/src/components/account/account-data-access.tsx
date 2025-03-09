@@ -392,18 +392,39 @@ export function useDepositCb({ address }: { address: PublicKey }) {
 
   return useMutation({
     mutationKey: ['deposit-cb', { endpoint: connection.rpcEndpoint, address }],
-    mutationFn: async ({ lamportAmount, mintDecimals, mintAddress }: { 
+    mutationFn: async ({ lamportAmount, ataAddress }: { 
       lamportAmount: string, 
-      mintDecimals: number,
-      mintAddress: string 
+      ataAddress: string 
     }) => {
       try {
         if (!wallet.publicKey) {
           throw new Error("Wallet not connected");
         }
 
-        const mintBase64 = Buffer.from(mintAddress).toString('base64');
-        const authorityBase64 = Buffer.from(address.toString()).toString('base64');
+        // Get ATA account info
+        const ataAccountInfo = await connection.getAccountInfo(new PublicKey(ataAddress));
+        if (!ataAccountInfo) {
+          throw new Error("Account not found");
+        }
+
+        // Get mint decimals using a temporary scope
+        const decimals = await (async () => {
+          const splTokenAccount = await getAccount(
+            connection,
+            address,
+            'confirmed',
+            TOKEN_2022_PROGRAM_ID
+          );
+          
+          const mint = await getMint(
+            connection,
+            splTokenAccount.mint,
+            'confirmed',
+            TOKEN_2022_PROGRAM_ID
+          );
+          
+          return mint.decimals;
+        })();
         
         // Call the deposit-cb endpoint
         const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT}/deposit-cb`, {
@@ -412,10 +433,9 @@ export function useDepositCb({ address }: { address: PublicKey }) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            mint: mintBase64,
-            ata_authority: authorityBase64,
-            mint_decimals: mintDecimals,
-            lamport_amount: lamportAmount
+            token_account_data: Buffer.from(ataAccountInfo.data).toString('base64'),
+            lamport_amount: lamportAmount,
+            mint_decimals: decimals
           }),
         });
         
@@ -483,7 +503,7 @@ export function useDepositCb({ address }: { address: PublicKey }) {
 }
 
 // Add a hook to get mint account information
-export function useGetMintInfo({ mintAddress }: { mintAddress: string }) {
+export function useGetMintInfo({ mintAddress, enabled = true }: { mintAddress: string; enabled?: boolean }) {
   const { connection } = useConnection()
   
   return useQuery({
@@ -541,6 +561,7 @@ export function useGetMintInfo({ mintAddress }: { mintAddress: string }) {
         throw error
       }
     },
+    enabled: enabled && !!mintAddress,
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
 }

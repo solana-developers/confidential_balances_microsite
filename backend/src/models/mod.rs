@@ -32,10 +32,9 @@ pub struct CreateCbAtaRequest {
 // Request model for the deposit_cb endpoint
 #[derive(Deserialize)]
 pub struct DepositCbRequest {
-    pub mint: String,            // The mint address of the token
-    pub mint_decimals: u8,            // The decimals of the token
-    pub ata_authority: String,   // The authority address for the confidential balance
-    pub lamport_amount: String,          // The amount to deposit (as a string to handle large numbers)
+    pub token_account_data: String, // BASE64 encoded account data
+    pub lamport_amount: String,     // The amount to deposit (as a string to handle large numbers)
+    pub mint_decimals: u8,          // The number of decimals for the mint
 }
 
 // Request model for the apply_cb endpoint

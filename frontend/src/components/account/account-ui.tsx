@@ -111,7 +111,7 @@ export function AccountButtons({ address }: {
 
   return (
     <div>
-      <ModalInitializeAta 
+      <ModalInitATA 
         show={showInitializeModal} 
         hide={() => setShowInitializeModal(false)} 
         address={address} 
@@ -463,33 +463,21 @@ function ModalSend({ hide, show, address }: { hide: () => void; show: boolean; a
 function ModalDeposit({ show, hide, address }: { show: boolean; hide: () => void; address: PublicKey }) {
   const [amount, setAmount] = useState('')
   const depositMutation = useDepositCb({ address })
-  const [mintAddress, setMintAddress] = useState('')
-  const [validMintAddress, setValidMintAddress] = useState(false)
-  const mintInfoQuery = useGetMintInfo({ mintAddress: validMintAddress ? mintAddress : '' })
   const [decimals, setDecimals] = useState(9) // Default to 9 decimals until we load the actual value
   
-  // Validate the input mint address when it changes
-  useEffect(() => {
-    // Only validate when we have a string that's the right length for a base58 Solana address (typically 32-44 chars)
-    if (mintAddress.length >= 32 && mintAddress.length <= 44) {
-      try {
-        // Try to create a PublicKey to validate the address
-        new PublicKey(mintAddress)
-        setValidMintAddress(true)
-      } catch (error) {
-        setValidMintAddress(false)
-      }
-    } else {
-      setValidMintAddress(false)
-    }
-  }, [mintAddress])
+  // Get token account info to extract the mint
+  const { data: tokenAccountInfo, isLoading: isTokenAccountLoading } = useGetSingleTokenAccount({ address })
   
+  // Use the mint from the token account to get mint info
+  const mintInfoQuery = useGetMintInfo({ 
+    mintAddress: tokenAccountInfo?.tokenAccount?.mint?.toBase58() || '', 
+    enabled: !!tokenAccountInfo?.tokenAccount?.mint
+  })
+  
+  // Update decimals when mint info is available
   useEffect(() => {
     if (mintInfoQuery.data) {
       setDecimals(mintInfoQuery.data.decimals)
-      console.log(`Mint decimals: ${mintInfoQuery.data.decimals}`)
-      console.log(`Mint authority: ${mintInfoQuery.data.mintAuthority?.toBase58() || 'None'}`)
-      console.log(`Is Token-2022: ${mintInfoQuery.data.isToken2022 ? 'Yes' : 'No'}`)
     }
   }, [mintInfoQuery.data])
   
@@ -499,8 +487,8 @@ function ModalDeposit({ show, hide, address }: { show: boolean; hide: () => void
       return
     }
     
-    if (!validMintAddress) {
-      toast.error('Please enter a valid mint address')
+    if (!tokenAccountInfo?.tokenAccount?.mint) {
+      toast.error('Token mint information not available')
       return
     }
     
@@ -511,8 +499,7 @@ function ModalDeposit({ show, hide, address }: { show: boolean; hide: () => void
       
       await depositMutation.mutateAsync({ 
         lamportAmount: tokenAmount,
-        mintDecimals: decimals,
-        mintAddress
+        ataAddress: address.toString(),
       })
       hide()
       setAmount('')
@@ -536,56 +523,30 @@ function ModalDeposit({ show, hide, address }: { show: boolean; hide: () => void
     return mintInfoQuery.data.isToken2022 ? 'Token-2022' : 'Standard Token';
   }, [mintInfoQuery.data])
 
+  const isLoading = isTokenAccountLoading || mintInfoQuery.isLoading;
+
   return (
     <AppModal
       hide={hide}
       show={show}
       title="Deposit to Confidential Balance"
-      submitDisabled={!amount || parseFloat(amount) <= 0 || !validMintAddress || depositMutation.isPending || mintInfoQuery.isLoading}
+      submitDisabled={!amount || parseFloat(amount) <= 0 || depositMutation.isPending || isLoading}
       submitLabel={depositMutation.isPending ? "Processing..." : "Confirm Deposit"}
       submit={handleSubmit}
     >
-      <div className="form-control mb-4">
-        <label className="label">
-          <span className="label-text">Token Mint Address</span>
-        </label>
-        <input
-          type="text"
-          placeholder="Enter Solana mint address in base58"
-          className={`input input-bordered w-full ${validMintAddress ? 'input-success' : mintAddress ? 'input-error' : ''}`}
-          value={mintAddress}
-          onChange={(e) => setMintAddress(e.target.value)}
-          disabled={depositMutation.isPending}
-        />
-        {mintAddress && !validMintAddress && (
-          <label className="label">
-            <span className="label-text-alt text-error">Invalid mint address format</span>
-          </label>
-        )}
-      </div>
-
-      {mintInfoQuery.isLoading ? (
+      {isLoading ? (
         <div className="flex justify-center py-4">
           <span className="loading loading-spinner"></span>
-          <span className="ml-2">Loading mint information...</span>
+          <span className="ml-2">Loading token information...</span>
         </div>
       ) : mintInfoQuery.error ? (
         <div className="flex flex-col gap-2">
           <div className="alert alert-error">
-            <p>Error loading mint information:</p>
+            <p>Error loading token information:</p>
             <p className="text-sm break-all">{mintInfoQuery.error instanceof Error ? mintInfoQuery.error.message : 'Unknown error'}</p>
           </div>
-          <div className="alert alert-info">
-            <p>This could be because:</p>
-            <ul className="list-disc list-inside text-sm">
-              <li>The mint address is not a valid token mint</li>
-              <li>The mint is using a different token program than expected</li>
-              <li>The account exists but is not a token mint account</li>
-            </ul>
-            <p className="mt-2 text-sm">Using default 9 decimals for calculations.</p>
-          </div>
         </div>
-      ) : validMintAddress && mintInfoQuery.data ? (
+      ) : (
         <div className="form-control">
           <div className="mb-2 text-sm">
             <span className="badge badge-info">{tokenType}</span>
@@ -611,7 +572,7 @@ function ModalDeposit({ show, hide, address }: { show: boolean; hide: () => void
             </span>
           </label>
         </div>
-      ) : null}
+      )}
     </AppModal>
   )
 }
@@ -1027,7 +988,7 @@ function ModalTransfer({ show, hide, address }: { show: boolean; hide: () => voi
   )
 }
 
-function ModalInitializeAta({ show, hide, address, initializeAccount, isInitializing }: { 
+function ModalInitATA({ show, hide, address, initializeAccount, isInitializing }: { 
   show: boolean; 
   hide: () => void; 
   address: PublicKey;
@@ -1036,7 +997,7 @@ function ModalInitializeAta({ show, hide, address, initializeAccount, isInitiali
 }) {
   const [mintAddress, setMintAddress] = useState('')
   const [validMintAddress, setValidMintAddress] = useState(false)
-  const mintInfoQuery = useGetMintInfo({ mintAddress: validMintAddress ? mintAddress : '' })
+
 
   // Validate the input mint address when it changes
   useEffect(() => {
@@ -1070,12 +1031,6 @@ function ModalInitializeAta({ show, hide, address, initializeAccount, isInitiali
     }
   }
 
-  // Get the token type from the mint info
-  const tokenType = useMemo(() => {
-    if (!mintInfoQuery.data) return 'Unknown'
-    return mintInfoQuery.data.isToken2022 ? 'Token-2022' : 'Standard Token'
-  }, [mintInfoQuery.data])
-
   return (
     <AppModal
       hide={hide}
@@ -1103,41 +1058,6 @@ function ModalInitializeAta({ show, hide, address, initializeAccount, isInitiali
           </label>
         )}
       </div>
-
-      {validMintAddress && (
-        <div className="mt-4 p-4 bg-base-200 rounded-lg">
-          <h3 className="font-medium mb-2">Mint Information</h3>
-          
-          {mintInfoQuery.isLoading ? (
-            <div className="flex items-center justify-center py-2">
-              <span className="loading loading-spinner loading-sm mr-2"></span>
-              <span>Loading mint data...</span>
-            </div>
-          ) : mintInfoQuery.error ? (
-            <div className="alert alert-error text-sm">
-              <p>Error loading mint information:</p>
-              <p className="break-all">{mintInfoQuery.error instanceof Error ? mintInfoQuery.error.message : 'Unknown error'}</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div className="font-medium">Token Type:</div>
-              <div>{tokenType}</div>
-              
-              <div className="font-medium">Decimals:</div>
-              <div>{mintInfoQuery.data?.decimals}</div>
-              
-              <div className="font-medium">Supply:</div>
-              <div>{mintInfoQuery.data?.supply?.toString() || '0'}</div>
-              
-              <div className="font-medium">Authority:</div>
-              <div className="break-all">{mintInfoQuery.data?.mintAuthority?.toBase58() || 'None'}</div>
-              
-              <div className="font-medium">Freeze Authority:</div>
-              <div className="break-all">{mintInfoQuery.data?.freezeAuthority?.toBase58() || 'None'}</div>
-            </div>
-          )}
-        </div>
-      )}
 
       <div className="mt-4 text-sm text-base-content/70">
         <p>This will create an Associated Token Account (ATA) for this mint address with your wallet as the owner.</p>
