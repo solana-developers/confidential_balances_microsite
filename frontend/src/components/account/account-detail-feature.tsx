@@ -7,7 +7,15 @@ import { useParams } from 'next/navigation'
 
 import { ExplorerLink } from '../cluster/cluster-ui'
 import { AppHero, ellipsify } from '../ui/ui-layout'
-import { AccountBalance, AccountButtons, AccountTokens, AccountTransactions } from './account-ui'
+import {
+  AccountBalance,
+  AccountButtons,
+  AccountTransactions,
+  AccountTokens,
+  TokenAccountButtons,
+  TokenBalance
+} from './account-ui'
+import { useGetSingleTokenAccount } from './account-data-access'
 
 export default function AccountDetailFeature() {
   const params = useParams()
@@ -25,24 +33,50 @@ export default function AccountDetailFeature() {
     return <div>Error loading account</div>
   }
 
+  const { data: accountDescription } = useGetSingleTokenAccount({ address })
+
   return (
     <div>
-      <AppHero
-        title={<AccountBalance address={address} />}
-        subtitle={
-          <div className="my-4">
-            <ExplorerLink path={`account/${address}`} label={ellipsify(address.toString())} />
+      {accountDescription.tokenAccount ? (
+        <div>
+          <AppHero
+            title={<TokenBalance tokenAccountPubkey={address} />}
+            subtitle={
+              <div className="my-4">
+                Explorer: <ExplorerLink path={`account/${address}`} label={ellipsify(address.toString())} />
+              </div>
+            }
+          >
+            <div className="my-4">
+              <TokenAccountButtons address={address} />
+            </div>
+          </AppHero>
+          <div className="space-y-8">
+            <AccountTransactions address={address} />
           </div>
-        }
-      >
-        <div className="my-4">
-          <AccountButtons address={address} />
         </div>
-      </AppHero>
-      <div className="space-y-8">
-        <AccountTokens address={address} />
-        <AccountTransactions address={address} />
-      </div>
+      ) : (
+        <div>
+          <AppHero
+            title={<AccountBalance address={address} />}
+            subtitle={
+              <div className="my-4">
+                Explorer: <ExplorerLink path={`account/${address}`} label={ellipsify(address.toString())} />
+              </div>
+            }
+          >
+            <div className="my-4">
+              <AccountButtons 
+                address={address} 
+              />
+            </div>
+          </AppHero>
+          <div className="space-y-8">
+            <AccountTokens address={address} />
+            <AccountTransactions address={address} />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

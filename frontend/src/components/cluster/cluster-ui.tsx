@@ -22,6 +22,17 @@ export function ExplorerLink({ path, label, className }: { path: string; label: 
   )
 }
 
+export function AppLink({ path, label, className }: { path: string; label: string; className?: string }) {
+  return (
+    <a
+      href={path}
+      className={className ? className : `link font-mono`}
+    >
+      {label}
+    </a>
+  )
+}
+
 export function ClusterChecker({ children }: { children: ReactNode }) {
   const { cluster } = useCluster()
   const { connection } = useConnection()

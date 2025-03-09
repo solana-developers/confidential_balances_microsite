@@ -7,7 +7,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState, useEffect } from 'react'
 import { AppModal, ellipsify } from '../ui/ui-layout'
 import { useCluster } from '../cluster/cluster-data-access'
-import { ExplorerLink } from '../cluster/cluster-ui'
+import { AppLink, ExplorerLink } from '../cluster/cluster-ui'
 import { TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token'
 import { getAssociatedTokenAddress } from '@solana/spl-token'
 import { useConnection } from '@solana/wallet-adapter-react'
@@ -23,6 +23,7 @@ import {
   useApplyCB,
   useTransferCB,
   useWithdrawCB,
+  useGetSingleTokenAccount,
 } from './account-data-access'
 import { toast } from 'react-hot-toast'
 
@@ -37,6 +38,34 @@ export function AccountBalance({ address }: { address: PublicKey }) {
     </div>
   )
 }
+
+export function TokenBalance({ tokenAccountPubkey }: { tokenAccountPubkey: PublicKey }) {
+  const { connection } = useConnection()
+  const [balance, setBalance] = useState<string>('...')
+ 
+  useEffect(() => {
+    async function fetchTokenBalance() {
+      try {
+        const response = await connection.getTokenAccountBalance(tokenAccountPubkey)
+        setBalance(response?.value?.uiAmountString || '0')
+      } catch (error) {
+        console.error('Error fetching token balance:', error)
+        setBalance('Error')
+      }
+    }
+    
+    fetchTokenBalance()
+  }, [connection, tokenAccountPubkey])
+
+  return (
+    <div>
+      <h1 className="text-5xl font-bold">
+        {balance} Tokens
+      </h1>
+    </div>
+  )
+}
+
 export function AccountChecker() {
   const { publicKey } = useWallet()
   if (!publicKey) {
@@ -70,28 +99,53 @@ export function AccountBalanceCheck({ address }: { address: PublicKey }) {
   return null
 }
 
-export function AccountButtons({ address, mint, decimals }: { 
-  address: PublicKey, 
-  mint?: PublicKey,
-  decimals?: number 
+export function AccountButtons({ address }: { 
+  address: PublicKey
 }) {
-  const wallet = useWallet()
-  const { cluster } = useCluster()
-  const [showAirdropModal, setShowAirdropModal] = useState(false)
-  const [showReceiveModal, setShowReceiveModal] = useState(false)
-  const [showSendModal, setShowSendModal] = useState(false)
-  const [showDepositModal, setShowDepositModal] = useState(false)
-  const [showTransferModal, setShowTransferModal] = useState(false)
-  const [showWithdraw, setShowWithdraw] = useState(false)
   const [showInitializeModal, setShowInitializeModal] = useState(false)
-  const [showApplyModal, setShowApplyModal] = useState(false)
-  
   const { mutate: initializeAccount, isPending: isInitializing } = useCreateAssociatedTokenAccountCB({ address })
-  const { mutate: applyPendingBalance, isPending: isApplying } = useApplyCB({ address })
   
   const handleInitialize = (params: { mintAddress: string }) => {
     initializeAccount(params)
   }
+
+  return (
+    <div>
+      <ModalInitializeAta 
+        show={showInitializeModal} 
+        hide={() => setShowInitializeModal(false)} 
+        address={address} 
+        initializeAccount={handleInitialize} 
+        isInitializing={isInitializing} 
+      />
+      
+      <div className="space-x-2">
+        <button 
+          className="btn btn-xs lg:btn-md btn-outline" 
+          onClick={() => setShowInitializeModal(true)}
+          disabled={isInitializing}
+        >
+          {isInitializing ? 
+            <span className="loading loading-spinner loading-xs"></span> : 
+            'Create & Initialize Confidential Balance ATA'
+          }
+        </button>
+      </div>      
+    </div>
+  )
+}
+
+export function TokenAccountButtons({ address }: { 
+  address: PublicKey, 
+}) {
+  const wallet = useWallet()
+  const { cluster } = useCluster()
+  const [showDepositModal, setShowDepositModal] = useState(false)
+  const [showTransferModal, setShowTransferModal] = useState(false)
+  const [showWithdraw, setShowWithdraw] = useState(false)
+  const [showApplyModal, setShowApplyModal] = useState(false)
+  
+  const { mutate: applyPendingBalance, isPending: isApplying } = useApplyCB({ address })
 
   const handleApply = (params: { tokenAccount: string }) => {
     try {
@@ -105,55 +159,18 @@ export function AccountButtons({ address, mint, decimals }: {
 
   return (
     <div>
-      <ModalAirdrop hide={() => setShowAirdropModal(false)} address={address} show={showAirdropModal} />
-      <ModalReceive address={address} show={showReceiveModal} hide={() => setShowReceiveModal(false)} />
-      <ModalSend address={address} show={showSendModal} hide={() => setShowSendModal(false)} />
       <ModalDeposit show={showDepositModal} hide={() => setShowDepositModal(false)} address={address} />
       <ModalTransfer show={showTransferModal} hide={() => setShowTransferModal(false)} address={address} />
       <ModalWithdraw show={showWithdraw} hide={() => setShowWithdraw(false)} address={address} />
-      <ModalInitializeAta show={showInitializeModal} hide={() => setShowInitializeModal(false)} address={address} initializeAccount={handleInitialize} isInitializing={isInitializing} />
       <ModalApply 
         show={showApplyModal} 
         hide={() => setShowApplyModal(false)} 
         address={address} 
         handleApply={handleApply} 
         isApplying={isApplying} 
-        mint={mint} 
       />
       
       <div className="space-x-2">
-        <button
-          disabled={cluster.network?.includes('mainnet')}
-          className="btn btn-xs lg:btn-md btn-outline"
-          onClick={() => setShowAirdropModal(true)}
-        >
-          Airdrop
-        </button>
-        <button
-          disabled={wallet.publicKey?.toString() !== address.toString()}
-          className="btn btn-xs lg:btn-md btn-outline"
-          onClick={() => setShowSendModal(true)}
-        >
-          Send
-        </button>
-        <button
-          disabled={wallet.publicKey?.toString() !== address.toString()}
-          className="btn btn-xs lg:btn-md btn-outline"
-          onClick={() => setShowReceiveModal(true)}
-        >
-          Receive
-        </button>
-        <br />
-        <button 
-          className="btn btn-xs lg:btn-md btn-outline" 
-          onClick={() => setShowInitializeModal(true)}
-          disabled={isInitializing}
-        >
-          {isInitializing ? 
-            <span className="loading loading-spinner loading-xs"></span> : 
-            'Initialize ATA'
-          }
-        </button>
         <button 
           className="btn btn-xs lg:btn-md btn-outline"
           onClick={() => setShowDepositModal(true)}
@@ -240,7 +257,7 @@ export function AccountTokens({ address }: { address: PublicKey }) {
                     <td>
                       <div className="flex space-x-2">
                         <span className="font-mono">
-                          <ExplorerLink label={ellipsify(pubkey.toString())} path={`account/${pubkey.toString()}`} />
+                          <AppLink label={ellipsify(pubkey.toString())} path={`/account/${pubkey.toString()}`} />
                         </span>
                       </div>
                     </td>
@@ -1246,43 +1263,5 @@ function ModalApply({ show, hide, address, handleApply, isApplying, mint }: {
         )}
       </div>
     </AppModal>
-  )
-}
-
-export function AccountActions({ address }: { address: PublicKey }) {
-  const [showReceive, setShowReceive] = useState(false)
-  const [showDeposit, setShowDeposit] = useState(false)
-  const [showSend, setShowSend] = useState(false)
-  const [showAirdrop, setShowAirdrop] = useState(false)
-  const [showTransfer, setShowTransfer] = useState(false)
-  const [showWithdraw, setShowWithdraw] = useState(false)
-  
-  return (
-    <div className="flex flex-wrap gap-2 justify-center">
-      <button className="btn btn-primary" onClick={() => setShowDeposit(true)}>
-        Deposit
-      </button>
-      <button className="btn btn-primary" onClick={() => setShowWithdraw(true)}>
-        Withdraw
-      </button>
-      <button className="btn btn-primary" onClick={() => setShowTransfer(true)}>
-        Transfer
-      </button>
-      <button className="btn btn-primary" onClick={() => setShowReceive(true)}>
-        Receive
-      </button>
-      <button className="btn btn-primary" onClick={() => setShowSend(true)}>
-        Send
-      </button>
-      <button className="btn btn-primary" onClick={() => setShowAirdrop(true)}>
-        Airdrop
-      </button>
-      <ModalReceive show={showReceive} hide={() => setShowReceive(false)} address={address} />
-      <ModalDeposit show={showDeposit} hide={() => setShowDeposit(false)} address={address} />
-      <ModalWithdraw show={showWithdraw} hide={() => setShowWithdraw(false)} address={address} />
-      <ModalSend show={showSend} hide={() => setShowSend(false)} address={address} />
-      <ModalAirdrop show={showAirdrop} hide={() => setShowAirdrop(false)} address={address} />
-      <ModalTransfer show={showTransfer} hide={() => setShowTransfer(false)} address={address} />
-    </div>
   )
 }

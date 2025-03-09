@@ -1,6 +1,6 @@
 'use client'
 
-import { TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token'
+import { getAccount, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import {
   Connection,
@@ -175,6 +175,95 @@ async function createTransaction({
     transaction,
     latestBlockhash,
   }
+}
+
+export function useGetSingleTokenAccount({ address }: { address: PublicKey }) {
+  const { connection } = useConnection()
+
+  return useQuery({
+    queryKey: ['get-single-token-account', { endpoint: connection.rpcEndpoint, address }],
+    queryFn: async () => {
+      try {
+        // First, check if the account exists and what program owns it
+        const accountInfo = await connection.getAccountInfo(address, 'confirmed')
+        
+        // If account doesn't exist at all
+        if (!accountInfo) {
+          return { 
+            tokenAccount: null, 
+            error: null, 
+            reason: 'Account does not exist' 
+          }
+        }
+        
+        // Check if the account is owned by either Token Program
+        const isOwnedByTokenProgram = 
+          accountInfo.owner.equals(TOKEN_PROGRAM_ID) || 
+          accountInfo.owner.equals(TOKEN_2022_PROGRAM_ID)
+          
+        if (!isOwnedByTokenProgram) {
+          return { 
+            tokenAccount: null, 
+            error: null, 
+            reason: 'Account is not owned by Token Program' 
+          }
+        }
+        
+        // Now we know it's likely a token account, try to parse it
+        // First try TOKEN_2022_PROGRAM_ID
+        try {
+          const tokenAccount = await getAccount(
+            connection,
+            address,
+            'confirmed',
+            TOKEN_2022_PROGRAM_ID
+          )
+          return { 
+            tokenAccount, 
+            error: null, 
+            reason: null 
+          }
+        } catch (token2022Error) {
+          // If that fails, try the regular TOKEN_PROGRAM_ID
+          try {
+            const tokenAccount = await getAccount(
+              connection,
+              address,
+              'confirmed',
+              TOKEN_PROGRAM_ID
+            )
+            return { 
+              tokenAccount, 
+              error: null, 
+              reason: null 
+            }
+          } catch (tokenError) {
+            // If both fail but the account is owned by a token program,
+            // it's likely a token account with an unexpected structure
+            return { 
+              tokenAccount: null, 
+              error: 'Account is owned by Token Program but could not be parsed as a token account',
+              reason: 'Failed to parse token account data' 
+            }
+          }
+        }
+      } catch (error: any) {
+        // This is an actual error (network error, etc.)
+        console.error('Error fetching account info:', error)
+        return { 
+          tokenAccount: null, 
+          error: error.message || 'Unknown error', 
+          reason: 'Network or RPC error' 
+        }
+      }
+    },
+    // Set an initial data value to ensure data is never undefined
+    initialData: {
+      tokenAccount: null,
+      error: null,
+      reason: 'Query not started'
+    }
+  })
 }
 
 export function useCreateAssociatedTokenAccountCB({ address }: { address: PublicKey }) {
