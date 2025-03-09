@@ -392,9 +392,8 @@ export function useDepositCb({ address }: { address: PublicKey }) {
 
   return useMutation({
     mutationKey: ['deposit-cb', { endpoint: connection.rpcEndpoint, address }],
-    mutationFn: async ({ lamportAmount, ataAddress }: { 
+    mutationFn: async ({ lamportAmount }: { 
       lamportAmount: string, 
-      ataAddress: string 
     }) => {
       try {
         if (!wallet.publicKey) {
@@ -402,7 +401,7 @@ export function useDepositCb({ address }: { address: PublicKey }) {
         }
 
         // Get ATA account info
-        const ataAccountInfo = await connection.getAccountInfo(new PublicKey(ataAddress));
+        const ataAccountInfo = await connection.getAccountInfo(address);
         if (!ataAccountInfo) {
           throw new Error("Account not found");
         }
@@ -574,7 +573,7 @@ export function useApplyCB({ address }: { address: PublicKey }) {
 
   return useMutation({
     mutationKey: ['apply-pending-balance', { endpoint: connection.rpcEndpoint, address }],
-    mutationFn: async ({ tokenAccount }: { tokenAccount: string }) => {
+    mutationFn: async () => {
       try {
         // First, sign the messages for ElGamal and AES
         if (!wallet.signMessage) {
@@ -596,7 +595,7 @@ export function useApplyCB({ address }: { address: PublicKey }) {
         console.log('AES signature:', aesSignatureBase64)
         
         // Get the token account address from the provided string
-        const tokenAccountAddress = new PublicKey(tokenAccount)
+        const tokenAccountAddress = new PublicKey(address)
 
         // Fetch the token account data
         const accountInfo = await connection.getAccountInfo(tokenAccountAddress)
@@ -604,13 +603,17 @@ export function useApplyCB({ address }: { address: PublicKey }) {
           throw new Error('Token account not found')
         }
         
-        // Extract mint from token account data
-        // This is a simplified approach - in a real implementation, you would parse the token account data
-        // to extract the mint address
-        
         // Prepare the request to the backend
         // Convert pubkeys to base58 strings and then base64 encode them
-        const ataAuthorityBase58 = address.toString()
+        const ataAuthorityBase58 = await (async () => {
+            const tokenAccountInfo = await getAccount(
+                connection,
+                address,
+                'confirmed',
+                TOKEN_2022_PROGRAM_ID
+            );
+            return tokenAccountInfo.owner.toBase58();
+        })();
         
         const request = {
           ata_authority: Buffer.from(ataAuthorityBase58).toString('base64'),

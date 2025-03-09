@@ -143,32 +143,14 @@ export function TokenAccountButtons({ address }: {
   const [showDepositModal, setShowDepositModal] = useState(false)
   const [showTransferModal, setShowTransferModal] = useState(false)
   const [showWithdraw, setShowWithdraw] = useState(false)
-  const [showApplyModal, setShowApplyModal] = useState(false)
   
   const { mutate: applyPendingBalance, isPending: isApplying } = useApplyCB({ address })
-
-  const handleApply = (params: { tokenAccount: string }) => {
-    try {
-      applyPendingBalance({
-        tokenAccount: params.tokenAccount
-      })
-    } catch (error) {
-      toast.error(`Error applying balance: ${error instanceof Error ? error.message : String(error)}`)
-    }
-  }
 
   return (
     <div>
       <ModalDeposit show={showDepositModal} hide={() => setShowDepositModal(false)} address={address} />
       <ModalTransfer show={showTransferModal} hide={() => setShowTransferModal(false)} address={address} />
       <ModalWithdraw show={showWithdraw} hide={() => setShowWithdraw(false)} address={address} />
-      <ModalApply 
-        show={showApplyModal} 
-        hide={() => setShowApplyModal(false)} 
-        address={address} 
-        handleApply={handleApply} 
-        isApplying={isApplying} 
-      />
       
       <div className="space-x-2">
         <button 
@@ -179,7 +161,7 @@ export function TokenAccountButtons({ address }: {
         </button>
         <button 
           className="btn btn-xs lg:btn-md btn-outline"
-          onClick={() => setShowApplyModal(true)}
+          onClick={() => applyPendingBalance()}
           disabled={isApplying /*|| !wallet.publicKey?.equals(address)*/}
         >
           {isApplying ? 
@@ -499,7 +481,6 @@ function ModalDeposit({ show, hide, address }: { show: boolean; hide: () => void
       
       await depositMutation.mutateAsync({ 
         lamportAmount: tokenAmount,
-        ataAddress: address.toString(),
       })
       hide()
       setAmount('')
@@ -1061,126 +1042,6 @@ function ModalInitATA({ show, hide, address, initializeAccount, isInitializing }
 
       <div className="mt-4 text-sm text-base-content/70">
         <p>This will create an Associated Token Account (ATA) for this mint address with your wallet as the owner.</p>
-      </div>
-    </AppModal>
-  )
-}
-
-function ModalApply({ show, hide, address, handleApply, isApplying, mint }: { 
-  show: boolean; 
-  hide: () => void; 
-  address: PublicKey;
-  handleApply: (params: { tokenAccount: string }) => void;
-  isApplying: boolean;
-  mint?: PublicKey;
-}) {
-  const { connection } = useConnection()
-  const [tokenAccount, setTokenAccount] = useState('')
-  const [isValidating, setIsValidating] = useState(false)
-  const [isValid, setIsValid] = useState(false)
-  const [validationError, setValidationError] = useState('')
-
-  // Validate token account when it changes
-  useEffect(() => {
-    if (tokenAccount.length >= 32 && tokenAccount.length <= 44) {
-      validateTokenAccount()
-    } else {
-      setIsValid(false)
-      setValidationError('')
-    }
-  }, [tokenAccount])
-
-  const validateTokenAccount = async () => {
-    if (!tokenAccount) return
-    
-    setIsValidating(true)
-    setValidationError('')
-    
-    try {
-      // Check if it's a valid public key
-      const pubkey = new PublicKey(tokenAccount)
-      
-      // Check if the account exists
-      const accountInfo = await connection.getAccountInfo(pubkey)
-      if (!accountInfo) {
-        setValidationError('Token account does not exist')
-        setIsValid(false)
-      } else {
-        setIsValid(true)
-      }
-    } catch (error) {
-      console.error('Error validating token account:', error)
-      setValidationError(error instanceof Error ? error.message : 'Invalid token account address')
-      setIsValid(false)
-    } finally {
-      setIsValidating(false)
-    }
-  }
-
-  const handleSubmit = () => {
-    if (!isValid) {
-      toast.error('Please enter a valid token account address')
-      return
-    }
-    
-    try {
-      handleApply({ tokenAccount })
-      hide()
-      toast.success('Apply transaction submitted')
-    } catch (error) {
-      console.error('Apply failed:', error)
-      toast.error(`Apply failed: ${error instanceof Error ? error.message : String(error)}`)
-    }
-  }
-
-  return (
-    <AppModal
-      hide={hide}
-      show={show}
-      title="Apply to Confidential Balance"
-      submitDisabled={!isValid || isApplying || isValidating}
-      submitLabel={isApplying ? "Processing..." : "Apply"}
-      submit={handleSubmit}
-    >
-      <div className="mb-4">
-        <p className="text-sm">
-          Apply your pending balance to make it available for confidential transfers.
-        </p>
-      </div>
-
-      <div className="form-control">
-        <label className="label">
-          <span className="label-text">Token Account Address</span>
-        </label>
-        <input
-          type="text"
-          placeholder="Enter token account address"
-          className={`input input-bordered w-full ${isValid ? 'input-success' : validationError ? 'input-error' : ''}`}
-          value={tokenAccount}
-          onChange={(e) => setTokenAccount(e.target.value)}
-          disabled={isApplying}
-        />
-        
-        {isValidating && (
-          <label className="label">
-            <span className="label-text-alt">
-              <span className="loading loading-spinner loading-xs mr-1"></span>
-              Validating...
-            </span>
-          </label>
-        )}
-        
-        {validationError && (
-          <label className="label">
-            <span className="label-text-alt text-error">{validationError}</span>
-          </label>
-        )}
-        
-        {isValid && !validationError && (
-          <label className="label">
-            <span className="label-text-alt text-success">✓ Valid token account</span>
-          </label>
-        )}
       </div>
     </AppModal>
   )
