@@ -150,7 +150,7 @@ export function TokenAccountButtons({ address }: {
     <div>
       <ModalDeposit show={showDepositModal} hide={() => setShowDepositModal(false)} address={address} />
       <ModalTransfer show={showTransferModal} hide={() => setShowTransferModal(false)} address={address} />
-      <ModalWithdraw show={showWithdraw} hide={() => setShowWithdraw(false)} address={address} />
+      <ModalWithdraw show={showWithdraw} hide={() => setShowWithdraw(false)} tokenAccountPubkey={address} />
       
       <div className="space-x-2">
         <button 
@@ -558,36 +558,24 @@ function ModalDeposit({ show, hide, address }: { show: boolean; hide: () => void
   )
 }
 
-function ModalWithdraw({ show, hide, address }: { show: boolean; hide: () => void; address: PublicKey }) {
+function ModalWithdraw({ show, hide, tokenAccountPubkey }: { show: boolean; hide: () => void; tokenAccountPubkey: PublicKey }) {
   const [amount, setAmount] = useState('')
-  const withdrawMutation = useWithdrawCB({ address })
-  const [mintAddress, setMintAddress] = useState('')
-  const [validMintAddress, setValidMintAddress] = useState(false)
-  const mintInfoQuery = useGetMintInfo({ mintAddress: validMintAddress ? mintAddress : '' })
+  const withdrawMutation = useWithdrawCB({ tokenAccountPubkey })
   const [decimals, setDecimals] = useState(9) // Default to 9 decimals until we load the actual value
   
-  // Validate the input mint address when it changes
-  useEffect(() => {
-    // Only validate when we have a string that's the right length for a base58 Solana address (typically 32-44 chars)
-    if (mintAddress.length >= 32 && mintAddress.length <= 44) {
-      try {
-        // Try to create a PublicKey to validate the address
-        new PublicKey(mintAddress)
-        setValidMintAddress(true)
-      } catch (error) {
-        setValidMintAddress(false)
-      }
-    } else {
-      setValidMintAddress(false)
-    }
-  }, [mintAddress])
+  // Get token account info to extract the mint
+  const { data: tokenAccountInfo, isLoading: isTokenAccountLoading } = useGetSingleTokenAccount({ address: tokenAccountPubkey })
   
+  // Use the mint from the token account to get mint info
+  const mintInfoQuery = useGetMintInfo({ 
+    mintAddress: tokenAccountInfo?.tokenAccount?.mint?.toBase58() || '', 
+    enabled: !!tokenAccountInfo?.tokenAccount?.mint
+  })
+  
+  // Update decimals when mint info is available
   useEffect(() => {
     if (mintInfoQuery.data) {
       setDecimals(mintInfoQuery.data.decimals)
-      console.log(`Mint decimals: ${mintInfoQuery.data.decimals}`)
-      console.log(`Mint authority: ${mintInfoQuery.data.mintAuthority?.toBase58() || 'None'}`)
-      console.log(`Is Token-2022: ${mintInfoQuery.data.isToken2022 ? 'Yes' : 'No'}`)
     }
   }, [mintInfoQuery.data])
   
@@ -599,8 +587,8 @@ function ModalWithdraw({ show, hide, address }: { show: boolean; hide: () => voi
       return
     }
     
-    if (!validMintAddress) {
-      toast.error('Please enter a valid mint address')
+    if (!tokenAccountInfo?.tokenAccount?.mint) {
+      toast.error('Token mint information not available')
       return
     }
     
@@ -613,7 +601,6 @@ function ModalWithdraw({ show, hide, address }: { show: boolean; hide: () => voi
       
       await withdrawMutation.mutateAsync({ 
         amount: tokenAmount,
-        mintAddress
       })
       hide()
       setAmount('')
@@ -630,63 +617,37 @@ function ModalWithdraw({ show, hide, address }: { show: boolean; hide: () => voi
     const factor = Math.pow(10, decimals)
     return `${parseFloat(amount) * factor} token units`
   }, [amount, decimals])
-
+  
   // Get the token type from the mint info
   const tokenType = useMemo(() => {
     if (!mintInfoQuery.data) return 'Unknown';
     return mintInfoQuery.data.isToken2022 ? 'Token-2022' : 'Standard Token';
-  }, [mintInfoQuery.data]);
+  }, [mintInfoQuery.data])
+
+  const isLoading = isTokenAccountLoading || mintInfoQuery.isLoading;
 
   return (
     <AppModal
       hide={hide}
       show={show}
       title="Withdraw from Confidential Balance"
-      submitDisabled={!amount || parseFloat(amount) <= 0 || !validMintAddress || withdrawMutation.isPending || mintInfoQuery.isLoading}
+      submitDisabled={!amount || parseFloat(amount) <= 0 || withdrawMutation.isPending || isLoading}
       submitLabel={withdrawMutation.isPending ? "Processing..." : "Confirm Withdraw"}
       submit={handleSubmit}
     >
-      <div className="form-control mb-4">
-        <label className="label">
-          <span className="label-text">Token Mint Address</span>
-        </label>
-        <input
-          type="text"
-          placeholder="Enter Solana mint address in base58"
-          className={`input input-bordered w-full ${validMintAddress ? 'input-success' : mintAddress ? 'input-error' : ''}`}
-          value={mintAddress}
-          onChange={(e) => setMintAddress(e.target.value)}
-          disabled={withdrawMutation.isPending}
-        />
-        {mintAddress && !validMintAddress && (
-          <label className="label">
-            <span className="label-text-alt text-error">Invalid mint address format</span>
-          </label>
-        )}
-      </div>
-
-      {mintInfoQuery.isLoading ? (
+      {isLoading ? (
         <div className="flex justify-center py-4">
           <span className="loading loading-spinner"></span>
-          <span className="ml-2">Loading mint information...</span>
+          <span className="ml-2">Loading token information...</span>
         </div>
       ) : mintInfoQuery.error ? (
         <div className="flex flex-col gap-2">
           <div className="alert alert-error">
-            <p>Error loading mint information:</p>
+            <p>Error loading token information:</p>
             <p className="text-sm break-all">{mintInfoQuery.error instanceof Error ? mintInfoQuery.error.message : 'Unknown error'}</p>
           </div>
-          <div className="alert alert-info">
-            <p>This could be because:</p>
-            <ul className="list-disc list-inside text-sm">
-              <li>The mint address is not a valid token mint</li>
-              <li>The mint is using a different token program than expected</li>
-              <li>The account exists but is not a token mint account</li>
-            </ul>
-            <p className="mt-2 text-sm">Using default 9 decimals for calculations.</p>
-          </div>
         </div>
-      ) : validMintAddress && mintInfoQuery.data ? (
+      ) : (
         <div className="form-control">
           <div className="mb-2 text-sm">
             <span className="badge badge-info">{tokenType}</span>
@@ -712,7 +673,7 @@ function ModalWithdraw({ show, hide, address }: { show: boolean; hide: () => voi
             </span>
           </label>
         </div>
-      ) : null}
+      )}
     </AppModal>
   )
 }

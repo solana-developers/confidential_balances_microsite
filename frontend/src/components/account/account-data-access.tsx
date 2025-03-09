@@ -1,6 +1,6 @@
 'use client'
 
-import { getAccount, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token'
+import { getAccount, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID, Account, unpackAccount } from '@solana/spl-token'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import {
   Connection,
@@ -889,17 +889,16 @@ export function useTransferCB({ address }: { address: PublicKey }) {
   })
 }
 
-export function useWithdrawCB({ address }: { address: PublicKey }) {
+export function useWithdrawCB({ tokenAccountPubkey }: { tokenAccountPubkey: PublicKey }) {
   const { connection } = useConnection()
   const client = useQueryClient()
   const transactionToast = useTransactionToast()
   const wallet = useWallet()
 
   return useMutation({
-    mutationKey: ['withdraw-cb', { endpoint: connection.rpcEndpoint, address }],
-    mutationFn: async ({ amount, mintAddress }: { 
+    mutationKey: ['withdraw-cb', { endpoint: connection.rpcEndpoint, tokenAccountPubkey }],
+    mutationFn: async ({amount}: { 
       amount: number,
-      mintAddress: string
     }) => {
       try {
         if (!wallet.publicKey) {
@@ -925,23 +924,21 @@ export function useWithdrawCB({ address }: { address: PublicKey }) {
         
         console.log('AES signature:', aesSignatureBase64)
 
-        // Get the recipient token account (which is the user's regular token account)
-        const mintPublicKey = new PublicKey(mintAddress)
-        const recipientTokenAccount = await getAssociatedTokenAddress(
-          mintPublicKey,
-          address,
-          false,
-          TOKEN_2022_PROGRAM_ID
-        )
-        
-        // Get the recipient token account data
-        const recipientAccountInfo = await connection.getAccountInfo(recipientTokenAccount)
-        if (!recipientAccountInfo) {
-          throw new Error("Recipient token account not found")
+        // Get the token account data
+        const tokenAccountInfo = await connection.getAccountInfo(tokenAccountPubkey)
+        if (!tokenAccountInfo) {
+          throw new Error("Token account not found")
         }
         
+        // Parse the token account data to get the mint
+        const tokenAccount = unpackAccount(tokenAccountPubkey, tokenAccountInfo, TOKEN_2022_PROGRAM_ID)
+        if (!tokenAccount) {
+          throw new Error("Failed to parse token account data")
+        }
+        
+        
         // Get the mint account data
-        const mintAccountInfo = await connection.getAccountInfo(mintPublicKey)
+        const mintAccountInfo = await connection.getAccountInfo(tokenAccount.mint)
         if (!mintAccountInfo) {
           throw new Error("Mint account not found")
         }
@@ -961,7 +958,7 @@ export function useWithdrawCB({ address }: { address: PublicKey }) {
           body: JSON.stringify({
             elgamal_signature: elGamalSignatureBase64,
             aes_signature: aesSignatureBase64,
-            recipient_token_account: Buffer.from(recipientAccountInfo.data).toString('base64'),
+            recipient_token_account: Buffer.from(tokenAccountInfo.data).toString('base64'),
             mint_account_info: Buffer.from(mintAccountInfo.data).toString('base64'),
             withdraw_amount_lamports: amount.toString(),
             priority_fee: "100000000",  // Add 0.1 SOL priority fee as string
@@ -1035,13 +1032,13 @@ export function useWithdrawCB({ address }: { address: PublicKey }) {
       // Invalidate relevant queries to refresh data
       return Promise.all([
         client.invalidateQueries({
-          queryKey: ['get-balance', { endpoint: connection.rpcEndpoint, address }],
+          queryKey: ['get-balance', { endpoint: connection.rpcEndpoint, tokenAccountPubkey }],
         }),
         client.invalidateQueries({
-          queryKey: ['get-signatures', { endpoint: connection.rpcEndpoint, address }],
+          queryKey: ['get-signatures', { endpoint: connection.rpcEndpoint, tokenAccountPubkey }],
         }),
         client.invalidateQueries({
-          queryKey: ['get-token-accounts', { endpoint: connection.rpcEndpoint, address }],
+          queryKey: ['get-token-accounts', { endpoint: connection.rpcEndpoint, tokenAccountPubkey }],
         }),
       ])
     },
