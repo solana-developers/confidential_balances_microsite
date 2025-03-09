@@ -18,11 +18,11 @@ import {
   useRequestAirdrop,
   useTransferSol,
   useDepositCb,
-  useInitializeAccount,
+  useCreateAssociatedTokenAccountCB,
   useGetMintInfo,
-  useApplyPendingBalance,
-  useTransferCb,
-  useWithdrawCb,
+  useApplyCB,
+  useTransferCB,
+  useWithdrawCB,
 } from './account-data-access'
 import { toast } from 'react-hot-toast'
 
@@ -84,8 +84,8 @@ export function AccountButtons({ address, mint, decimals }: {
   const [showTransferModal, setShowTransferModal] = useState(false)
   const [showWithdraw, setShowWithdraw] = useState(false)
   
-  const { mutate: initializeAccount, isPending: isInitializing } = useInitializeAccount({ address })
-  const { mutate: applyPendingBalance, isPending: isApplying } = useApplyPendingBalance({ address })
+  const { mutate: initializeAccount, isPending: isInitializing } = useCreateAssociatedTokenAccountCB({ address })
+  const { mutate: applyPendingBalance, isPending: isApplying } = useApplyCB({ address })
   
   const defaultMint = new PublicKey('Dsurjp9dMjFmxq4J3jzZ8As32TgwLCftGyATiQUFu11D')
   
@@ -544,7 +544,7 @@ function ModalDeposit({ show, hide, address }: { show: boolean; hide: () => void
 
 function ModalWithdraw({ show, hide, address }: { show: boolean; hide: () => void; address: PublicKey }) {
   const [amount, setAmount] = useState('')
-  const withdrawMutation = useWithdrawCb({ address })
+  const withdrawMutation = useWithdrawCB({ address })
   // Default mint address - replace with the actual mint address you're using
   const mintAddress = "Dsurjp9dMjFmxq4J3jzZ8As32TgwLCftGyATiQUFu11D"
   const mintInfoQuery = useGetMintInfo({ mintAddress })
@@ -663,7 +663,7 @@ function ModalWithdraw({ show, hide, address }: { show: boolean; hide: () => voi
 function ModalTransfer({ show, hide, address }: { show: boolean; hide: () => void; address: PublicKey }) {
   const [amount, setAmount] = useState('')
   const [recipientAddress, setRecipientAddress] = useState('')
-  const transferMutation = useTransferCb({ address })
+  const transferMutation = useTransferCB({ address })
   // Default mint address - same as in ModalDeposit
   const mintAddress = "Dsurjp9dMjFmxq4J3jzZ8As32TgwLCftGyATiQUFu11D"
   const mintInfoQuery = useGetMintInfo({ mintAddress })

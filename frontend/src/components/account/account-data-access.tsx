@@ -177,7 +177,7 @@ async function createTransaction({
   }
 }
 
-export function useInitializeAccount({ address }: { address: PublicKey }) {
+export function useCreateAssociatedTokenAccountCB({ address }: { address: PublicKey }) {
   const { connection } = useConnection()
   const client = useQueryClient()
   const transactionToast = useTransactionToast()
@@ -289,128 +289,6 @@ export function useInitializeAccount({ address }: { address: PublicKey }) {
         toast.error(`Message signing failed: ${error.message}`);
       } else {
         toast.error(`Initialization failed! ${error}`);
-      }
-    },
-  });
-}
-
-export function useCreateConfidentialBalancesATA({ address }: { address: PublicKey }) {
-  const { connection } = useConnection()
-  const client = useQueryClient()
-  const transactionToast = useTransactionToast()
-  const wallet = useWallet()
-
-  return useMutation({
-    mutationKey: ['create-cb-ata', { endpoint: connection.rpcEndpoint, address }],
-    mutationFn: async (input: { mint: PublicKey, authority: PublicKey }) => {
-      try {
-        // First, sign the messages for ElGamal and AES
-        if (!wallet.signMessage) {
-          throw new Error("Wallet does not support message signing");
-        }
-        
-        // Sign the ElGamal message
-        const elGamalMessageToSign = new TextEncoder().encode("ElGamalSecret");
-        const elGamalSignature = await wallet.signMessage(elGamalMessageToSign);
-        const elGamalSignatureBase64 = Buffer.from(elGamalSignature).toString('base64');
-        
-        console.log('ElGamal signature:', elGamalSignatureBase64);
-        
-        // Sign the AES message
-        const aesMessageToSign = new TextEncoder().encode("AESKey");
-        const aesSignature = await wallet.signMessage(aesMessageToSign);
-        const aesSignatureBase64 = Buffer.from(aesSignature).toString('base64');
-        
-        console.log('AES signature:', aesSignatureBase64);
-        
-        // Now proceed with the transaction
-        const route = `${process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT}/create-cb-ata`;
-        const response = await fetch(route, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            owner: address.toString(),
-            mint: input.mint.toString(),
-            authority: input.authority.toString(),
-            elgamal_signature: elGamalSignatureBase64,
-            aes_signature: aesSignatureBase64
-          }),
-        });
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        // Deserialize the transaction from the response
-        const serializedTransaction = Buffer.from(data.transaction, 'base64');
-        const transaction = VersionedTransaction.deserialize(serializedTransaction);
-        
-        // Get the latest blockhash for transaction confirmation
-        const latestBlockhash = await connection.getLatestBlockhash();
-        
-        // Update the transaction's blockhash
-        if (transaction.message.version === 0) {
-          // For VersionedMessage V0
-          transaction.message.recentBlockhash = latestBlockhash.blockhash;
-        } else {
-          // For legacy messages
-          (transaction.message as any).recentBlockhash = latestBlockhash.blockhash;
-        }
-        
-        // Sign and send the transaction
-        const signature = await wallet.sendTransaction(transaction, connection);
-        
-        // Confirm the transaction
-        await connection.confirmTransaction({ signature, ...latestBlockhash }, 'confirmed');
-        
-        console.log('Transaction signature:', signature);
-        return { 
-          signature, 
-          elGamalSignature: elGamalSignatureBase64,
-          aesSignature: aesSignatureBase64,
-          ...data 
-        };
-      } catch (error) {
-        console.error('Error creating Confidential Balances ATA:', error);
-        throw error;
-      }
-    },
-    onSuccess: (data) => {
-      if (data.signature) {
-        transactionToast(data.signature);
-        toast.success('Confidential Balances ATA created successfully');
-      }
-      
-      if (data.elGamalSignature) {
-        console.log('ElGamal signature collected:', data.elGamalSignature);
-      }
-      
-      if (data.aesSignature) {
-        console.log('AES signature collected:', data.aesSignature);
-      }
-      
-      // Invalidate relevant queries to refresh data
-      return Promise.all([
-        client.invalidateQueries({
-          queryKey: ['get-balance', { endpoint: connection.rpcEndpoint, address }],
-        }),
-        client.invalidateQueries({
-          queryKey: ['get-signatures', { endpoint: connection.rpcEndpoint, address }],
-        }),
-        client.invalidateQueries({
-          queryKey: ['get-token-accounts', { endpoint: connection.rpcEndpoint, address }],
-        }),
-      ]);
-    },
-    onError: (error) => {
-      if (error instanceof Error && error.message.includes("message signing")) {
-        toast.error(`Message signing failed: ${error.message}`);
-      } else {
-        toast.error(`Failed to create Confidential Balances ATA: ${error}`);
       }
     },
   });
@@ -573,7 +451,7 @@ export function useGetMintInfo({ mintAddress }: { mintAddress: string }) {
   })
 }
 
-export function useApplyPendingBalance({ address }: { address: PublicKey }) {
+export function useApplyCB({ address }: { address: PublicKey }) {
   const { connection } = useConnection()
   const client = useQueryClient()
   const transactionToast = useTransactionToast()
@@ -718,7 +596,7 @@ export function useApplyPendingBalance({ address }: { address: PublicKey }) {
   })
 }
 
-export function useTransferCb({ address }: { address: PublicKey }) {
+export function useTransferCB({ address }: { address: PublicKey }) {
   const { connection } = useConnection()
   const client = useQueryClient()
   const transactionToast = useTransactionToast()
@@ -893,7 +771,7 @@ export function useTransferCb({ address }: { address: PublicKey }) {
   })
 }
 
-export function useWithdrawCb({ address }: { address: PublicKey }) {
+export function useWithdrawCB({ address }: { address: PublicKey }) {
   const { connection } = useConnection()
   const client = useQueryClient()
   const transactionToast = useTransactionToast()
