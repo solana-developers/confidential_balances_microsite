@@ -1060,18 +1060,22 @@ fn get_zk_proof_context_state_account_creation_instructions<
     use std::mem::size_of;
     use spl_token_confidential_transfer_proof_extraction::instruction::zk_proof_type_to_instruction;
 
-    let client = solana_client::rpc_client::RpcClient::new_with_commitment(
-        "https://api.devnet.solana.com",
-        solana_sdk::commitment_config::CommitmentConfig::confirmed(),
-    );
-
     let space = size_of::<zk_elgamal_proof_program::state::ProofContextState<U>>();
     println!("📊 Context state account space required: {} bytes", space);
     
-    let rent = client
-        .get_minimum_balance_for_rent_exemption(space)
-        .map_err(|_| AppError::SerializationError)?;
-    println!("💰 Minimum rent for context state account: {} lamports", rent);
+    let rent = {
+        
+        let client = solana_client::rpc_client::RpcClient::new_with_commitment(
+            "https://api.devnet.solana.com",
+            solana_sdk::commitment_config::CommitmentConfig::confirmed(),
+        );
+        
+        let rent = client
+            .get_minimum_balance_for_rent_exemption(space)
+            .map_err(|_| AppError::SerializationError)?;
+        println!("💰 Minimum rent for context state account: {} lamports", rent);
+        rent
+    };
 
     let context_state_info = ContextStateInfo {
         context_state_account: context_state_account_pubkey,
