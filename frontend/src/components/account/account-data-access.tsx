@@ -1006,7 +1006,6 @@ export function useWithdrawCB({ tokenAccountPubkey }: { tokenAccountPubkey: Publ
             recipient_token_account: Buffer.from(tokenAccountInfo.data).toString('base64'),
             mint_account_info: Buffer.from(mintAccountInfo.data).toString('base64'),
             withdraw_amount_lamports: amount.toString(),
-            priority_fee: "100000000",  // Add 0.1 SOL priority fee as string
             latest_blockhash: latestBlockhash.blockhash,
             equality_proof_rent: equalityProofRent.toString(),
             range_proof_rent: rangeProofRent.toString()

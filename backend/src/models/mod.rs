@@ -71,7 +71,6 @@ pub struct WithdrawCbRequest {
     pub mint_account_info: String,       // The mint account info
     pub withdraw_amount_lamports: String, // The amount to withdraw as u64
     pub latest_blockhash: String,        // The latest blockhash
-    pub priority_fee: String,            // The priority fee as u64
     pub equality_proof_rent: String,      // Rent for equality proof context state account
     pub range_proof_rent: String,         // Rent for range proof context state account
 }
