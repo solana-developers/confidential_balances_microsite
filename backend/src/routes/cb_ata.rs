@@ -8,7 +8,9 @@ use {
         TransferCbRequest, 
         WithdrawCbRequest,
         TransferCbSpaceResponse,
-        WithdrawCbSpaceResponse
+        WithdrawCbSpaceResponse,
+        DecryptCbRequest,
+        DecryptCbResponse
     }}, 
     axum::extract::Json, 
     base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _}, 
@@ -1164,5 +1166,36 @@ pub async fn withdraw_cb_space() -> Result<Json<WithdrawCbSpaceResponse>, AppErr
         equality_proof_space,
         range_proof_space,
         message: "Space requirements for withdraw-cb proofs".to_string(),
+    }))
+}
+
+// Handler for decrypting a Confidential Balance
+pub async fn decrypt_cb(
+    Json(request): Json<DecryptCbRequest>,
+) -> Result<Json<DecryptCbResponse>, AppError> {
+    println!("🔐 Starting decrypt_cb handler");
+    
+    // Parse AES signature
+    println!("🔐 Decoding AES signature: {}", request.aes_signature);
+    let decoded_aes_signature = BASE64_STANDARD.decode(&request.aes_signature)?;
+    println!("✅ AES signature base64 decoded, got {} bytes", decoded_aes_signature.len());
+    
+    // Create signature directly from bytes
+    let aes_signature = Signature::try_from(decoded_aes_signature.as_slice())
+        .map_err(|_| AppError::SerializationError)?;
+    println!("✅ AES signature created successfully");
+    
+    // Create the AES key
+    let aes_key = AeKey::new_from_signature(&aes_signature)
+        .map_err(|_| AppError::SerializationError)?;
+    println!("✅ AES key created successfully");
+    
+    // TODO: Implement actual decryption logic here
+    // Currently just returning a placeholder value
+    
+    println!("✅ Returning placeholder decrypted balance");
+    Ok(Json(DecryptCbResponse {
+        amount: "422.44".to_string(), // Placeholder amount for now
+        message: "Decryption successful (placeholder)".to_string(),
     }))
 }

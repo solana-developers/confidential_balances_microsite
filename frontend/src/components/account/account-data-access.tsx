@@ -16,6 +16,7 @@ import toast from 'react-hot-toast'
 import { useTransactionToast } from '../ui/ui-layout'
 import { getMint } from '@solana/spl-token'
 import { getAssociatedTokenAddress } from '@solana/spl-token'
+import { useState } from 'react'
 
 export function useGetBalance({ address }: { address: PublicKey }) {
   const { connection } = useConnection()
@@ -1092,4 +1093,74 @@ export function useWithdrawCB({ tokenAccountPubkey }: { tokenAccountPubkey: Publ
       toast.error(`Withdraw failed! ${error}`)
     },
   })
+}
+
+export function useDecryptConfidentialBalance() {
+  const { connection } = useConnection()
+  const wallet = useWallet()
+  const [isDecrypting, setIsDecrypting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [confidentialBalance, setConfidentialBalance] = useState<string | null>(null)
+
+  const decryptBalance = async (tokenAccountPubkey: PublicKey) => {
+    if (!wallet.signMessage || !wallet.publicKey) {
+      setError("Wallet connection required")
+      return null
+    }
+
+    setError(null)
+    setIsDecrypting(true)
+
+    try {
+      // Sign the AES message
+      const aesMessageToSign = new TextEncoder().encode("AESKey")
+      const aesSignature = await wallet.signMessage(aesMessageToSign)
+      const aesSignatureBase64 = Buffer.from(aesSignature).toString('base64')
+      
+      console.log('AES signature:', aesSignatureBase64)
+
+      // Get the token account data
+      const accountInfo = await connection.getAccountInfo(tokenAccountPubkey)
+      if (!accountInfo) {
+        throw new Error("Token account not found")
+      }
+      
+      // Call the decrypt-cb endpoint
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT}/decrypt-cb`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          aes_signature: aesSignatureBase64,
+          token_account_data: Buffer.from(accountInfo.data).toString('base64')
+        }),
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Server responded with ${response.status}: ${await response.text()}`)
+      }
+      
+      const data = await response.json()
+      setConfidentialBalance(data.amount)
+      return data.amount
+    } catch (error) {
+      console.error("Decryption failed:", error)
+      setError(error instanceof Error ? error.message : "Failed to decrypt balance")
+      return null
+    } finally {
+      setIsDecrypting(false)
+    }
+  }
+
+  return {
+    decryptBalance,
+    isDecrypting,
+    confidentialBalance,
+    error,
+    reset: () => {
+      setConfidentialBalance(null)
+      setError(null)
+    }
+  }
 }

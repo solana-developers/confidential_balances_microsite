@@ -11,5 +11,6 @@ pub use cb_ata::{
     transfer_cb, 
     withdraw_cb,
     transfer_cb_space,
-    withdraw_cb_space
+    withdraw_cb_space,
+    decrypt_cb
 }; 

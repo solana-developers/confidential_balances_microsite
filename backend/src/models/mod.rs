@@ -91,4 +91,18 @@ pub struct WithdrawCbSpaceResponse {
     pub equality_proof_space: usize,
     pub range_proof_space: usize,
     pub message: String,
+}
+
+// Request model for the decrypt_cb endpoint
+#[derive(Deserialize)]
+pub struct DecryptCbRequest {
+    pub aes_signature: String,   // AES signature as base64 encoded bytes
+    pub token_account_data: String, // BASE64 encoded account data
+}
+
+// Response model for the decrypt_cb endpoint
+#[derive(Serialize)]
+pub struct DecryptCbResponse {
+    pub amount: String,
+    pub message: String,
 } 

@@ -27,6 +27,7 @@ use routes::{
     withdraw_cb,
     transfer_cb_space,
     withdraw_cb_space,
+    decrypt_cb,
 };
 
 #[tokio::main]
@@ -65,6 +66,7 @@ async fn main() {
         .route("/withdraw-cb", post(withdraw_cb))
         .route("/transfer-cb", get(transfer_cb_space))
         .route("/withdraw-cb", get(withdraw_cb_space))
+        .route("/decrypt-cb", post(decrypt_cb))
         .layer(cors)
         .layer(TraceLayer::new_for_http());
 
