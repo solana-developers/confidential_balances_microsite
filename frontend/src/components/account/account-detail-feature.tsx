@@ -75,7 +75,7 @@ function TokenConfidentialBalanceDisplay({ tokenAccountPubkey }: { tokenAccountP
           ) : (
             <div className="mt-2">
               <div className="flex items-center">
-                <div className="text-5xl font-bold text-blue-500">{confidentialBalance} SOL</div>
+                <div className="text-5xl font-bold text-blue-500">{confidentialBalance} Tokens</div>
                 <svg className="w-6 h-6 ml-3 text-blue-500" fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                   <path d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
