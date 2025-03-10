@@ -357,23 +357,35 @@ pub async fn apply_cb(
     println!("✅ Calculated ATA address: {}", ata);
 
     // Unpack the ConfidentialTransferAccount extension portion of the token account data
+    println!("🔍 Unpacking ConfidentialTransferAccount extension from token account data");
     let confidential_transfer_account =
         token_account_info.get_extension::<ConfidentialTransferAccount>()?;
+    println!("✅ Successfully unpacked ConfidentialTransferAccount extension");
 
     // ConfidentialTransferAccount extension information needed to construct an `ApplyPendingBalance` instruction.
+    println!("🔄 Creating ApplyPendingBalanceAccountInfo from confidential transfer account");
     let apply_pending_balance_account_info =
         ApplyPendingBalanceAccountInfo::new(confidential_transfer_account);
+    println!("✅ Successfully created ApplyPendingBalanceAccountInfo");
 
     // Return the number of times the pending balance has been credited
+    println!("🔢 Getting pending balance credit counter");
     let expected_pending_balance_credit_counter =
         apply_pending_balance_account_info.pending_balance_credit_counter();
+    println!("✅ Pending balance credit counter: {}", expected_pending_balance_credit_counter);
 
     // Update the decryptable available balance (add pending balance to available balance)
+    println!("🔐 Calculating new decryptable available balance");
     let new_decryptable_available_balance = apply_pending_balance_account_info
         .new_decryptable_available_balance(&elgamal_keypair.secret(), &aes_key)
-        .map_err(|_| AppError::TokenError(TokenError::AccountDecryption))?;
+        .map_err(|_| {
+            println!("❌ Failed to calculate new decryptable available balance: AccountDecryption error");
+            AppError::TokenError(TokenError::AccountDecryption)
+        })?;
+    println!("✅ Successfully calculated new decryptable available balance");
 
     // Create a `ApplyPendingBalance` instruction
+    println!("📋 Creating apply_pending_balance instruction");
     let apply_pending_balance_instruction = apply_pending_balance(
         &spl_token_2022::id(),
         &ata,         // Token account
@@ -381,10 +393,16 @@ pub async fn apply_cb(
         &new_decryptable_available_balance.into(), // Cipher text of the new decryptable available balance
         &ata_authority,                       // Token account owner
         &[&ata_authority],                    // Additional signers
-    ).map_err(|_| AppError::SerializationError)?;
+    ).map_err(|e| {
+        println!("❌ Failed to create apply_pending_balance instruction: {:?}", e);
+        AppError::SerializationError
+    })?;
+    println!("✅ Successfully created apply_pending_balance instruction");
     
     // Create a dummy recent blockhash
+    println!("🔑 Creating dummy blockhash for transaction");
     let dummy_blockhash = Hash::new_unique();
+    println!("✅ Created dummy blockhash: {}", dummy_blockhash);
 
     // Create a V0 message with the dummy blockhash
     println!("📝 Creating V0 message");
