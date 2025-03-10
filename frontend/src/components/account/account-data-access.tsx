@@ -711,6 +711,49 @@ export function useApplyCB({ address }: { address: PublicKey }) {
   })
 }
 
+async function processMultiTransaction(
+  transactions: string[],
+  wallet: any,
+  connection: Connection,
+  latestBlockhash: { blockhash: string, lastValidBlockHeight: number },
+  operationType = 'Transaction'
+): Promise<{ signatures: string[], transactions: VersionedTransaction[] }> {
+  const signatures: string[] = []
+  
+  // Deserialize and prepare transactions
+  const deserializedTransactions: VersionedTransaction[] = transactions
+    .map((txData: string) => Buffer.from(txData, 'base64'))
+    .map((txData: Buffer) => VersionedTransaction.deserialize(txData))
+
+  const signedTransactions = await wallet.signAllTransactions!(deserializedTransactions)
+      
+  for (const txn of signedTransactions) {
+
+    console.log('Simulating transaction before sending...')
+    const simulation = await connection.simulateTransaction(txn, {
+      // Default [SimulateTransactionConfig]
+    })
+    
+    if (simulation.value.err) {
+      console.error('Transaction simulation failed:', simulation.value.err)
+      throw new Error(`Transaction simulation failed: ${JSON.stringify(simulation.value.err)}`)
+    }
+    
+    console.log('Transaction simulation successful, proceeding to send')
+    const signature = await connection.sendTransaction(txn)
+    signatures.push(signature)
+
+    // Confirm the transaction
+    await connection.confirmTransaction({ signature, ...latestBlockhash }, 'confirmed')
+    console.log(`${operationType} signature:`, signature)
+  }
+
+  return {
+    signatures,
+    transactions: signedTransactions
+  }
+}
+
 export function useTransferCB({ senderTokenAccountPubkey }: { senderTokenAccountPubkey: PublicKey }) {
   const { connection } = useConnection()
   const client = useQueryClient()
@@ -832,54 +875,21 @@ export function useTransferCB({ senderTokenAccountPubkey }: { senderTokenAccount
         }
         
         const data = await response.json()
-        
-        // The response may contain multiple transactions
-        // We need to sign and send each of them in sequence
-        const signatures: string[] = []
-        
-        // Process each transaction in the response
-        for (const transactionBase64 of data.transactions) {
-          // Deserialize the transaction
-          const serializedTransaction = Buffer.from(transactionBase64, 'base64')
-          const transaction = VersionedTransaction.deserialize(serializedTransaction)
-          
-          // Verify the backend used our provided blockhash
-          console.log(`Transaction blockhash: ${transaction.message.recentBlockhash}`)
-          console.log(`Original provided blockhash: ${latestBlockhash.blockhash}`)
-          
-          try {
-            // Simulate the transaction first to catch any potential errors
-            console.log('Simulating transaction before sending...')
-            const simulation = await connection.simulateTransaction(transaction)
-            
-            if (simulation.value.err) {
-              console.error('Transaction simulation failed:', simulation.value.err)
-              throw new Error(`Transaction simulation failed: ${JSON.stringify(simulation.value.err)}`)
-            }
-            
-            console.log('Transaction simulation successful, proceeding to send')
-            
-            // Sign and send the transaction
-            // // @ts-ignore - We've already checked wallet is connected above
-            // const signature = await wallet.signTransaction!(transaction);
-            const signature = await wallet.sendTransaction(transaction, connection)
-            signatures.push(signature)
+                
+        const { signatures } = await processMultiTransaction(
+          data.transactions,
+          wallet,
+          connection,
+          latestBlockhash,
+          'Transfer'
+        )
 
-            // Confirm the transaction
-            await connection.confirmTransaction({ signature, ...latestBlockhash }, 'confirmed')
-            console.log('Transfer transaction signature:', signature)
-          } catch (error) {
-            console.error('Error processing transaction:', error)
-            throw error
-          }
-        }
-        
         return { 
           signatures,
           ...data 
         }
       } catch (error) {
-        console.error('Error transferring from confidential balance:', error)
+        console.error('Error processing transaction:', error)
         throw error
       }
     },
@@ -919,9 +929,7 @@ export function useWithdrawCB({ tokenAccountPubkey }: { tokenAccountPubkey: Publ
 
   return useMutation({
     mutationKey: ['withdraw-cb', { endpoint: connection.rpcEndpoint, tokenAccountPubkey }],
-    mutationFn: async ({amount}: { 
-      amount: number,
-    }) => {
+    mutationFn: async ({ amount }: { amount: number }) => {
       try {
         if (!wallet.publicKey) {
           throw new Error("Wallet not connected")
@@ -957,7 +965,6 @@ export function useWithdrawCB({ tokenAccountPubkey }: { tokenAccountPubkey: Publ
         if (!tokenAccount) {
           throw new Error("Failed to parse token account data")
         }
-        
         
         // Get the mint account data
         const mintAccountInfo = await connection.getAccountInfo(tokenAccount.mint)
@@ -1018,51 +1025,20 @@ export function useWithdrawCB({ tokenAccountPubkey }: { tokenAccountPubkey: Publ
         
         const data = await response.json()
         
-        // The response may contain multiple transactions
-        // We need to sign and send each of them in sequence
-        const signatures: string[] = []
-        
-        // Process each transaction in the response
-        for (const transactionBase64 of data.transactions) {
-          // Deserialize the transaction
-          const serializedTransaction = Buffer.from(transactionBase64, 'base64')
-          const transaction = VersionedTransaction.deserialize(serializedTransaction)
-          
-          // Verify the backend used our provided blockhash
-          console.log(`Transaction blockhash: ${transaction.message.recentBlockhash}`)
-          console.log(`Original provided blockhash: ${latestBlockhash.blockhash}`)
-          
-          try {
-            // Simulate the transaction first to catch any potential errors
-            console.log('Simulating transaction before sending...')
-            const simulation = await connection.simulateTransaction(transaction)
-            
-            if (simulation.value.err) {
-              console.error('Transaction simulation failed:', simulation.value.err)
-              throw new Error(`Transaction simulation failed: ${JSON.stringify(simulation.value.err)}`)
-            }
-            
-            console.log('Transaction simulation successful, proceeding to send')
-            
-            // Sign and send the transaction
-            const signature = await wallet.sendTransaction(transaction, connection)
-            signatures.push(signature)
+        const { signatures } = await processMultiTransaction(
+          data.transactions,
+          wallet,
+          connection,
+          latestBlockhash,
+          'Withdraw'
+        )
 
-            // Confirm the transaction
-            await connection.confirmTransaction({ signature, ...latestBlockhash }, 'confirmed')
-            console.log('Withdraw transaction signature:', signature)
-          } catch (error) {
-            console.error('Error processing transaction:', error)
-            throw error
-          }
-        }
-        
         return { 
           signatures,
           ...data 
         }
       } catch (error) {
-        console.error('Error withdrawing from confidential balance:', error)
+        console.error('Error processing transaction:', error)
         throw error
       }
     },
