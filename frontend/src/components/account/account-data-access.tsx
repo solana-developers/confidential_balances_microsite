@@ -1,6 +1,6 @@
 'use client'
 
-import { getAccount, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID, Account, unpackAccount } from '@solana/spl-token'
+import { getAccount, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID, Account, unpackAccount, unpackMint, Mint } from '@solana/spl-token'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import {
   Connection,
@@ -1141,9 +1141,19 @@ export function useDecryptConfidentialBalance() {
         throw new Error(`Server responded with ${response.status}: ${await response.text()}`)
       }
       
+      const tokenAccountData: Account = unpackAccount(tokenAccountPubkey, accountInfo, TOKEN_2022_PROGRAM_ID);
+      const mintAccountData: Mint = await getMint(connection, tokenAccountData.mint, 'confirmed', TOKEN_2022_PROGRAM_ID);
+      
       const data = await response.json()
-      setConfidentialBalance(data.amount)
-      return data.amount
+
+      // Convert lamports to UI amount using mint decimals
+      // HACK: Use uiAmount from spl-token instead.
+      const rawAmount = data.amount;
+      const decimals = mintAccountData.decimals;
+      const decryptedBalance = (parseInt(rawAmount) / Math.pow(10, decimals)).toString();
+
+      setConfidentialBalance(decryptedBalance)
+      return decryptedBalance
     } catch (error) {
       console.error("Decryption failed:", error)
       setError(error instanceof Error ? error.message : "Failed to decrypt balance")
