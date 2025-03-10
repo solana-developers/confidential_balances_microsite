@@ -1,21 +1,11 @@
 use {
     crate::{errors::AppError, models::{
-        ApplyCbRequest, 
-        CreateCbAtaRequest, 
-        DepositCbRequest, 
-        MultiTransactionResponse, 
-        TransactionResponse, 
-        TransferCbRequest, 
-        WithdrawCbRequest,
-        TransferCbSpaceResponse,
-        WithdrawCbSpaceResponse,
-        DecryptCbRequest,
-        DecryptCbResponse
+        ApplyCbRequest, CreateCbAtaRequest, DecryptCbRequest, DecryptCbResponse, DepositCbRequest, MultiTransactionResponse, TransactionResponse, TransferCbRequest, TransferCbSpaceResponse, WithdrawCbRequest, WithdrawCbSpaceResponse
     }}, 
     axum::extract::Json, 
     base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _}, 
     bincode, bs58, solana_sdk::{hash::Hash, message::{v0, VersionedMessage}, pubkey::Pubkey, signature::{Keypair, NullSigner, Signature}, signer::Signer, system_instruction, transaction::VersionedTransaction}, 
-    solana_zk_sdk::zk_elgamal_proof_program::{self, instruction::{close_context_state, ContextStateInfo}}, 
+    solana_zk_sdk::{encryption::auth_encryption::AeCiphertext, zk_elgamal_proof_program::{self, instruction::{close_context_state, ContextStateInfo}}}, 
     spl_associated_token_account::{get_associated_token_address_with_program_id, instruction::create_associated_token_account}, 
     spl_token_2022::{
         error::TokenError,
@@ -1175,27 +1165,35 @@ pub async fn decrypt_cb(
 ) -> Result<Json<DecryptCbResponse>, AppError> {
     println!("🔐 Starting decrypt_cb handler");
     
-    // Parse AES signature
-    println!("🔐 Decoding AES signature: {}", request.aes_signature);
-    let decoded_aes_signature = BASE64_STANDARD.decode(&request.aes_signature)?;
-    println!("✅ AES signature base64 decoded, got {} bytes", decoded_aes_signature.len());
-    
-    // Create signature directly from bytes
-    let aes_signature = Signature::try_from(decoded_aes_signature.as_slice())
-        .map_err(|_| AppError::SerializationError)?;
-    println!("✅ AES signature created successfully");
-    
     // Create the AES key
-    let aes_key = AeKey::new_from_signature(&aes_signature)
+    let aes_key = {
+        let decoded_aes_signature = BASE64_STANDARD.decode(&request.aes_signature)?;
+
+        let aes_signature = Signature::try_from(decoded_aes_signature.as_slice())
         .map_err(|_| AppError::SerializationError)?;
+        
+        AeKey::new_from_signature(&aes_signature)
+            .map_err(|_| AppError::SerializationError)?
+    };
     println!("✅ AES key created successfully");
+
+    // Get the token account info
+    let token_account_info = {
+        // Decode token account data from request instead of fetching it
+        let token_account_data = BASE64_STANDARD.decode(&request.token_account_data)?;
+        StateWithExtensionsOwned::<spl_token_2022::state::Account>::unpack(token_account_data)?
+    };
+
+    let confidential_transfer_account =
+        token_account_info.get_extension::<ConfidentialTransferAccount>()?;
+
+    let available_balance = confidential_transfer_account.decryptable_available_balance;
+    let available_balance = AeCiphertext::try_from(available_balance).map_err(|_| AppError::SerializationError)?;
+    let decrypted_balance = aes_key.decrypt(&available_balance).ok_or(AppError::SerializationError)?;
     
-    // TODO: Implement actual decryption logic here
-    // Currently just returning a placeholder value
-    
-    println!("✅ Returning placeholder decrypted balance");
+    println!("✅ Returning decrypted balance");
     Ok(Json(DecryptCbResponse {
-        amount: "422.44".to_string(), // Placeholder amount for now
-        message: "Decryption successful (placeholder)".to_string(),
+        amount: decrypted_balance.to_string(),
+        message: "Decryption successful".to_string(),
     }))
 }
