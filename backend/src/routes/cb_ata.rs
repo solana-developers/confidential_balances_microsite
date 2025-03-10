@@ -1183,14 +1183,17 @@ pub async fn decrypt_cb(
         let token_account_data = BASE64_STANDARD.decode(&request.token_account_data)?;
         StateWithExtensionsOwned::<spl_token_2022::state::Account>::unpack(token_account_data)?
     };
+    println!("🧳 Unpacked token account info");
 
     let confidential_transfer_account =
         token_account_info.get_extension::<ConfidentialTransferAccount>()?;
+    println!("🔍 Fetched confidential transfer account extension");
 
     let available_balance = confidential_transfer_account.decryptable_available_balance;
     let available_balance = AeCiphertext::try_from(available_balance).map_err(|_| AppError::SerializationError)?;
+    println!("🔄 Reformatted available balance");
     let decrypted_balance = aes_key.decrypt(&available_balance).ok_or(AppError::SerializationError)?;
-    
+
     println!("✅ Returning decrypted balance");
     Ok(Json(DecryptCbResponse {
         amount: decrypted_balance.to_string(),

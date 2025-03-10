@@ -1,7 +1,7 @@
 'use client'
 
 import { getAccount, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID, Account, unpackAccount, unpackMint, Mint } from '@solana/spl-token'
-import { useConnection, useWallet } from '@solana/wallet-adapter-react'
+import { useConnection, useWallet, WalletContextState } from '@solana/wallet-adapter-react'
 import {
   Connection,
   LAMPORTS_PER_SOL,
@@ -17,6 +17,44 @@ import { useTransactionToast } from '../ui/ui-layout'
 import { getMint } from '@solana/spl-token'
 import { getAssociatedTokenAddress } from '@solana/spl-token'
 import { useState } from 'react'
+
+// Source: https://github.com/anza-xyz/agave/blob/d58415068289a0e030d91d2bbb5680f752947ff6/zk-sdk/src/encryption/elgamal.rs#L516
+const ELGAMAL_SEED_MESSAGE = Buffer.from("ElGamalSecretKey");
+
+// Source: https://github.com/anza-xyz/agave/blob/d58415068289a0e030d91d2bbb5680f752947ff6/zk-sdk/src/encryption/auth_encryption.rs#L136
+const AES_SEED_MESSAGE = Buffer.from("AeKey");
+
+async function generateSeedSignature(wallet: WalletContextState, message: Uint8Array) {
+    if (!wallet.publicKey) {
+        throw new Error("Wallet public key is undefined");
+    }
+    
+    // IMPORTANT: For spl-token CLI compatibility, the public seed is an empty byte array, 
+    // not the wallet's public key. This matches the Rust code:
+    // https://github.com/solana-program/token-2022/blob/9730044abe4f2ac62afeb010dc0a5ffc8a9fbadc/clients/cli/src/command.rs#L4695
+    const emptyPublicSeed = new Uint8Array(0); // Empty byte array
+    
+    console.log('Message prefix:', Buffer.from(message).toString());
+    console.log('Public seed: empty byte array');
+    
+    const messageToSign = Buffer.concat([
+      message,
+      emptyPublicSeed,
+    ]);
+    
+    console.log('Full message to sign (hex):', Buffer.from(messageToSign).toString('hex'));
+
+    // Sign the message
+    if (!wallet.signMessage) {
+        throw new Error("Wallet signMessage function is unavailable.");
+    }
+    
+    const signature = await wallet.signMessage(messageToSign);
+    console.log('Signature (hex):', Buffer.from(signature).toString('hex'));
+
+    return signature;
+}
+
 
 export function useGetBalance({ address }: { address: PublicKey }) {
   const { connection } = useConnection()
@@ -277,24 +315,20 @@ export function useCreateAssociatedTokenAccountCB({ walletAddressPubkey }: { wal
     mutationKey: ['initialize-account', { endpoint: connection.rpcEndpoint, walletAddressPubkey }],
     mutationFn: async (params: { mintAddress: string }) => {
       try {
-        // First, sign the message "ElGamalSecret"
+        // First, sign the message ELGAMAL_SEED_MESSAGE
         if (!wallet.signMessage) {
           throw new Error("Wallet does not support message signing");
         }
         
         // Sign the ElGamal message
-        const elGamalMessageToSign = new TextEncoder().encode("ElGamalSecret");
-        const elGamalSignature = await wallet.signMessage(elGamalMessageToSign);
+        const elGamalSignature = await generateSeedSignature(wallet, ELGAMAL_SEED_MESSAGE);
         const elGamalSignatureBase64 = Buffer.from(elGamalSignature).toString('base64');
-        
-        console.log('ElGamal signature:', elGamalSignatureBase64);
+        console.log('ElGamal base64 signature:', elGamalSignatureBase64);
         
         // Sign the AES message
-        const aesMessageToSign = new TextEncoder().encode("AESKey");
-        const aesSignature = await wallet.signMessage(aesMessageToSign);
+        const aesSignature = await generateSeedSignature(wallet, AES_SEED_MESSAGE);
         const aesSignatureBase64 = Buffer.from(aesSignature).toString('base64');
-        
-        console.log('AES signature:', aesSignatureBase64);
+        console.log('AES base64 signature:', aesSignatureBase64);
 
         const mintAddress = params.mintAddress;
         const mintBase64 = Buffer.from(mintAddress).toString('base64');
@@ -581,18 +615,14 @@ export function useApplyCB({ address }: { address: PublicKey }) {
         }
         
         // Sign the ElGamal message
-        const elGamalMessageToSign = new TextEncoder().encode("ElGamalSecret")
-        const elGamalSignature = await wallet.signMessage(elGamalMessageToSign)
+        const elGamalSignature = await generateSeedSignature(wallet, ELGAMAL_SEED_MESSAGE);
         const elGamalSignatureBase64 = Buffer.from(elGamalSignature).toString('base64')
-        
-        console.log('ElGamal signature:', elGamalSignatureBase64)
+        console.log('ElGamal base64 signature:', elGamalSignatureBase64)
         
         // Sign the AES message
-        const aesMessageToSign = new TextEncoder().encode("AESKey")
-        const aesSignature = await wallet.signMessage(aesMessageToSign)
+        const aesSignature = await generateSeedSignature(wallet, AES_SEED_MESSAGE);
         const aesSignatureBase64 = Buffer.from(aesSignature).toString('base64')
-        
-        console.log('AES signature:', aesSignatureBase64)
+        console.log('AES base64 signature:', aesSignatureBase64)
         
         // Get the token account address from the provided string
         const tokenAccountAddress = new PublicKey(address)
@@ -778,18 +808,14 @@ export function useTransferCB({ senderTokenAccountPubkey }: { senderTokenAccount
         }
         
         // Sign the ElGamal message
-        const elGamalMessageToSign = new TextEncoder().encode("ElGamalSecret")
-        const elGamalSignature = await wallet.signMessage(elGamalMessageToSign)
+        const elGamalSignature = await generateSeedSignature(wallet, ELGAMAL_SEED_MESSAGE);
         const elGamalSignatureBase64 = Buffer.from(elGamalSignature).toString('base64')
-        
-        console.log('ElGamal signature:', elGamalSignatureBase64)
+        console.log('ElGamal base64 signature:', elGamalSignatureBase64)
         
         // Sign the AES message
-        const aesMessageToSign = new TextEncoder().encode("AESKey")
-        const aesSignature = await wallet.signMessage(aesMessageToSign)
+        const aesSignature = await generateSeedSignature(wallet, AES_SEED_MESSAGE);
         const aesSignatureBase64 = Buffer.from(aesSignature).toString('base64')
-        
-        console.log('AES signature:', aesSignatureBase64)
+        console.log('AES base64 signature:', aesSignatureBase64)
 
         
         // Get the token account data for sender
@@ -941,18 +967,14 @@ export function useWithdrawCB({ tokenAccountPubkey }: { tokenAccountPubkey: Publ
         }
         
         // Sign the ElGamal message
-        const elGamalMessageToSign = new TextEncoder().encode("ElGamalSecret")
-        const elGamalSignature = await wallet.signMessage(elGamalMessageToSign)
+        const elGamalSignature = await generateSeedSignature(wallet, ELGAMAL_SEED_MESSAGE);
         const elGamalSignatureBase64 = Buffer.from(elGamalSignature).toString('base64')
-        
-        console.log('ElGamal signature:', elGamalSignatureBase64)
+        console.log('ElGamal base64 signature:', elGamalSignatureBase64)
         
         // Sign the AES message
-        const aesMessageToSign = new TextEncoder().encode("AESKey")
-        const aesSignature = await wallet.signMessage(aesMessageToSign)
+        const aesSignature = await generateSeedSignature(wallet, AES_SEED_MESSAGE);
         const aesSignatureBase64 = Buffer.from(aesSignature).toString('base64')
-        
-        console.log('AES signature:', aesSignatureBase64)
+        console.log('AES base64 signature:', aesSignatureBase64)
 
         // Get the token account data
         const tokenAccountInfo = await connection.getAccountInfo(tokenAccountPubkey)
@@ -1088,11 +1110,9 @@ export function useDecryptConfidentialBalance() {
 
     try {
       // Sign the AES message
-      const aesMessageToSign = new TextEncoder().encode("AESKey")
-      const aesSignature = await wallet.signMessage(aesMessageToSign)
+      const aesSignature = await generateSeedSignature(wallet, AES_SEED_MESSAGE);
       const aesSignatureBase64 = Buffer.from(aesSignature).toString('base64')
-      
-      console.log('AES signature:', aesSignatureBase64)
+      console.log('AES base64 signature:', aesSignatureBase64)
 
       // Get the token account data
       const accountInfo = await connection.getAccountInfo(tokenAccountPubkey)
