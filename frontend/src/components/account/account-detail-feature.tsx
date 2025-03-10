@@ -33,7 +33,11 @@ export default function AccountDetailFeature() {
     return <div>Error loading account</div>
   }
 
-  const { data: accountDescription } = useGetSingleTokenAccount({ address })
+  const { data: accountDescription, isLoading } = useGetSingleTokenAccount({ address })
+  
+  if (isLoading) {
+    return <div>Loading account data...</div>
+  }
 
   return (
     <div>
