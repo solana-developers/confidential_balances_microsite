@@ -4,7 +4,7 @@ import { useWallet } from '@solana/wallet-adapter-react'
 import { PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js'
 import { IconRefresh } from '@tabler/icons-react'
 import { useQueryClient } from '@tanstack/react-query'
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useCallback } from 'react'
 import { AppModal, ellipsify } from '../ui/ui-layout'
 import { useCluster } from '../cluster/cluster-data-access'
 import { AppLink, ExplorerLink } from '../cluster/cluster-ui'
@@ -705,13 +705,8 @@ function ModalTransfer({ show, hide, address }: { show: boolean; hide: () => voi
   const tokenUnits = useMemo(() => amount ? `${parseFloat(amount) * Math.pow(10, decimals)} token units` : '', [amount, decimals])
   const tokenType = useMemo(() => mintInfoQuery.data?.isToken2022 ? 'Token-2022' : 'Standard Token', [mintInfoQuery.data])
   
-  // Reset validation when address type changes
-  useEffect(() => {
-    setValidationState(prev => ({ ...prev, isValid: false, error: '', tokenAccount: null }))
-    if (recipientAddress && mintPublicKey) validateRecipient()
-  }, [addressType, recipientAddress, mintPublicKey])
-  
-  const validateRecipient = async () => {
+  // Define validateRecipient using useCallback before using it in useEffect
+  const validateRecipient = useCallback(async () => {
     if (!recipientAddress || !mintPublicKey) return
     
     setValidationState(prev => ({ ...prev, isValidating: true, error: '', tokenAccount: null }))
@@ -784,7 +779,13 @@ function ModalTransfer({ show, hide, address }: { show: boolean; hide: () => voi
         tokenAccount: null
       })
     }
-  }
+  }, [recipientAddress, mintPublicKey, setValidationState, addressType, connection]);
+  
+  // Reset validation when address type changes
+  useEffect(() => {
+    setValidationState(prev => ({ ...prev, isValid: false, error: '', tokenAccount: null }))
+    if (recipientAddress && mintPublicKey) validateRecipient()
+  }, [addressType, recipientAddress, mintPublicKey, validateRecipient])
 
   const handleSubmit = async () => {
     if (!amount || parseFloat(amount) <= 0 || !validationState.isValid || !validationState.tokenAccount || !mintPublicKey) {

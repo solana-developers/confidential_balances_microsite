@@ -103,11 +103,17 @@ export default function AccountDetailFeature() {
       console.log(`Invalid public key`, e)
     }
   }, [params])
+
+  // Frontend builds fail if calling the hook within a conditional `if` statement.
+  // The workaround is to call the hook with a dummy/default PublicKey when there's no address.
+  const tokenAccountQuery = useGetSingleTokenAccount(
+    address ? { address } : { address: PublicKey.default }
+  )
+  const { data: accountDescription, isLoading } = tokenAccountQuery
+  
   if (!address) {
     return <div>Error loading account</div>
   }
-
-  const { data: accountDescription, isLoading } = useGetSingleTokenAccount({ address })
   
   if (isLoading) {
     return <div>Loading account data...</div>
