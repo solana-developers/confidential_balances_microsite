@@ -34,9 +34,6 @@ async function generateSeedSignature(wallet: WalletContextState, message: Uint8A
     // https://github.com/solana-program/token-2022/blob/9730044abe4f2ac62afeb010dc0a5ffc8a9fbadc/clients/cli/src/command.rs#L4695
     const emptyPublicSeed = new Uint8Array(0); // Empty byte array
     
-    console.log('Message prefix:', Buffer.from(message).toString());
-    console.log('Public seed: empty byte array');
-    
     const messageToSign = Buffer.concat([
       message,
       emptyPublicSeed,
@@ -50,7 +47,6 @@ async function generateSeedSignature(wallet: WalletContextState, message: Uint8A
     }
     
     const signature = await wallet.signMessage(messageToSign);
-    console.log('Signature (hex):', Buffer.from(signature).toString('hex'));
 
     return signature;
 }
@@ -828,14 +824,6 @@ export function useApplyCB({ address }: { address: PublicKey }) {
       if (data.signature) {
         transactionToast(data.signature)
         toast.success('Pending balance applied successfully')
-      }
-      
-      if (data.elGamalSignature) {
-        console.log('ElGamal signature collected:', data.elGamalSignature)
-      }
-      
-      if (data.aesSignature) {
-        console.log('AES signature collected:', data.aesSignature)
       }
       
       // Hide confidential balance using query cache
