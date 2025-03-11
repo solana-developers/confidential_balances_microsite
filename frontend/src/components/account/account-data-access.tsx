@@ -137,6 +137,68 @@ export function useConfidentialVisibility(tokenAccountPubkey: PublicKey) {
   return { isVisible, showBalance, hideBalance }
 }
 
+// Hook to check if token account has pending balance
+export function useHasPendingBalance({ tokenAccountPubkey }: { tokenAccountPubkey: PublicKey }) {
+  const { connection } = useConnection()
+  
+  return useQuery({
+    queryKey: ['has-pending-balance', { endpoint: connection.rpcEndpoint, tokenAccountPubkey: tokenAccountPubkey.toString() }],
+    queryFn: async () => {
+      try {
+        // Get token account info
+        const accountInfo = await connection.getParsedAccountInfo(tokenAccountPubkey)
+        
+        // Check if account exists and has data
+        if (!accountInfo?.value?.data || typeof accountInfo.value.data !== 'object') {
+          console.log('No account data found for pending balance check')
+          return false
+        }
+        
+        const parsedData = accountInfo.value.data
+        
+        // Check for token account with extensions
+        if ('parsed' in parsedData && 
+            parsedData.parsed?.info?.extensions) {
+          
+          // Find confidentialTransferAccount extension
+          const ctExtension = parsedData.parsed.info.extensions.find(
+            (ext: any) => ext.extension === 'confidentialTransferAccount'
+          )
+          
+          // If we found the extension and it has a state
+          if (ctExtension?.state) {
+            // Check if pendingBalanceCreditCounter is greater than 0
+            const pendingCounter = ctExtension.state.pendingBalanceCreditCounter
+            
+            // Log the pending counter value for debugging
+            console.log('Pending balance credit counter:', pendingCounter)
+            
+            if (typeof pendingCounter === 'number' && pendingCounter > 0) {
+              console.log('Detected pending balance for account:', tokenAccountPubkey.toString())
+              return true
+            }
+          } else {
+            console.log('No confidentialTransferAccount state found in extension')
+          }
+        } else {
+          console.log('No extensions found in token account')
+        }
+        
+        return false
+      } catch (error) {
+        console.error('Error checking for pending balance:', error)
+        return false
+      }
+    },
+    // Refetch regularly to check for changes
+    refetchInterval: 10000, // Check every 10 seconds
+    // Stale time to reduce unnecessary fetches
+    staleTime: 5000, // Consider data fresh for 5 seconds
+    // Retry on error
+    retry: 3,
+  })
+}
+
 export function useTransferSol({ address }: { address: PublicKey }) {
   const { connection } = useConnection()
   const transactionToast = useTransactionToast()
@@ -558,7 +620,11 @@ export function useDepositCb({ tokenAccountPubkey }: { tokenAccountPubkey: Publi
       if (data.signature) {
         transactionToast(data.signature);
         toast.success('Deposit transaction successful');
+        console.log('Deposit transaction successful with signature:', data.signature);
       }
+      
+      // Log that we're going to invalidate the has-pending-balance query
+      console.log('Invalidating has-pending-balance query after successful deposit');
       
       // Invalidate relevant queries to refresh data
       return Promise.all([
@@ -574,7 +640,14 @@ export function useDepositCb({ tokenAccountPubkey }: { tokenAccountPubkey: Publi
         client.invalidateQueries({
           queryKey: ['get-token-balance', { endpoint: connection.rpcEndpoint, tokenAccountPubkey: tokenAccountPubkey.toString() }],
         }),
-      ]);
+        client.invalidateQueries({
+          queryKey: ['has-pending-balance', { endpoint: connection.rpcEndpoint, tokenAccountPubkey: tokenAccountPubkey.toString() }],
+        }).then(() => {
+          console.log('Successfully invalidated has-pending-balance query, will trigger refetch');
+        })
+      ]).then(() => {
+        console.log('All queries invalidated after deposit');
+      });
     },
     onError: (error) => {
       toast.error(`Deposit failed! ${error}`);
@@ -767,6 +840,10 @@ export function useApplyCB({ address }: { address: PublicKey }) {
       
       // Hide confidential balance using query cache
       client.setQueryData(['confidential-visibility', address.toString()], false)
+      
+      // Directly set has-pending-balance to false to hide the prompt
+      console.log('Setting has-pending-balance to false after successful apply')
+      client.setQueryData(['has-pending-balance', { endpoint: connection.rpcEndpoint, tokenAccountPubkey: address.toString() }], false)
       
       // Invalidate relevant queries to refresh data
       return Promise.all([

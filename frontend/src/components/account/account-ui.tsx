@@ -27,6 +27,7 @@ import {
   useGetTokenBalance,
   useConfidentialVisibility,
   useDecryptConfidentialBalance,
+  useHasPendingBalance,
 } from './account-data-access'
 import { toast } from 'react-hot-toast'
 import { AccountLayout } from '@solana/spl-token'
@@ -204,6 +205,12 @@ export function TokenAccountButtons({ address }: {
   const [showWithdraw, setShowWithdraw] = useState(false)
   
   const { mutate: applyPendingBalance, isPending: isApplying } = useApplyCB({ address })
+  const { data: hasPending, isLoading: isPendingLoading } = useHasPendingBalance({ tokenAccountPubkey: address })
+
+  // Log whenever hasPending changes
+  useEffect(() => {
+    console.log('TokenAccountButtons: hasPending value changed:', hasPending);
+  }, [hasPending]);
 
   return (
     <div>
@@ -218,16 +225,31 @@ export function TokenAccountButtons({ address }: {
         >
           Deposit
         </button>
-        <button 
-          className="btn btn-xs lg:btn-md btn-outline"
-          onClick={() => applyPendingBalance()}
-          disabled={isApplying /*|| !wallet.publicKey?.equals(address)*/}
-        >
-          {isApplying ? 
-            <span className="loading loading-spinner loading-xs"></span> : 
-            'Apply'
-          }
-        </button>
+        <div className="relative inline-block">
+          {hasPending && !isApplying && (
+            <div className="absolute -top-3 -right-2">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-sky-500"></span>
+              </span>
+            </div>
+          )}
+          <button 
+            className="btn btn-xs lg:btn-md btn-outline"
+            onClick={() => applyPendingBalance()}
+            disabled={isApplying}
+          >
+            {isApplying ? 
+              <span className="loading loading-spinner loading-xs"></span> : 
+              'Apply'
+            }
+          </button>
+          {hasPending && !isApplying && (
+            <div className="absolute -bottom-5 left-0 right-0 text-center">
+              <span className="text-xs font-semibold text-sky-500">Pending</span>
+            </div>
+          )}
+        </div>
         <button 
           className="btn btn-xs lg:btn-md btn-outline" 
           onClick={() => setShowWithdraw(true)}
