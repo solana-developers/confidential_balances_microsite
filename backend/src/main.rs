@@ -70,8 +70,14 @@ async fn main() {
         .layer(cors)
         .layer(TraceLayer::new_for_http());
 
-    // Run the server
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3003));
+    // Get the port from the environment or use a default
+    let port = std::env::var("PORT")
+        .ok()
+        .and_then(|p| p.parse::<u16>().ok())
+        .unwrap_or(3003);
+    
+    // Run the server on 0.0.0.0 to accept connections from outside network interfaces
+    let addr = SocketAddr::from(([0, 0, 0, 0], port));
     tracing::debug!("listening on {}", addr);
     
     // In Axum 0.8.x, we use tokio::net::TcpListener instead of axum::Server
