@@ -93,6 +93,50 @@ export function useGetTokenAccounts({ address }: { address: PublicKey }) {
   })
 }
 
+// New hook for getting token balance
+export function useGetTokenBalance({ tokenAccountPubkey }: { tokenAccountPubkey: PublicKey }) {
+  const { connection } = useConnection()
+
+  return useQuery({
+    queryKey: ['get-token-balance', { endpoint: connection.rpcEndpoint, tokenAccountPubkey: tokenAccountPubkey.toString() }],
+    queryFn: async () => {
+      try {
+        const response = await connection.getTokenAccountBalance(tokenAccountPubkey)
+        return response?.value?.uiAmountString || '0'
+      } catch (error) {
+        console.error('Error fetching token balance:', error)
+        throw error
+      }
+    },
+    retry: 3,
+  })
+}
+
+// Simple hook to manage confidential balance visibility
+export function useConfidentialVisibility(tokenAccountPubkey: PublicKey) {
+  const client = useQueryClient()
+  const queryKey = ['confidential-visibility', tokenAccountPubkey.toString()]
+  
+  // Get current visibility state
+  const { data: isVisible = false } = useQuery({
+    queryKey,
+    queryFn: () => false, // Default to hidden
+    staleTime: Infinity, // Don't refetch automatically
+  })
+  
+  // Function to show confidential balance
+  const showBalance = () => {
+    client.setQueryData(queryKey, true)
+  }
+  
+  // Function to hide confidential balance
+  const hideBalance = () => {
+    client.setQueryData(queryKey, false)
+  }
+  
+  return { isVisible, showBalance, hideBalance }
+}
+
 export function useTransferSol({ address }: { address: PublicKey }) {
   const { connection } = useConnection()
   const transactionToast = useTransactionToast()
@@ -418,14 +462,14 @@ export function useCreateAssociatedTokenAccountCB({ walletAddressPubkey }: { wal
   });
 }
 
-export function useDepositCb({ address }: { address: PublicKey }) {
+export function useDepositCb({ tokenAccountPubkey }: { tokenAccountPubkey: PublicKey }) {
   const { connection } = useConnection()
   const client = useQueryClient()
   const transactionToast = useTransactionToast()
   const wallet = useWallet()
 
   return useMutation({
-    mutationKey: ['deposit-cb', { endpoint: connection.rpcEndpoint, address }],
+    mutationKey: ['deposit-cb', { endpoint: connection.rpcEndpoint, tokenAccountPubkey }],
     mutationFn: async ({ lamportAmount }: { 
       lamportAmount: string, 
     }) => {
@@ -435,7 +479,7 @@ export function useDepositCb({ address }: { address: PublicKey }) {
         }
 
         // Get ATA account info
-        const ataAccountInfo = await connection.getAccountInfo(address);
+        const ataAccountInfo = await connection.getAccountInfo(tokenAccountPubkey);
         if (!ataAccountInfo) {
           throw new Error("Account not found");
         }
@@ -444,7 +488,7 @@ export function useDepositCb({ address }: { address: PublicKey }) {
         const decimals = await (async () => {
           const splTokenAccount = await getAccount(
             connection,
-            address,
+            tokenAccountPubkey,
             'confirmed',
             TOKEN_2022_PROGRAM_ID
           );
@@ -519,13 +563,16 @@ export function useDepositCb({ address }: { address: PublicKey }) {
       // Invalidate relevant queries to refresh data
       return Promise.all([
         client.invalidateQueries({
-          queryKey: ['get-balance', { endpoint: connection.rpcEndpoint, address }],
+          queryKey: ['get-balance', { endpoint: connection.rpcEndpoint, tokenAccountPubkey }],
         }),
         client.invalidateQueries({
-          queryKey: ['get-signatures', { endpoint: connection.rpcEndpoint, address }],
+          queryKey: ['get-signatures', { endpoint: connection.rpcEndpoint, tokenAccountPubkey }],
         }),
         client.invalidateQueries({
-          queryKey: ['get-token-accounts', { endpoint: connection.rpcEndpoint, address }],
+          queryKey: ['get-token-accounts', { endpoint: connection.rpcEndpoint, tokenAccountPubkey }],
+        }),
+        client.invalidateQueries({
+          queryKey: ['get-token-balance', { endpoint: connection.rpcEndpoint, tokenAccountPubkey: tokenAccountPubkey.toString() }],
         }),
       ]);
     },
@@ -718,6 +765,9 @@ export function useApplyCB({ address }: { address: PublicKey }) {
         console.log('AES signature collected:', data.aesSignature)
       }
       
+      // Hide confidential balance using query cache
+      client.setQueryData(['confidential-visibility', address.toString()], false)
+      
       // Invalidate relevant queries to refresh data
       return Promise.all([
         client.invalidateQueries({
@@ -728,7 +778,7 @@ export function useApplyCB({ address }: { address: PublicKey }) {
         }),
         client.invalidateQueries({
           queryKey: ['get-token-accounts', { endpoint: connection.rpcEndpoint, address }],
-        }),
+        })
       ])
     },
     onError: (error) => {
@@ -928,6 +978,9 @@ export function useTransferCB({ senderTokenAccountPubkey }: { senderTokenAccount
         toast.success('Transfer transaction successful')
       }
       
+      // Hide confidential balance using query cache
+      client.setQueryData(['confidential-visibility', senderTokenAccountPubkey.toString()], false)
+      
       // Invalidate relevant queries to refresh data
       return Promise.all([
         client.invalidateQueries({
@@ -938,7 +991,7 @@ export function useTransferCB({ senderTokenAccountPubkey }: { senderTokenAccount
         }),
         client.invalidateQueries({
           queryKey: ['get-token-accounts', { endpoint: connection.rpcEndpoint, senderTokenAccountPubkey }],
-        }),
+        })
       ])
     },
     onError: (error) => {
@@ -1073,6 +1126,9 @@ export function useWithdrawCB({ tokenAccountPubkey }: { tokenAccountPubkey: Publ
         toast.success('Withdraw transaction successful')
       }
       
+      // Hide confidential balance using query cache
+      client.setQueryData(['confidential-visibility', tokenAccountPubkey.toString()], false)
+      
       // Invalidate relevant queries to refresh data
       return Promise.all([
         client.invalidateQueries({
@@ -1083,6 +1139,9 @@ export function useWithdrawCB({ tokenAccountPubkey }: { tokenAccountPubkey: Publ
         }),
         client.invalidateQueries({
           queryKey: ['get-token-accounts', { endpoint: connection.rpcEndpoint, tokenAccountPubkey }],
+        }),
+        client.invalidateQueries({
+          queryKey: ['get-token-balance', { endpoint: connection.rpcEndpoint, tokenAccountPubkey: tokenAccountPubkey.toString() }],
         }),
       ])
     },

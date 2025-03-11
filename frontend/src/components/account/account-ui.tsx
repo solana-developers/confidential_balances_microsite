@@ -24,20 +24,22 @@ import {
   useTransferCB,
   useWithdrawCB,
   useGetSingleTokenAccount,
+  useGetTokenBalance,
+  useConfidentialVisibility,
+  useDecryptConfidentialBalance,
 } from './account-data-access'
 import { toast } from 'react-hot-toast'
 import { AccountLayout } from '@solana/spl-token'
-import { useDecryptConfidentialBalance } from './account-data-access'
 
 export function TokenConfidentialBalanceDisplay({ tokenAccountPubkey }: { tokenAccountPubkey: PublicKey }) {
-    const [isConfidentialVisible, setIsConfidentialVisible] = useState(false)
+    const { isVisible, showBalance, hideBalance } = useConfidentialVisibility(tokenAccountPubkey)
     const { decryptBalance, isDecrypting, confidentialBalance, error } = useDecryptConfidentialBalance()
     const wallet = useWallet()
     
     const handleDecryptBalance = async () => {
       const result = await decryptBalance(tokenAccountPubkey)
       if (result) {
-        setIsConfidentialVisible(true)
+        showBalance()
       }
     }
     
@@ -47,17 +49,17 @@ export function TokenConfidentialBalanceDisplay({ tokenAccountPubkey }: { tokenA
           <div className="pt-6">
             <div className="flex justify-between items-center">
               <h3 className="text-base font-medium text-gray-400">Confidential Balance</h3>
-              {isConfidentialVisible && (
+              {isVisible && (
                 <button 
                   className="text-blue-500 hover:text-blue-400"
-                  onClick={() => setIsConfidentialVisible(false)}
+                  onClick={hideBalance}
                 >
                   Hide
                 </button>
               )}
             </div>
             
-            {!isConfidentialVisible ? (
+            {!isVisible ? (
               <div className="mt-4">
                 {isDecrypting ? (
                   <div className="flex items-center space-x-3">
@@ -114,27 +116,16 @@ export function AccountBalance({ address }: { address: PublicKey }) {
 }
 
 export function TokenBalance({ tokenAccountPubkey }: { tokenAccountPubkey: PublicKey }) {
-  const { connection } = useConnection()
-  const [balance, setBalance] = useState<string>('...')
- 
-  useEffect(() => {
-    async function fetchTokenBalance() {
-      try {
-        const response = await connection.getTokenAccountBalance(tokenAccountPubkey)
-        setBalance(response?.value?.uiAmountString || '0')
-      } catch (error) {
-        console.error('Error fetching token balance:', error)
-        setBalance('Error')
-      }
-    }
-    
-    fetchTokenBalance()
-  }, [connection, tokenAccountPubkey])
-
+  const tokenBalanceQuery = useGetTokenBalance({ tokenAccountPubkey })
+  
   return (
     <div>
       <h1 className="text-5xl font-bold">
-        {balance} Tokens
+        {tokenBalanceQuery.isLoading 
+          ? '...' 
+          : tokenBalanceQuery.isError 
+            ? 'Error' 
+            : `${tokenBalanceQuery.data} Tokens`}
       </h1>
     </div>
   )
@@ -216,7 +207,7 @@ export function TokenAccountButtons({ address }: {
 
   return (
     <div>
-      <ModalDeposit show={showDepositModal} hide={() => setShowDepositModal(false)} address={address} />
+      <ModalDeposit show={showDepositModal} hide={() => setShowDepositModal(false)} tokenAccountPubkey={address} />
       <ModalTransfer show={showTransferModal} hide={() => setShowTransferModal(false)} address={address} />
       <ModalWithdraw show={showWithdraw} hide={() => setShowWithdraw(false)} tokenAccountPubkey={address} />
       
@@ -510,13 +501,13 @@ function ModalSend({ hide, show, address }: { hide: () => void; show: boolean; a
   )
 }
 
-function ModalDeposit({ show, hide, address }: { show: boolean; hide: () => void; address: PublicKey }) {
+function ModalDeposit({ show, hide, tokenAccountPubkey }: { show: boolean; hide: () => void; tokenAccountPubkey: PublicKey }) {
   const [amount, setAmount] = useState('')
-  const depositMutation = useDepositCb({ address })
+  const depositMutation = useDepositCb({ tokenAccountPubkey })
   const [decimals, setDecimals] = useState(9) // Default to 9 decimals until we load the actual value
   
   // Get token account info to extract the mint
-  const { data: tokenAccountInfo, isLoading: isTokenAccountLoading } = useGetSingleTokenAccount({ address })
+  const { data: tokenAccountInfo, isLoading: isTokenAccountLoading } = useGetSingleTokenAccount({ address: tokenAccountPubkey })
   
   // Use the mint from the token account to get mint info
   const mintInfoQuery = useGetMintInfo({ 
