@@ -2,6 +2,9 @@
 
 This repository demonstrates the **Confidential Balances token extension** from Solana Program Library's Token22, featuring a Rust backend (Axum) and a React frontend (Next.js).
 
+## Live demo
+Check out the deployed version here: https://confidential-balances-microsite-peach.vercel.app
+
 ## Quick Start
 
 ### Backend
