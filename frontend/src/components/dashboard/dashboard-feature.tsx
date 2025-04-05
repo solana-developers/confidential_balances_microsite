@@ -50,6 +50,7 @@ export default function DashboardFeature() {
                   <li className="py-2">
                     <span className="font-medium">Start with a token mint</span>
                     <p className="text-gray-600 mt-1">Begin with a token mint that supports confidential transfers. You&apos;ll need the mint address to proceed.</p>
+                    <p className="text-gray-600 mt-1">Follow the instructions in the <a href="https://www.solana-program.com/docs/confidential-balances#example-create-a-mint-with-confidential-transfers" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Solana Program documentation</a> to create a token mint with confidential transfers enabled.</p>
                   </li>
                   
                   <li className="py-2">
@@ -114,19 +115,19 @@ export default function DashboardFeature() {
           
           <div>
             <h2 className="text-xl font-semibold mb-4">Cautions</h2>
-            <div className="border-4 rounded-lg border-separate border-base-300 bg-gray-900 p-6">
+            <div className="border-2 rounded-lg border-yellow-500/30 bg-yellow-500/5 p-6">
               <div className="mx-auto max-w-lg">
                 <ul className="space-y-4 text-left">
                   <li className="py-2">
-                    <span className="font-medium">Failed operations</span>
-                    <p className="text-gray-600 mt-1">
+                    <span className="font-medium text-gray-200">Failed operations</span>
+                    <p className="text-gray-400 mt-1">
                       This demo requires optimizations. It currently makes excessive RPC calls to evaluate account states. Hitting API limits (especially on public endpoints like devnet &amp; testnet) may result in failed transactions. Confidential Balances operations are often comprised of several transactions. Failing operations half-way may lead to states only recoverable via CLI or other custom implementations. Be sure to have adequate RPC rate limits until optimizations land.
                     </p>
                   </li>
                   
                   <li className="py-2">
-                    <span className="font-medium">Only operate this demo from trusted URLs</span>
-                    <p className="text-gray-600 mt-1">
+                    <span className="font-medium text-gray-200">Only operate this demo from trusted URLs</span>
+                    <p className="text-gray-400 mt-1">
                       Most of this demo&apos;s business logic is orchestrated on a <a href="https://github.com/solana-developers/confidential_balances_microsite/tree/main/backend" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-400 underline">backend</a> facilitating encryption on behalf of the user and therefore exposing the keys during runtime. While your funds are always safe if leaking encryption keys, it defeats the entire purpose of confidentiality. When in doubt, host the project yourself!
                     </p>
                   </li>
