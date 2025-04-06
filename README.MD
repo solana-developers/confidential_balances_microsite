@@ -2,26 +2,37 @@
 
 A reference implementation demonstrating the **Confidential Balances token extension** from Solana Program Library's Token22. This project features a Rust backend (Axum) and a React frontend (Next.js).
 
-## Target Audience
+## Implementation Types
 
-This reference implementation is designed for:
-- **Custodial wallet services**
-- **Wallet-as-a-Service (WaaS) providers**
+### Trusted Implementation (This Project)
+This is a **trusted** implementation that demonstrates UX possibilities using non-custodial wallets. The trust model works as follows:
+
+- The backend receives the user's wallet message signature
+- This signature is used as the seed for generating ElGamal & AES encryption keys
+- The backend generates zero-knowledge proofs using these keys
+- The backend provides partially signed transactions
+
+**Use Cases:**
+- Custodial wallet services
+- Wallet-as-a-Service (WaaS) providers
+- Trusted self-custodial wallets (read security considerations below)
+
+### Trustless Implementation
+A trustless implementation would:
+- Keep all cryptographic operations within the wallet
+- Generate zero-knowledge proofs internally
+- Never expose encryption keys to external services
+
+**Current Status:**
+- Rust-based wallets: Available now by implementing the [backend](backend) directly into the wallet client.
+- TypeScript wallets: Coming soon with the release of the [ElGamal Proof library](https://github.com/solana-program/zk-elgamal-proof/tree/main/clients/js-legacy#solanazk-elgamal-proof)
 
 ## ⚠️ Important Security Considerations
+Trusted implementations are responsible for generating zkproofs on the backend. Doing so requires access to the user's encryption keys. This sensitive user data must follow proper security hygene, including but not limited to:
+- Enforcing HTTPS communication with the backend to ensure encryption seeds are not leaked in-transit.
+- No caching of data, especially the keys.
+- Deploy the backend in a secure and restricted environment like Google Cloud Run or a secure enclave.
 
-This implementation should **not** be used for building self-custodial wallets. Here's why:
-
-1. The current architecture requires users to expose encryption key seeds (ElGamal & AES) to the backend
-2. For proper security in self-custodial scenarios, cryptographic operations should remain within a secure enclave or client-side environment
-3. The **ZK ElGamal Proof library** (responsible for generating zero-knowledge proofs for account creation, deposits, transfers, and withdrawals) is still under development for TypeScript
-
-Currently, truly secure implementations are only possible with pure-Rust frontends, which are uncommon in the wallet ecosystem.
-
-Developers interested in self-custodial implementations can track the progress of the TypeScript library here:
-[https://github.com/solana-program/zk-elgamal-proof/tree/main/clients/js-legacy#solanazk-elgamal-proof](https://github.com/solana-program/zk-elgamal-proof/tree/main/clients/js-legacy#solanazk-elgamal-proof)
-
-Despite these limitations, this implementation serves as a valuable educational resource for understanding Confidential Balances while more comprehensive TypeScript libraries are being developed.
 
 For additional insights, check out the following additional resources:
 - [Token extensions docs](https://solana.com/docs/tokens/extensions)
@@ -60,10 +71,6 @@ NEXT_PUBLIC_BACKEND_API_ENDPOINT=https://your-hosted-backend-url.com
 ```
 
 Ensure backend is accessible at this URL.
-
-## Solana Cluster Configuration
-
-Changing clusters requires updating both frontend settings and your browser wallet (e.g., Phantom, Solflare).
 
 ## Nuances
 
