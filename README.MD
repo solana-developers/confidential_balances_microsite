@@ -1,44 +1,79 @@
 # Confidential Balances Token Extension Reference Implementation
 
-A reference implementation demonstrating the **Confidential Balances token extension** from Solana Program Library's Token22. This project features a Rust backend (Axum) and a React frontend (Next.js).
+A reference implementation demonstrating the **Confidential Balances features** from Solana Program Library's Token22. This project features a Rust backend (Axum) and a React frontend (Next.js).
 
 ## Implementation Types
 
 ### Trusted Implementation (This Project)
-This is a **trusted** implementation that demonstrates UX possibilities using non-custodial wallets. The trust model works as follows:
+This is a **trusted** implementation that demonstrates UX possibilities for confidential balances operations on self-custodial wallets. The trust model works as follows:
 
 - The backend receives the user's wallet message signature
-- This signature is used as the seed for generating ElGamal & AES encryption keys
-- The backend generates zero-knowledge proofs using these keys
-- The backend provides partially signed transactions
+- This signature serves as the seed for deriving ElGamal & AES encryption keys
+- The backend handles zero-knowledge proof generation using these derived keys
+- The backend returns partially signed transactions for the wallet to complete
 
-**Use Cases:**
+**Suitable For:**
 - Custodial wallet services
 - Wallet-as-a-Service (WaaS) providers
 - Trusted self-custodial wallets (read security considerations below)
 
+```mermaid
+sequenceDiagram
+    participant User
+    participant Wallet
+    participant Backend
+    participant Blockchain
+
+    User->>Wallet: Request confidential operation
+    Wallet->>Backend: Send message signature
+    Backend->>Backend: Derive encryption keys
+    Backend->>Backend: Generate zk-proof
+    Backend->>Wallet: Return partially signed tx
+    Wallet->>Wallet: Complete transaction signing
+    Wallet->>Blockchain: Submit transaction
+```
+
 ### Trustless Implementation
 A trustless implementation would:
-- Keep all cryptographic operations within the wallet
-- Generate zero-knowledge proofs internally
-- Never expose encryption keys to external services
+- Generate and manage encryption keys entirely within the wallet
+- Handle zero-knowledge proof generation internally
+- Never expose encryption keys or their seeds to external services
 
 **Current Status:**
-- Rust-based wallets: Available now by implementing the [backend](backend) directly into the wallet client.
+- Rust-based wallets: Available now by implementing the [backend](backend) directly into the wallet client
 - TypeScript wallets: Coming soon with the release of the [ElGamal Proof library](https://github.com/solana-program/zk-elgamal-proof/tree/main/clients/js-legacy#solanazk-elgamal-proof)
 
+```mermaid
+sequenceDiagram
+    participant User
+    participant Wallet
+    participant Blockchain
+
+    User->>Wallet: Request confidential operation
+    Wallet->>Wallet: Generate encryption keys
+    Wallet->>Wallet: Generate zk-proof
+    Wallet->>Wallet: Sign transaction
+    Wallet->>Blockchain: Submit transaction
+```
+
 ## ⚠️ Important Security Considerations
-Trusted implementations are responsible for generating zkproofs on the backend. Doing so requires access to the user's encryption keys. This sensitive user data must follow proper security hygene, including but not limited to:
-- Enforcing HTTPS communication with the backend to ensure encryption seeds are not leaked in-transit.
-- No caching of data, especially the keys.
-- Deploy the backend in a secure and restricted environment like Google Cloud Run or a secure enclave.
 
+Trusted implementations require handling sensitive cryptographic operations on the backend. This introduces important security requirements:
 
-For additional insights, check out the following additional resources:
-- [Token extensions docs](https://solana.com/docs/tokens/extensions)
-- [Confidential Balances Cookbook](https://github.com/solana-developers/Confidential-Balances-Sample/tree/main)
-  - Additional Rust examples
-  - Product guide
+1. **Key Derivation Security**
+   - The backend derives encryption keys from user-provided seeds
+   - These seeds must be transmitted securely and never stored
+   - HTTPS is mandatory for all client-backend communication
+
+2. **Backend Security Requirements**
+   - Deploy in secure, restricted environments (e.g., Google Cloud Run, secure enclaves)
+   - No caching or persistence of sensitive cryptographic material
+   - Regular security audits and monitoring
+
+3. **Trust Implications**
+   - Users must trust the backend implementation
+   - Backend has theoretical capability to decrypt user balances
+   - Consider implementing additional audit mechanisms
 
 ## Live Demo
 Check out the deployed version here: https://confidential-balances-microsite-peach.vercel.app
@@ -72,7 +107,9 @@ NEXT_PUBLIC_BACKEND_API_ENDPOINT=https://your-hosted-backend-url.com
 
 Ensure backend is accessible at this URL.
 
-## Nuances
+## Aditional Resources
 
-- Frontend uses environment variables (`.env.example` provided).
-- Backend leverages Axum, Solana SDK, and SPL Token crates. 
+- [Token extensions docs](https://solana.com/docs/tokens/extensions)
+- [Confidential Balances Cookbook](https://github.com/solana-developers/Confidential-Balances-Sample/tree/main)
+  - Additional Rust examples
+  - Product guide
