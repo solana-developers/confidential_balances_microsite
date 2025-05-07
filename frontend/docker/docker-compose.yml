@@ -1,0 +1,23 @@
+name: frontend
+
+services:
+  nextjs:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    tty: true
+    stdin_open: true
+    volumes:
+      - ../:/app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - HISTFILE=/app/tmp/.shell_history
+      - HISTSIZE=10000
+    command:
+      [
+        "sh",
+        "-c",
+        "mkdir -p /app/tmp && touch /app/tmp/.shell_history && sleep infinity",
+      ]

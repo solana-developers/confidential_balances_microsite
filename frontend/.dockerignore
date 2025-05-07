@@ -1,0 +1,28 @@
+# Git
+.git
+.gitignore
+
+# Dependencies
+# node_modules
+npm-debug.log
+yarn-error.log
+
+# Next.js
+.next
+out
+
+# Development files
+README.md
+*.md
+*.log
+.eslintrc.json
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Other files
+Dockerfile
+.dockerignore
+.github
+.vscode 
