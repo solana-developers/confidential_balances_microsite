@@ -1,0 +1,5 @@
+packages:
+  - "packages/*"
+
+allowedDeprecatedVersions:
+    eslint: "8.57.1"

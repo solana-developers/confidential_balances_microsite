@@ -1,0 +1,112 @@
+/**
+ * Flex utility classes
+ * 
+ * Base classes:
+ * .flex - Base flex container (row, gap: 8px)
+ * 
+ * Direction modifiers:
+ * .flex--row - Row direction
+ * .flex--col - Column direction
+ * .flex--col-rev - Column reverse
+ * .flex--row-rev - Row reverse
+ * 
+ * Alignment:
+ * .flex--vcenter - Vertical center (align-items: center)
+ * .flex--hcenter - Horizontal center (justify-content: center)
+ * .flex--center - Both centers
+ * .flex--between - Space between
+ * .flex--end - Flex end
+ * .flex--start - Flex start
+ * 
+ * Wrap:
+ * .flex--wrap - Flex wrap
+ * .flex--nowrap - No wrap
+ * 
+ * Flex grow:
+ * .flex--1 - Flex: 1
+ * 
+ * Gap utilities:
+ * .gap0 - gap: 0px
+ * .gap8 - gap: 8px
+ * .gap16 - gap: 16px
+ * .gap20 - gap: 20px
+ * .gap24 - gap: 24px
+ * .gap32 - gap: 32px
+ */
+
+@use "sass:map";
+
+$gap-values: (0, 4, 8, 12, 16, 20, 24, 32);
+
+.flex {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+
+  &--row {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  &--col {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &--col-rev {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  &--row-rev {
+    display: flex;
+    flex-direction: row-reverse;
+    gap: 8px;
+  }
+
+  &--vcenter {
+    align-items: center;
+  }
+
+  &--hcenter {
+    justify-content: center;
+  }
+
+  &--center {
+    justify-content: center;
+    align-items: center;
+  }
+
+  &--between {
+    justify-content: space-between;
+  }
+
+  &--end {
+    justify-content: flex-end;
+  }
+
+  &--start {
+    justify-content: flex-start;
+  }
+
+  &--wrap {
+    flex-wrap: wrap;
+  }
+
+  &--nowrap {
+    flex-wrap: nowrap;
+  }
+
+  &--1 {
+    flex: 1;
+  }
+}
+
+@each $value in $gap-values {
+  .gap#{$value} {
+    gap: #{$value}px;
+  }
+}

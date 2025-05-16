@@ -1,0 +1,27 @@
+{
+  "extends": "@solana/ms-tools-config/tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "outDir": "./dist",
+    "jsx": "react-jsx"
+  },
+  "include": [
+    "*.config.js",
+    "*.config.mjs",
+    "*.config.cjs",
+    "*.config.ts",
+    "*.js",
+    "*.ts",
+    "*.tsx",
+    "**/*.ts",
+    "**/*.tsx",
+    "next-env.d.ts",
+    "next.config.mjs",
+    ".storybook/*.ts",
+    "src/**/*"
+  ],
+  "exclude": ["node_modules", "dist", "storybook-static/**"]
+}

@@ -2,6 +2,7 @@
   "name": "legacy-next-tailwind",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "anchor": "cd anchor && anchor",
     "anchor-build": "cd anchor && anchor build",
@@ -9,11 +10,16 @@
     "anchor-test": "cd anchor && anchor test",
     "dev": "next dev",
     "build": "next build",
+    "format": "prettier -c prettier.config.js \"**/*.{js,mjs,cjs,ts,tsx}\" -c",
     "ci": "npm run build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "storybook": "storybook dev -p 6006 --ci ",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
+    "@solana/ms-tools-config": "github:hoodieshq/solana-ms-tools#path:packages/config",
+    "@solana/ms-tools-ui": "workspace:^",
     "@solana/spl-token": "0.4.12",
     "@solana/wallet-adapter-base": "0.9.23",
     "@solana/wallet-adapter-react": "0.15.35",
@@ -30,17 +36,38 @@
     "react-hot-toast": "^2.5.2"
   },
   "devDependencies": {
+    "@chromatic-com/storybook": "^3",
+    "@ianvs/prettier-plugin-sort-imports": "^4.4.1",
+    "@solana/prettier-config-solana": "^0.0.5",
+    "@storybook/addon-essentials": "^8.6.12",
+    "@storybook/addon-onboarding": "^8.6.12",
+    "@storybook/blocks": "^8.6.12",
+    "@storybook/experimental-addon-test": "^8.6.12",
+    "@storybook/experimental-nextjs-vite": "^8.6.12",
+    "@storybook/nextjs": "^8.6.12",
+    "@storybook/react": "^8.6.12",
+    "@storybook/test": "^8.6.12",
     "@types/bn.js": "^5.1.6",
     "@types/jest": "^29.5.14",
     "@types/node": "^22",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@vitest/browser": "^3.1.3",
+    "@vitest/coverage-v8": "^3.1.3",
+    "autoprefixer": "^10.4.21",
     "eslint": "^8",
     "eslint-config-next": "14.2.24",
+    "eslint-plugin-storybook": "^0.12.0",
     "jest": "^29.7.0",
+    "playwright": "^1.52.0",
     "postcss": "^8",
-    "tailwindcss": "^3.4.1",
+    "prettier-plugin-tailwindcss": "^0.6.11",
+    "sass": "^1.87.0",
+    "storybook": "^8.6.12",
+    "tailwindcss": "^3.4.17",
     "ts-jest": "^29.2.6",
-    "typescript": "5.4.5"
-  }
+    "typescript": "5.4.5",
+    "vitest": "^3.1.3"
+  },
+  "packageManager": "pnpm@10.7.1"
 }

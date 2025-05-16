@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+/* TODO: Start implementing UI with new UI-kit */
+/* @import 'tailwindcss'; */
+/* @import '@solana/ms-tools-ui/styles.css'; */
+
 html,
 body {
   height: 100%;

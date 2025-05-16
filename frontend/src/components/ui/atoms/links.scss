@@ -1,0 +1,30 @@
+a {
+  color: var(--color-link);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--color-link-hover);
+    text-decoration: underline;
+  }
+
+  &:visited {
+    color: var(--color-link-visited);
+  }
+
+  &:active {
+    color: var(--color-link-active);
+  }
+
+  &:focus {
+    color: var(--color-link-focus);
+    outline: 1px dashed var(--color-link-focus-outline);
+    outline-offset: 2px;
+  }
+
+  &.disabled,
+  &[disabled] {
+    color: var(--color-disabled);
+    pointer-events: none;
+    text-decoration: none;
+  }
+}
