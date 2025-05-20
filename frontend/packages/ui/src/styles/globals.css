@@ -2,6 +2,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* TODO: change to @theme { */
 :root {
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -15,10 +16,14 @@
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --accent: oklch(0.61 0.11 167.54);
+  --accent-foreground: oklch(0.78 0.16 163.88);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.577 0.245 27.325);
+  --success: oklch(0.82 0.21 152.22);
+  --success-foreground: oklch(0.46 0.11 153.27);
+  --failure: oklch(0.74 0.25 327.22);
+  --failure-foreground: oklch(0.42 0.13 327.63);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
@@ -90,6 +95,10 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-failure: var(--failure);
+  --color-failure-foreground: var(--failure-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);

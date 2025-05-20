@@ -6,7 +6,7 @@
   "types": "./dist/index.d.ts",
   "type": "module",
   "exports": {
-    ".": "./dist/index.cjs",
+    ".": "./dist/index.js",
     "./index.js": "./dist/index.js",
     "./styles.css": "./dist/index.css"
   },
@@ -28,12 +28,14 @@
     "react-dom": "^18.0.0 || ^19.1.0"
   },
   "dependencies": {
+    "@radix-ui/react-navigation-menu": "^1.2.13",
+    "@radix-ui/react-select": "^2.2.4",
     "@radix-ui/react-slot": "^1.2.0",
     "@tailwindcss/postcss": "^4.1.5",
     "@testing-library/dom": "^10.4.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "lucide-react": "^0.503.0",
+    "lucide-react": "^0.509.0",
     "postcss": "^8.4.31",
     "tailwind-merge": "^3.2.0",
     "tailwindcss": "^4.1.5"
@@ -42,7 +44,6 @@
     "@ianvs/prettier-plugin-sort-imports": "^4.4.1",
     "@storybook/addon-essentials": "^8.6.12",
     "@storybook/addon-interactions": "^8.6.12",
-    "@storybook/addon-onboarding": "^8.6.12",
     "@storybook/addon-styling-webpack": "^1.0.1",
     "@storybook/addon-themes": "^8.6.12",
     "@storybook/addon-webpack5-compiler-swc": "^3.0.0",
