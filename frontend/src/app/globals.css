@@ -1,10 +1,18 @@
-@tailwind base;
+/* @tailwind base;
 @tailwind components;
-@tailwind utilities;
-
+@tailwind utilities; */
 /* TODO: Start implementing UI with new UI-kit */
-/* @import 'tailwindcss'; */
-/* @import '@solana/ms-tools-ui/styles.css'; */
+
+@import '@solana/ms-tools-ui/styles.css';
+@import 'tailwindcss';
+
+@theme {
+  --default-font-family: "Rubik";
+  --font-family-inter: "Inter";
+  /* uncomment these vars to make site dark as desired */
+  /* --background: #161B1A;
+  --foreground: #272D2C; */
+}
 
 html,
 body {

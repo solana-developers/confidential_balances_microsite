@@ -1,4 +1,2 @@
 **/dist/**
-/src/components/**
-/src/app/**
-# temporary hide existing components and app
+/packages/ui

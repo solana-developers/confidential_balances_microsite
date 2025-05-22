@@ -38,3 +38,6 @@ next-env.d.ts
 tmp
 
 *storybook.log
+
+# Do not add dist for UI
+/packages/ui/dist

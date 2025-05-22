@@ -1,12 +1,12 @@
-'use client'
+"use client";
 
-import { PublicKey } from '@solana/web3.js'
-import { useMemo } from 'react'
+import { PublicKey } from "@solana/web3.js";
+import { useMemo } from "react";
 
-import { useParams } from 'next/navigation'
+import { useParams } from "next/navigation";
 
-import { ExplorerLink } from '../cluster/cluster-ui'
-import { AppHero, ellipsify } from '../ui/ui-layout'
+import { ExplorerLink } from "../cluster/cluster-ui";
+import { AppHero, ellipsify } from "../ui/ui-layout";
 import {
   AccountBalance,
   AccountButtons,
@@ -14,37 +14,36 @@ import {
   AccountTokens,
   TokenAccountButtons,
   TokenBalance,
-  TokenConfidentialBalanceDisplay
-} from './account-ui'
-import { useGetSingleTokenAccount } from './account-data-access'
-
+  TokenConfidentialBalanceDisplay,
+} from "./account-ui";
+import { useGetSingleTokenAccount } from "./account-data-access";
 
 export default function AccountDetailFeature() {
-  const params = useParams()
+  const params = useParams();
   const address = useMemo(() => {
     if (!params.address) {
-      return
+      return;
     }
     try {
-      return new PublicKey(params.address)
+      return new PublicKey(params.address);
     } catch (e) {
-      console.log(`Invalid public key`, e)
+      console.log(`Invalid public key`, e);
     }
-  }, [params])
+  }, [params]);
 
   // Frontend builds fail if calling the hook within a conditional `if` statement.
   // The workaround is to call the hook with a dummy/default PublicKey when there's no address.
   const tokenAccountQuery = useGetSingleTokenAccount(
-    address ? { address } : { address: PublicKey.default }
-  )
-  const { data: accountDescription, isLoading } = tokenAccountQuery
-  
+    address ? { address } : { address: PublicKey.default },
+  );
+  const { data: accountDescription, isLoading } = tokenAccountQuery;
+
   if (!address) {
-    return <div>Error loading account</div>
+    return <div>Error loading account</div>;
   }
-  
+
   if (isLoading) {
-    return <div>Loading account data...</div>
+    return <div>Loading account data...</div>;
   }
 
   return (
@@ -55,13 +54,17 @@ export default function AccountDetailFeature() {
             title={<TokenBalance tokenAccountPubkey={address} />}
             subtitle={
               <div className="my-4">
-                Explorer: <ExplorerLink path={`account/${address}`} label={ellipsify(address.toString())} />
+                Explorer:{" "}
+                <ExplorerLink
+                  path={`account/${address}`}
+                  label={ellipsify(address.toString())}
+                />
               </div>
             }
           >
             <div className="my-4">
               <TokenAccountButtons address={address} />
-              <div className="my-4"/>
+              <div className="my-4" />
               <TokenConfidentialBalanceDisplay tokenAccountPubkey={address} />
             </div>
           </AppHero>
@@ -75,14 +78,16 @@ export default function AccountDetailFeature() {
             title={<AccountBalance address={address} />}
             subtitle={
               <div className="my-4">
-                Explorer: <ExplorerLink path={`account/${address}`} label={ellipsify(address.toString())} />
+                Explorer:{" "}
+                <ExplorerLink
+                  path={`account/${address}`}
+                  label={ellipsify(address.toString())}
+                />
               </div>
             }
           >
             <div className="my-4">
-              <AccountButtons 
-                address={address} 
-              />
+              <AccountButtons address={address} />
             </div>
           </AppHero>
           <div className="space-y-8">
@@ -92,5 +97,5 @@ export default function AccountDetailFeature() {
         </div>
       )}
     </div>
-  )
+  );
 }
