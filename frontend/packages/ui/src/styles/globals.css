@@ -126,7 +126,6 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    /* these colors reflect the .dark variant */
     --background: oklch(0.22 0.01 0);
     --foreground: oklch(0.24 0.01 0);
     --card: oklch(0.145 0 0);

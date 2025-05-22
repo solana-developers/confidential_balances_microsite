@@ -79,7 +79,7 @@ export const Link: Story = {
 
 export const Small: Story = {
   args: {
-    variant: 'secondary',
+    variant: 'default',
     size: 'sm',
     children: 'Small Button',
   },
@@ -87,7 +87,7 @@ export const Small: Story = {
 
 export const Large: Story = {
   args: {
-    variant: 'secondary',
+    variant: 'default',
     size: 'lg',
     children: 'Large Button',
   },
@@ -95,7 +95,7 @@ export const Large: Story = {
 
 export const Icon: Story = {
   args: {
-    variant: 'secondary',
+    variant: 'default',
     size: 'icon',
     children: <span className="h-4 w-4">❤️</span>, // Replace with an actual icon component
   },
