@@ -10,7 +10,7 @@
     "ci": "npm run build",
     "start": "next start",
     "lint": "next lint",
-    "storybook": "storybook dev -p 6006 --ci ",
+    "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
   "dependencies": {
@@ -37,6 +37,7 @@
     "@radix-ui/react-navigation-menu": "^1.2.13",
     "@solana/prettier-config-solana": "^0.0.5",
     "@storybook/addon-essentials": "^8.6.12",
+    "@storybook/addon-interactions": "^8.6.14",
     "@storybook/blocks": "^8.6.12",
     "@storybook/experimental-addon-test": "^8.6.12",
     "@storybook/experimental-nextjs-vite": "^8.6.12",
