@@ -3,8 +3,8 @@
 @tailwind utilities; */
 /* TODO: Start implementing UI with new UI-kit */
 
-@import '@solana/ms-tools-ui/styles.css';
-@import 'tailwindcss';
+@import "@hoodieshq/ms-tools-ui/styles.css";
+@import "tailwindcss";
 
 @theme {
   --default-font-family: "Rubik";

@@ -14,8 +14,8 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
-    "@solana/ms-tools-config": "github:hoodieshq/solana-ms-tools#path:packages/config",
-    "@solana/ms-tools-ui": "workspace:^",
+    "@hoodieshq/ms-tools-config": "^0.1.0",
+    "@hoodieshq/ms-tools-ui": "^0.1.0",
     "@solana/spl-token": "0.4.12",
     "@solana/wallet-adapter-base": "0.9.23",
     "@solana/wallet-adapter-react": "0.15.35",
@@ -37,7 +37,6 @@
     "@radix-ui/react-navigation-menu": "^1.2.13",
     "@solana/prettier-config-solana": "^0.0.5",
     "@storybook/addon-essentials": "^8.6.12",
-    "@storybook/addon-interactions": "^8.6.14",
     "@storybook/blocks": "^8.6.12",
     "@storybook/experimental-addon-test": "^8.6.12",
     "@storybook/experimental-nextjs-vite": "^8.6.12",

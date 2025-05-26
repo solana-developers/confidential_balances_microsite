@@ -1,6 +1,7 @@
 /* eslint-disable react/no-unescaped-entities */
 "use client";
 
+
 import { AppHero } from "../ui/ui-layout";
 
 const links: { label: string; href: string }[] = [
