@@ -1,14 +1,16 @@
-import React from "react";
-import "./storybook-fonts.css";
-import "../src/app/globals.css";
-import type { Preview, Decorator } from "@storybook/react";
+import React from 'react'
+
+import './storybook-fonts.css'
+import '../src/app/globals.css'
+
+import type { Decorator, Preview } from '@storybook/react'
 
 const withDarkClass: Decorator = (Story) => {
-  if (typeof document !== "undefined") {
-    document.documentElement.classList.add("dark");
+  if (typeof document !== 'undefined') {
+    document.documentElement.classList.add('dark')
   }
-  return Story();
-};
+  return Story()
+}
 
 const preview: Preview = {
   decorators: [withDarkClass],
@@ -20,6 +22,6 @@ const preview: Preview = {
       },
     },
   },
-};
+}
 
-export default preview;
+export default preview

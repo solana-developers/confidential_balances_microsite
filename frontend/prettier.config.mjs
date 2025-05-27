@@ -1,7 +1,3 @@
-import solanaConfig from "@solana/prettier-config-solana" with { type: "json" };
+import config from '@hoodieshq/ms-tools-config/prettier.config.js'
 
-const config = {
-  ...solanaConfig,
-  plugins: [solanaConfig.plugins ?? []].concat(["prettier-plugin-tailwindcss"]),
-  endOfLine: "lf",
-};
+export default config

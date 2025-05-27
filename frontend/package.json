@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "format": "prettier --config prettier.config.js \"**/*.{js,mjs,cjs,ts,tsx}\" -c",
+    "format": "prettier --config prettier.config.mjs \"**/*.{js,mjs,cjs,ts,tsx}\" -c",
     "ci": "npm run build",
     "start": "next start",
     "lint": "next lint",

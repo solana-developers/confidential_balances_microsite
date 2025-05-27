@@ -6,9 +6,10 @@
 // };
 
 // TODO: Start implementing UI with new UI-kit
-import uikitConfig from "@hoodieshq/ms-tools-config/postcss.config.mjs";
+import uikitConfig from '@hoodieshq/ms-tools-config/postcss.config.mjs'
+
 const config = {
   ...uikitConfig,
-};
+}
 
-export default config;
+export default config
