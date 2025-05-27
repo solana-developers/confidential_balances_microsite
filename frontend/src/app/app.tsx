@@ -9,7 +9,7 @@ export const App: FC<PropsWithChildren> = ({ children }) => (
   <JotaiProvider>
     <ReactQueryProvider>
       <ClusterProvider>
-        <SolanaProvider>4{children}</SolanaProvider>
+        <SolanaProvider>{children}</SolanaProvider>
       </ClusterProvider>
     </ReactQueryProvider>
   </JotaiProvider>

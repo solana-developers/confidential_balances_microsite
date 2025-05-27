@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import { Dialog, DialogPanel } from '@headlessui/react'
 import { cva } from 'class-variance-authority'
 import * as Icons from 'lucide-react'
+import { WalletButton } from '@/app/solana-provider'
+import { ClusterButton, DevmodeButton } from '@/shared/button'
 import { cn } from '@/shared/utils'
 import { Logo } from './logo'
 
@@ -10,8 +12,7 @@ type Link = { label: string; path: string; blank?: boolean }
 const themeVariants = cva('text-white font-(family-name:--font-family-inter)', {
   variants: {
     theme: {
-      dark: 'bg-[var(--background)]',
-      light: '',
+      dark: 'border-(color:--border) border-b bg-[var(--background)]',
     },
   },
   defaultVariants: {
@@ -33,10 +34,14 @@ export function Header({ navigation }: { navigation: Link[] }) {
       >
         <Logo />
         <div className="flex lg:hidden">
+          <span className="mr-2">
+            <DevmodeButton />
+            {/* <WalletButton /> */}
+          </span>
           <button
             type="button"
             onClick={() => setMobileMenuOpen(true)}
-            className="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-gray-700"
+            className="-m-2.5 inline-flex cursor-pointer items-center justify-center rounded-md p-2.5 text-gray-700"
           >
             <span className="sr-only">Open main menu</span>
             <Icons.Menu aria-hidden="true" className="size-6" />
@@ -78,18 +83,22 @@ function MainMenu({
   navigation,
 }: React.HTMLAttributes<HTMLDivElement> & { navigation: Link[] }) {
   return (
-    <div className={cn('items-center', className)}>
-      {navigation.map((item) => (
-        <a
-          key={item.label}
-          href={item.path}
-          target={item.blank ? '_blank' : '_self'}
-          className="items-center px-4 py-2 text-sm"
-        >
-          {item.label}
-        </a>
-      ))}
-    </div>
+    <>
+      <div className={cn('items-center', className)}>
+        {navigation.map((item) => (
+          <a
+            key={item.label}
+            href={item.path}
+            target={item.blank ? '_blank' : '_self'}
+            className="min-h-[24px] items-center px-4 py-2 text-sm leading-[24px]!"
+          >
+            {item.label}
+          </a>
+        ))}
+        <DevmodeButton />
+        <ClusterButton />
+      </div>
+    </>
   )
 }
 
@@ -103,7 +112,7 @@ function DialogMenu({ navigation }: { navigation: Link[] }) {
             href={item.path}
             target={item.blank ? '_blank' : '_self'}
             rel={item.blank ? 'noopener noreferrer' : undefined}
-            className="hover:bg-accent -mx-3 block rounded-lg px-3 py-2 text-base/7"
+            className="hover:bg-accent min-h[24px] -mx-3 block rounded-lg px-3 py-2 text-base/7 leading-[24px]!"
           >
             {item.label}{' '}
             {item.blank ? (

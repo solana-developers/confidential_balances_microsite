@@ -1,17 +1,16 @@
-/* @tailwind base;
-@tailwind components;
-@tailwind utilities; */
-/* TODO: Start implementing UI with new UI-kit */
-
 @import "@hoodieshq/ms-tools-ui/styles.css";
 @import "tailwindcss";
 
 @theme {
   --default-font-family: "Rubik";
   --font-family-inter: "Inter";
-  /* uncomment these vars to make site dark as desired */
-  /* --background: #161B1A;
-  --foreground: #272D2C; */
+}
+
+/* overwrite variables for default dark theme as oklch are not 100% equal to hex ones */
+.dark {
+  --background: #161B1A;
+  --foreground: #272D2C;
+  --border: #111312
 }
 
 html,
