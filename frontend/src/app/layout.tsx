@@ -14,7 +14,7 @@ export const Layout: FC<LayoutProps> = ({ children, links }) => {
   //   const pathname = usePathname();
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col gap-12">
       <Header navigation={links} />
       {/* <div className="navbar bg-base-300 dark:text-neutral-content flex-col md:flex-row space-y-2 md:space-y-0">
           <div className="flex-1">
@@ -39,10 +39,10 @@ export const Layout: FC<LayoutProps> = ({ children, links }) => {
             <ClusterUiSelect />
           </div>
         </div> */}
-      <ClusterChecker>
-        <AccountChecker />
-      </ClusterChecker>
-      <div className="mx-4 flex-grow lg:mx-auto">
+      <div className="mx-auto w-full max-w-7xl flex-grow px-5">
+        <ClusterChecker>
+          <AccountChecker />
+        </ClusterChecker>
         <Suspense
           fallback={
             <div className="my-32 text-center">
@@ -52,13 +52,8 @@ export const Layout: FC<LayoutProps> = ({ children, links }) => {
         >
           {children}
         </Suspense>
-        <Toaster position="bottom-right" />
       </div>
-      <footer className="footer footer-center bg-base-300 text-base-content p-4">
-        <aside>
-          <p>For demonstration purposes only. Do not use in production.</p>
-        </aside>
-      </footer>
+      <Toaster position="bottom-right" />
     </div>
   )
 }
