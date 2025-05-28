@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@hoodieshq/ms-tools-config": "^0.1.0",
-    "@hoodieshq/ms-tools-ui": "^0.1.0",
+    "@hoodieshq/ms-tools-ui": "^0.5.0",
     "@solana/spl-token": "0.4.12",
     "@solana/wallet-adapter-base": "0.9.23",
     "@solana/wallet-adapter-react": "0.15.38",
@@ -31,7 +31,8 @@
     "next": "^15.3.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-hot-toast": "^2.5.2"
+    "react-hot-toast": "^2.5.2",
+    "sonner": "^2.0.3"
   },
   "devDependencies": {
     "@headlessui/react": "^2.2.4",
