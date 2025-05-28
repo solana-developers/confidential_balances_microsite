@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "format": "prettier --config prettier.config.mjs \"**/*.{js,mjs,cjs,ts,tsx}\" -c",
+    "format": "prettier --config prettier.config.cjs \"**/*.{js,mjs,cjs,ts,tsx}\" -c",
     "ci": "npm run build",
     "start": "next start",
     "lint": "next lint",
@@ -61,6 +61,7 @@
     "lucide-react": "^0.509.0",
     "playwright": "^1.52.0",
     "postcss": "^8",
+    "prettier": "^3.5.3",
     "prettier-plugin-tailwindcss": "^0.6.11",
     "sass": "^1.87.0",
     "storybook": "^8.6.12",
@@ -74,6 +75,9 @@
   "pnpm": {
     "overrides": {
       "image-size@>=1.1.0 <1.2.1": ">=1.2.1"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "sharp"
+    ]
   }
 }
