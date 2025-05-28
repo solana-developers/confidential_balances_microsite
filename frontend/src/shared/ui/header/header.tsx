@@ -2,8 +2,9 @@ import { useMemo, useState } from 'react'
 import { Dialog, DialogPanel } from '@headlessui/react'
 import { cva } from 'class-variance-authority'
 import * as Icons from 'lucide-react'
-import { ClusterButton } from '@/shared/button'
-import { DevModeButton } from '@/shared/ui/button'
+import { WalletButton } from '@/app/solana-provider'
+import { Button } from '@/shared/ui/button/button'
+import { DevModeButton } from '@/shared/ui/button/dev-mode-button'
 import { cn } from '@/shared/utils'
 import { Logo } from './logo'
 
@@ -34,9 +35,8 @@ export function Header({ navigation }: { navigation: Link[] }) {
       >
         <Logo />
         <div className="flex lg:hidden">
-          <span className="mr-2">
-            <DevModeButton state={false} />
-            {/* <WalletButton /> */}
+          <span className="mr-2 ml-4">
+            <WalletButton />
           </span>
           <button
             type="button"
@@ -90,13 +90,18 @@ function MainMenu({
             key={item.label}
             href={item.path}
             target={item.blank ? '_blank' : '_self'}
-            className="min-h-[24px] items-center px-4 py-2 text-sm leading-[24px]!"
+            className="min-h-[22px] items-center px-4 py-2 text-sm leading-[22px]!"
           >
             {item.label}
           </a>
         ))}
         <DevModeButton state={false} />
-        <ClusterButton />
+        <Button variant="secondary" icon={Icons.NetworkIcon}>
+          Devnet
+        </Button>
+        <div className="min-w-[118px]">
+          <WalletButton />
+        </div>
       </div>
     </>
   )
@@ -112,7 +117,7 @@ function DialogMenu({ navigation }: { navigation: Link[] }) {
             href={item.path}
             target={item.blank ? '_blank' : '_self'}
             rel={item.blank ? 'noopener noreferrer' : undefined}
-            className="hover:bg-accent min-h[24px] -mx-3 block rounded-lg px-3 py-2 text-base/7 leading-[24px]!"
+            className="hover:bg-accent min-h[20px] -mx-3 block rounded-lg px-3 py-2 text-base/7 leading-[24px]!"
           >
             {item.label}{' '}
             {item.blank ? (

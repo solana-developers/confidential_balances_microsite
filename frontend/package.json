@@ -17,7 +17,7 @@
     "@hoodieshq/ms-tools-config": "^0.1.0",
     "@hoodieshq/ms-tools-ui": "^0.7.0",
     "@solana/spl-token": "0.4.12",
-    "@solana/wallet-adapter-base": "0.9.23",
+    "@solana/wallet-adapter-base": "0.9.26",
     "@solana/wallet-adapter-react": "0.15.38",
     "@solana/wallet-adapter-react-ui": "0.9.35",
     "@solana/web3.js": "1.98.0",
@@ -76,7 +76,8 @@
   "packageManager": "pnpm@10.7.1",
   "pnpm": {
     "overrides": {
-      "image-size@>=1.1.0 <1.2.1": ">=1.2.1"
+      "image-size@>=1.1.0 <1.2.1": ">=1.2.1",
+      "@solana/wallet-adapter-react-base@<0.9.26": ">=0.9.26"
     },
     "onlyBuiltDependencies": [
       "@tailwindcss/oxide",

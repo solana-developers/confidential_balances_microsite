@@ -1,6 +1,6 @@
 'use client'
 
-import { FC, PropsWithChildren, ReactNode, useCallback, useMemo } from 'react'
+import { FC, PropsWithChildren, useCallback, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { WalletError } from '@solana/wallet-adapter-base'
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react'
@@ -25,7 +25,7 @@ export const SolanaProvider: FC<PropsWithChildren> = ({ children }) => {
 
   return (
     <ConnectionProvider endpoint={endpoint}>
-      <WalletProvider wallets={[]} onError={onError} autoConnect={true}>
+      <WalletProvider wallets={[]} onError={onError} autoConnect>
         <WalletModalProvider>{children}</WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>

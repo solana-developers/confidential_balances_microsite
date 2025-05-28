@@ -5,8 +5,8 @@
   --default-font-family: 'Rubik';
   --font-family-inter: 'Inter';
 
-  /* Stone variants to use for cards */
-  --color-stone-50: oklch(0.985 0.0005 182.31);
+  /* TODO: candidate for "stone" colors */
+  /* --color-stone-50: oklch(0.985 0.0005 182.31);
   --color-stone-100: oklch(0.965 0.001 182.31);
   --color-stone-200: oklch(0.925 0.0015 182.31);
   --color-stone-300: oklch(0.865 0.002 182.31);
@@ -16,7 +16,7 @@
   --color-stone-700: oklch(0.44 0.006 182.31);
   --color-stone-800: oklch(0.32 0.007 182.31);
   --color-stone-900: oklch(0.2423 0.0076 182.31);
-  --color-stone-950: oklch(0.16 0.008 182.31);
+  --color-stone-950: oklch(0.16 0.008 182.31); */
 }
 
 html,
@@ -24,13 +24,52 @@ body {
   height: 100%;
 }
 
+/* Wallet adapter button styling to match custom Button component */
 .wallet-adapter-button-trigger {
-  background: rgb(100, 26, 230) !important;
-  border-radius: 8px !important;
-  padding-left: 16px !important;
-  padding-right: 16px !important;
+  @apply h-9.5;
+  @apply inline-flex flex-nowrap items-center border select-none;
+  @apply enabled:cursor-pointer disabled:pointer-events-none disabled:opacity-34;
+  @apply border-emerald-100 bg-emerald-100 text-teal-800;
+  @apply hover:border-emerald-200 hover:bg-emerald-200;
+  @apply active:border-emerald-300 active:bg-emerald-300;
+  @apply dark:border-emerald-400 dark:bg-emerald-400 dark:text-teal-900;
+  @apply dark:hover:border-emerald-500 dark:hover:bg-emerald-500;
+  @apply dark:active:border-emerald-600 dark:active:bg-emerald-600;
+  @apply font-family-inter gap-2 rounded-sm px-4 py-2 text-sm font-medium;
+  @apply border-0;
 }
-.wallet-adapter-dropdown-list,
-.wallet-adapter-button {
-  font-family: inherit !important;
+
+.wallet-adapter-button-trigger:not([disabled]):hover {
+  @apply bg-emerald-500;
+}
+
+.wallet-adapter-button-trigger:before {
+  /* here we may add icon as encoded one via content */
+}
+
+.wallet-adapter-modal-wrapper .wallet-adapter-button:not([disabled]):hover {
+  background-color: #1a1f2e;
+}
+
+.wallet-adapter-dropdown-list {
+  @apply font-family-inter;
+}
+
+.wallet-adapter-button img,
+.wallet-adapter-button-trigger img {
+  @apply size-5;
+}
+
+.wallet-adapter-button-start-icon {
+  @apply mr-1;
+}
+
+/* Dropdown styling to match design system */
+.wallet-adapter-dropdown-list {
+  @apply rounded-sm shadow-lg;
+  @apply mt-1 min-w-full py-1;
+}
+
+.wallet-adapter-dropdown-list-item:not([disabled]):hover {
+  background-color: var(--accent);
 }
