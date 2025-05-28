@@ -1,7 +1,7 @@
 import React from 'react'
 
 import './storybook-fonts.css'
-import '../src/app/globals.css'
+import '../app/globals.css'
 
 import type { Decorator, Preview } from '@storybook/react'
 

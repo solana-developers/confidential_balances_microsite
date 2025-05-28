@@ -2,8 +2,8 @@ import { useMemo, useState } from 'react'
 import { Dialog, DialogPanel } from '@headlessui/react'
 import { cva } from 'class-variance-authority'
 import * as Icons from 'lucide-react'
-import { WalletButton } from '@/app/solana-provider'
-import { ClusterButton, DevmodeButton } from '@/shared/button'
+import { ClusterButton } from '@/shared/button'
+import { DevModeButton } from '@/shared/ui/button'
 import { cn } from '@/shared/utils'
 import { Logo } from './logo'
 
@@ -35,7 +35,7 @@ export function Header({ navigation }: { navigation: Link[] }) {
         <Logo />
         <div className="flex lg:hidden">
           <span className="mr-2">
-            <DevmodeButton />
+            <DevModeButton state={false} />
             {/* <WalletButton /> */}
           </span>
           <button
@@ -95,7 +95,7 @@ function MainMenu({
             {item.label}
           </a>
         ))}
-        <DevmodeButton />
+        <DevModeButton state={false} />
         <ClusterButton />
       </div>
     </>

@@ -1,16 +1,16 @@
-@import "@hoodieshq/ms-tools-ui/styles.css";
-@import "tailwindcss";
+@import '@hoodieshq/ms-tools-ui/styles.css';
+@import 'tailwindcss';
 
 @theme {
-  --default-font-family: "Rubik";
-  --font-family-inter: "Inter";
+  --default-font-family: 'Rubik';
+  --font-family-inter: 'Inter';
 }
 
 /* overwrite variables for default dark theme as oklch are not 100% equal to hex ones */
 .dark {
-  --background: #161B1A;
-  --foreground: #272D2C;
-  --border: #111312
+  --background: #161b1a;
+  --foreground: #272d2c;
+  --border: #111312;
 }
 
 html,
