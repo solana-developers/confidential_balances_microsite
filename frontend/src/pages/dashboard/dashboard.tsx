@@ -1,4 +1,5 @@
 import { FC } from 'react'
+import { Button } from '@hoodieshq/ms-tools-ui'
 import { CardStep } from '@/shared/ui/card-step'
 import { Text } from '@/shared/ui/text'
 

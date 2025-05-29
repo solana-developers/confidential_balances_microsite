@@ -1,5 +1,5 @@
-@import '@hoodieshq/ms-tools-ui/styles.css';
 @import 'tailwindcss';
+@import '@hoodieshq/ms-tools-ui/styles.css';
 
 @theme {
   --default-font-family: 'Rubik';

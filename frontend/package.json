@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@hoodieshq/ms-tools-config": "^0.1.0",
-    "@hoodieshq/ms-tools-ui": "^0.7.0",
+    "@hoodieshq/ms-tools-ui": "^0.8.2",
     "@solana/spl-token": "0.4.12",
     "@solana/wallet-adapter-base": "0.9.26",
     "@solana/wallet-adapter-react": "0.15.38",

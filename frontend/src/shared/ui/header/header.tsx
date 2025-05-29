@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
 import { Dialog, DialogPanel } from '@headlessui/react'
+import { Button } from '@hoodieshq/ms-tools-ui'
 import { cva } from 'class-variance-authority'
 import * as Icons from 'lucide-react'
 import { WalletButton } from '@/app/solana-provider'
-import { Button } from '@/shared/ui/button/button'
 import { DevModeButton } from '@/shared/ui/button/dev-mode-button'
 import { cn } from '@/shared/utils'
 import { Logo } from './logo'
@@ -95,8 +95,9 @@ function MainMenu({
             {item.label}
           </a>
         ))}
-        <DevModeButton state={false} />
-        <Button variant="secondary" icon={Icons.NetworkIcon}>
+        <DevModeButton state={true} />
+        <Button variant="secondary">
+          <Icons.NetworkIcon />
           Devnet
         </Button>
         <div className="min-w-[118px]">

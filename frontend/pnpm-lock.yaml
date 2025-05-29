@@ -16,8 +16,8 @@ importers:
         specifier: ^0.1.0
         version: 0.1.0(@swc/core@1.11.24)(eslint@8.57.1)(jiti@2.4.2)(postcss@8.5.3)(prettier@3.5.3)(typescript@5.4.5)(yaml@2.7.0)
       '@hoodieshq/ms-tools-ui':
-        specifier: ^0.7.0
-        version: 0.7.0(@swc/core@1.11.24)(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(eslint@8.57.1)(jiti@2.4.2)(prettier@3.5.3)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(typescript@5.4.5)(yaml@2.7.0)
+        specifier: ^0.8.2
+        version: 0.8.2(@swc/core@1.11.24)(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(eslint@8.57.1)(jiti@2.4.2)(prettier@3.5.3)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(typescript@5.4.5)(yaml@2.7.0)
       '@solana/spl-token':
         specifier: 0.4.12
         version: 0.4.12(@solana/web3.js@1.98.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.4.5)(utf-8-validate@5.0.10)
@@ -1391,8 +1391,8 @@ packages:
       prettier: ^3.5.3
       typescript: ^5.5.3
 
-  '@hoodieshq/ms-tools-ui@0.7.0':
-    resolution: {integrity: sha512-MgwEHBYE0r/mzzB1NB0BrBH3W8HETG51zkPvg1nrLQ6VMFHAM95KCOI4F29FQOL5eYqbInvZBLXV6ctcWoyZtA==, tarball: https://npm.pkg.github.com/download/@hoodieshq/ms-tools-ui/0.7.0/af2d5d85aa75453d308aac87dd6003b788fbb129}
+  '@hoodieshq/ms-tools-ui@0.8.2':
+    resolution: {integrity: sha512-02chqvhHQC/Ak3rq+xgB6b1BSfMYT5Cq3H3zdFUArH6BW6XKPmrZeRYJDn+Rgj8lYLCkj/mzHDAgvG+mWjUskg==, tarball: https://npm.pkg.github.com/download/@hoodieshq/ms-tools-ui/0.8.2/c358e9b329e0132456e0bbb918b7cac4868dca62}
     peerDependencies:
       react: ^18.0.0 || ^19.1.0
       react-dom: ^18.0.0 || ^19.1.0
@@ -9408,7 +9408,7 @@ snapshots:
       - tsx
       - yaml
 
-  '@hoodieshq/ms-tools-ui@0.7.0(@swc/core@1.11.24)(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(eslint@8.57.1)(jiti@2.4.2)(prettier@3.5.3)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(typescript@5.4.5)(yaml@2.7.0)':
+  '@hoodieshq/ms-tools-ui@0.8.2(@swc/core@1.11.24)(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(eslint@8.57.1)(jiti@2.4.2)(prettier@3.5.3)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(typescript@5.4.5)(yaml@2.7.0)':
     dependencies:
       '@hoodieshq/ms-tools-config': 0.1.0(@swc/core@1.11.24)(eslint@8.57.1)(jiti@2.4.2)(postcss@8.5.3)(prettier@3.5.3)(typescript@5.4.5)(yaml@2.7.0)
       '@hookform/resolvers': 5.0.1(react-hook-form@7.56.4(react@19.1.0))

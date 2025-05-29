@@ -1,27 +1,21 @@
 import { ComponentProps, FC } from 'react'
+import { Button } from '@hoodieshq/ms-tools-ui'
 import * as Icons from 'lucide-react'
 import { cn } from '@/shared/utils'
-import { Button } from './button'
 
-type DevModeButton = Pick<
-  ComponentProps<typeof Button>,
-  'loading' | 'disabled' | 'href' | 'onClick'
-> & {
+type DevModeButton = ComponentProps<typeof Button> & {
   state: boolean
 }
 
-export const DevModeButton: FC<DevModeButton> = ({ state, loading, disabled, href, onClick }) => (
+export const DevModeButton: FC<DevModeButton> = ({ state, ...props }) => (
   <Button
     className={cn({
-      'bg-zinc-50 text-emerald-100 dark:bg-zinc-900 dark:text-emerald-400': state,
+      'bg-[var(--table-background)] text-[var(--accent)]': state,
     })}
-    variant="secondary"
-    loading={loading}
-    disabled={disabled}
-    icon={Icons.Code2}
-    href={href}
-    onClick={onClick}
+    variant="outline"
+    {...props}
   >
+    <Icons.Code2 />
     Dev mode
   </Button>
 )
