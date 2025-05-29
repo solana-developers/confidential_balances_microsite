@@ -13,7 +13,8 @@ export default {
   },
   args: {
     title: 'Wallet balance',
-    balance: '20 SOL',
+    balance: '20',
+    symbol: 'SOL',
   },
 } satisfies Meta<Props>
 
@@ -21,4 +22,10 @@ type Story = StoryObj<Props>
 
 export const Default: Story = {
   name: 'Balance',
+}
+
+export const Empty: Story = {
+  args: {
+    balance: undefined,
+  },
 }

@@ -11,6 +11,9 @@ const config: StorybookConfig = {
     },
     '@storybook/addon-interactions',
   ],
+  core: {
+    disableTelemetry: true,
+  },
   framework: {
     name: '@storybook/nextjs',
     options: {},
