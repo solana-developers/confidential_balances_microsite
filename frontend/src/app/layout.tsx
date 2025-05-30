@@ -1,7 +1,7 @@
 'use client'
 
 import { ComponentProps, FC, PropsWithChildren, Suspense } from 'react'
-import { cn } from '@hoodieshq/ms-tools-ui'
+import { cn, Skeleton } from '@hoodieshq/ms-tools-ui'
 import { useAtomValue } from 'jotai'
 import { Toaster } from 'react-hot-toast'
 import { AccountChecker } from '@/entities/account/account'
@@ -14,7 +14,6 @@ type LayoutProps = PropsWithChildren<{
 }>
 
 export const Layout: FC<LayoutProps> = ({ children, links }) => {
-  //   const pathname = usePathname();
   const devModeOpen = useAtomValue(devModeOpenAtom)
 
   return (
@@ -51,7 +50,9 @@ export const Layout: FC<LayoutProps> = ({ children, links }) => {
           <Suspense
             fallback={
               <div className="my-32 text-center">
-                <span className="loading loading-spinner loading-lg"></span>
+                <Skeleton className="m-auto h-6 w-[250px] text-(color:--surface)">
+                  Loading..
+                </Skeleton>
               </div>
             }
           >

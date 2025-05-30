@@ -2,9 +2,9 @@ import { FC } from 'react'
 import { NATIVE_MINT } from '@solana/spl-token'
 import { useNativeAndTokenBalance } from '@/entities/account/account/model/use-native-and-token-balance'
 import { WalletTitle } from '@/entities/account/account/ui/wallet-title'
+import { TokenAccounts } from '@/entities/account/token-accounts'
 import { CardBalance } from '@/shared/ui/card-balance'
 import { CardStep } from '@/shared/ui/card-step'
-import { DataTable } from '@/shared/ui/data-table'
 import { Text } from '@/shared/ui/text'
 
 export const Dashboard: FC = () => {
@@ -68,10 +68,7 @@ export const Dashboard: FC = () => {
             symbol={loading ? '' : 'SOL'}
           />
         </div>
-        <DataTable
-          title="Token accounts with confidential balances"
-          labels={{ empty: 'No token accounts found. Create new account to proceed' }}
-        />
+        <TokenAccounts />
       </div>
     </section>
   )
