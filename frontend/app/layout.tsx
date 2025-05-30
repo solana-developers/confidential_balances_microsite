@@ -1,7 +1,7 @@
 import './globals.css'
 
 import { FC, PropsWithChildren } from 'react'
-import { Inter, Rubik } from 'next/font/google'
+import { Geist_Mono, Inter, Rubik } from 'next/font/google'
 import { App, Layout as BaseLayout } from '@/app'
 import { navigation } from '@/shared/navigation'
 
@@ -21,13 +21,24 @@ const rubikFont = Rubik({
   weight: ['300', '400', '500', '700'],
 })
 
+const geistMonoFont = Geist_Mono({
+  display: 'swap',
+  preload: true,
+  subsets: ['latin'],
+  variable: '--font-family-geist-mono',
+  weight: ['400', '700'],
+})
+
 export const metadata = {
   title: 'Solana Confidential Balances',
   description: '',
 }
 
 const RootLayout: FC<PropsWithChildren> = ({ children }) => (
-  <html lang="en" className={`${rubikFont.className} ${interFont.variable}`}>
+  <html
+    lang="en"
+    className={`${rubikFont.className} ${interFont.variable} ${geistMonoFont.variable}`}
+  >
     <head>
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     </head>

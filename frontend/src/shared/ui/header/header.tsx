@@ -4,7 +4,7 @@ import { Button } from '@hoodieshq/ms-tools-ui'
 import { cva } from 'class-variance-authority'
 import * as Icons from 'lucide-react'
 import { WalletButton } from '@/app/solana-provider'
-import { DevModeButton } from '@/shared/ui/button/dev-mode-button'
+import { DevModeButton } from '@/entities/dev-mode'
 import { cn } from '@/shared/utils'
 import { Logo } from './logo'
 
@@ -95,7 +95,7 @@ function MainMenu({
             {item.label}
           </a>
         ))}
-        <DevModeButton state={true} />
+        <DevModeButton />
         <Button variant="secondary">
           <Icons.NetworkIcon />
           Devnet
@@ -131,6 +131,8 @@ function DialogMenu({ navigation }: { navigation: Link[] }) {
             )}
           </a>
         ))}
+
+        <DevModeButton />
       </div>
       {/* here might be other elements that will be separated with a gray line */}
     </div>
