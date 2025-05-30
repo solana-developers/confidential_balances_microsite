@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { Dialog, DialogPanel } from '@headlessui/react'
 import { Button } from '@hoodieshq/ms-tools-ui'
 import { cva } from 'class-variance-authority'
@@ -22,6 +23,7 @@ const themeVariants = cva('text-white font-(family-name:--font-family-inter)', {
 })
 
 export function Header({ navigation }: { navigation: Link[] }) {
+  const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const themeCls = useMemo(() => themeVariants({ theme: 'dark' }), [])
@@ -33,7 +35,7 @@ export function Header({ navigation }: { navigation: Link[] }) {
         aria-label="Global"
         className="mx-auto flex h-[3.75rem] max-w-7xl items-center justify-between px-5 py-3"
       >
-        <Logo />
+        <Logo pathname={pathname} />
         <div className="flex lg:hidden">
           <span className="mr-2 ml-4">
             <WalletButton />
