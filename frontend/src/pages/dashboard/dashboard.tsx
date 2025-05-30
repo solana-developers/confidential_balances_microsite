@@ -1,15 +1,10 @@
 import { FC } from 'react'
-import { NATIVE_MINT } from '@solana/spl-token'
-import { useNativeAndTokenBalance } from '@/entities/account/account/model/use-native-and-token-balance'
-import { WalletTitle } from '@/entities/account/account/ui/wallet-title'
 import { TokenAccounts } from '@/entities/account/token-accounts'
-import { CardBalance } from '@/shared/ui/card-balance'
+import { OmniAccountHeader } from '@/features/omni-account-header'
 import { CardStep } from '@/shared/ui/card-step'
 import { Text } from '@/shared/ui/text'
 
 export const Dashboard: FC = () => {
-  const { balance, loading } = useNativeAndTokenBalance(NATIVE_MINT)
-
   return (
     <section className="flex flex-col gap-5">
       <div className="flex flex-col gap-2">
@@ -54,22 +49,8 @@ export const Dashboard: FC = () => {
           discarded immediately after use.
         </Text>
       </div>
-      <div className="mt-12">
-        <div className="mb-5 flex flex-col items-baseline justify-between gap-4 sm:!flex-row sm:items-center">
-          <div className="flex flex-row items-baseline gap-4">
-            {/* TODO: Wallet has same size as h1, but semantically that's incorrect. Have to split styling and semantics */}
-            <Text variant="header1">Wallet</Text>
-            <WalletTitle />
-          </div>
-          <CardBalance
-            className="min-w-40"
-            title="Wallet balance"
-            balance={loading ? '...' : balance?.uiAmount}
-            symbol={loading ? '' : 'SOL'}
-          />
-        </div>
-        <TokenAccounts />
-      </div>
+      <OmniAccountHeader className="mt-12 mb-5" />
+      <TokenAccounts />
     </section>
   )
 }

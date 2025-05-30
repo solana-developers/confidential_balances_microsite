@@ -43,7 +43,7 @@ export const Modal: FC<ModalProps> = ({
         </DialogHeader>
         {children}
         <DialogFooter>
-          <DialogClose>
+          <DialogClose asChild>
             <Button onClick={hide} variant="ghost">
               Close
             </Button>

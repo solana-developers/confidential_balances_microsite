@@ -17,15 +17,16 @@ export const BackwardControl: FC<BackwardControlProps> = ({
   const LinkComp = asChild ? Slot : 'a'
 
   return (
-    <LinkComp
-      className={cn('flex flex-row items-center gap-2 text-sm/4 text-white opacity-50', className)}
-      aria-label="backward-control"
-      href={href}
-      data-slot="backward-link"
-      {...props}
-    >
-      <ArrowLeft size={16} />
-      {children}
+    <LinkComp aria-label="backward-control" href={href} data-slot="backward-link" {...props}>
+      <div
+        className={cn(
+          'flex flex-row items-center gap-2 text-sm/4 text-white opacity-50',
+          className
+        )}
+      >
+        <ArrowLeft size={16} />
+        {children}
+      </div>
     </LinkComp>
   )
 }

@@ -7,6 +7,7 @@ import { useWalletModal } from '@solana/wallet-adapter-react-ui'
 import { cva } from 'class-variance-authority'
 import * as Icons from 'lucide-react'
 import { WalletButton } from '@/app/solana-provider'
+import { ClusterSelect } from '@/entities/cluster/cluster'
 import { DevModeButton } from '@/entities/dev-mode'
 import { cn } from '@/shared/utils'
 import { Logo } from './logo'
@@ -151,6 +152,7 @@ function DialogMenu({ navigation }: { navigation: Link[] }) {
         ))}
 
         <DevModeButton />
+        <ClusterSelect />
       </div>
       {/* here might be other elements that will be separated with a gray line */}
     </div>

@@ -1,6 +1,7 @@
 'use client'
 
 import { FC, useMemo } from 'react'
+import Link from 'next/link'
 import { PublicKey } from '@solana/web3.js'
 import {
   AccountBalance,
@@ -13,6 +14,8 @@ import {
   useGetSingleTokenAccount,
 } from '@/entities/account/account'
 import { ExplorerLink } from '@/entities/cluster/cluster'
+import { OmniAccountHeader } from '@/features/omni-account-header'
+import { BackwardControl } from '@/shared/ui/backward-control'
 import { Hero } from '@/shared/ui/hero'
 import { ellipsify } from '@/shared/utils'
 
@@ -49,6 +52,12 @@ export const Details: FC<DetailsProps> = ({ address: param }) => {
 
   return (
     <div>
+      {/* TODO: replace with UI::Breadcrumbs */}
+      <BackwardControl asChild>
+        <Link href={'/'}>Go back to wallet page</Link>
+      </BackwardControl>
+      {/* Use random token account. whould be one that is handled through pathname */}
+      <OmniAccountHeader address={new PublicKey('F5C4y8awLtvU98tkqBFV4zMmknEwqfdKte7428ooDhUy')} />
       {accountDescription.tokenAccount ? (
         <div>
           <Hero
