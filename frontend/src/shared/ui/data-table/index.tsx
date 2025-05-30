@@ -26,7 +26,7 @@ type Props = {
   actionProps?: {}
   headers?: (string | JSX.Element)[]
   labels?: {
-    empty: string
+    empty: string | JSX.Element
   }
   rows?: (string | JSX.Element)[][]
   title?: string

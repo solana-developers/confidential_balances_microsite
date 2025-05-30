@@ -1,9 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { Dialog, DialogPanel } from '@headlessui/react'
-import { Button } from '@hoodieshq/ms-tools-ui'
+import { Alert, AlertDescription, AlertTitle, Button } from '@hoodieshq/ms-tools-ui'
+import { useWallet } from '@solana/wallet-adapter-react'
+import { useWalletModal } from '@solana/wallet-adapter-react-ui'
 import { cva } from 'class-variance-authority'
 import * as Icons from 'lucide-react'
 import { WalletButton } from '@/app/solana-provider'
+import { ClusterSelect } from '@/entities/cluster/cluster'
 import { DevModeButton } from '@/entities/dev-mode'
 import { cn } from '@/shared/utils'
 import { Logo } from './logo'
@@ -22,59 +26,74 @@ const themeVariants = cva('text-white font-(family-name:--font-family-inter)', {
 })
 
 export function Header({ navigation }: { navigation: Link[] }) {
+  const pathname = usePathname()
+  const { connected } = useWallet()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { setVisible } = useWalletModal()
 
   const themeCls = useMemo(() => themeVariants({ theme: 'dark' }), [])
 
+  const onWalletWarningClick = useCallback(() => {
+    setVisible(true)
+  }, [setVisible])
+
   return (
-    <header className={themeCls}>
-      {/* fix height for header to make logo at the mobile sidebar match the position of default logo */}
-      <nav
-        aria-label="Global"
-        className="mx-auto flex h-[3.75rem] max-w-7xl items-center justify-between px-5 py-3"
-      >
-        <Logo />
-        <div className="flex lg:hidden">
-          <span className="mr-2 ml-4">
-            <WalletButton />
-          </span>
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(true)}
-            className="-m-2.5 inline-flex cursor-pointer items-center justify-center rounded-md p-2.5 text-gray-700"
-          >
-            <span className="sr-only">Open main menu</span>
-            <Icons.Menu aria-hidden="true" className="size-6" />
-          </button>
-        </div>
-        <MainMenu className="hidden lg:flex lg:gap-x-2" navigation={navigation} />
-      </nav>
-      <Dialog open={mobileMenuOpen} onClose={setMobileMenuOpen} className="lg:hidden">
-        <div className="fixed inset-0 z-10" />
-        {/* set specific pt- for dialog panel to match the default logo*/}
-        <DialogPanel
-          className={cn(
-            'fixed inset-y-0 right-0 z-10 w-full overflow-y-auto bg-inherit px-5 py-5 pt-[1.125rem] sm:max-w-sm sm:ring-1 sm:ring-gray-900/10',
-            themeCls
-          )}
+    <>
+      <header className={themeCls}>
+        {/* fix height for header to make logo at the mobile sidebar match the position of default logo */}
+        <nav
+          aria-label="Global"
+          className="mx-auto flex h-[3.75rem] max-w-7xl items-center justify-between px-5 py-3"
         >
-          <div className="flex items-center justify-between">
-            <Logo />
+          <Logo pathname={pathname} />
+          <div className="flex lg:hidden">
+            <span className="mr-2 ml-4">
+              <WalletButton />
+            </span>
             <button
               type="button"
-              onClick={() => setMobileMenuOpen(false)}
-              className="-m-2.5 rounded-md p-2.5 text-gray-700"
+              onClick={() => setMobileMenuOpen(true)}
+              className="-m-2.5 inline-flex cursor-pointer items-center justify-center rounded-md p-2.5 text-gray-700"
             >
-              <span className="sr-only">Close menu</span>
-              <Icons.CircleX aria-hidden="true" className="size-6" />
+              <span className="sr-only">Open main menu</span>
+              <Icons.Menu aria-hidden="true" className="size-6" />
             </button>
           </div>
-          <div className="mt-6 flow-root">
-            <DialogMenu navigation={navigation} />
-          </div>
-        </DialogPanel>
-      </Dialog>
-    </header>
+          <MainMenu className="hidden lg:flex lg:gap-x-2" navigation={navigation} />
+        </nav>
+        <Dialog open={mobileMenuOpen} onClose={setMobileMenuOpen} className="lg:hidden">
+          <div className="fixed inset-0 z-10" />
+          {/* set specific pt- for dialog panel to match the default logo*/}
+          <DialogPanel
+            className={cn(
+              'fixed inset-y-0 right-0 z-10 w-full overflow-y-auto bg-inherit px-5 py-5 pt-[1.125rem] sm:max-w-sm sm:ring-1 sm:ring-gray-900/10',
+              themeCls
+            )}
+          >
+            <div className="flex items-center justify-between">
+              <Logo pathname={pathname} />
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(false)}
+                className="-m-2.5 rounded-md p-2.5 text-gray-700"
+              >
+                <span className="sr-only">Close menu</span>
+                <Icons.CircleX aria-hidden="true" className="size-6" />
+              </button>
+            </div>
+            <div className="mt-6 flow-root">
+              <DialogMenu navigation={navigation} />
+            </div>
+          </DialogPanel>
+        </Dialog>
+      </header>
+      {!connected && (
+        <Alert className="cursor-pointer" variant="warning" onClick={onWalletWarningClick}>
+          <AlertTitle>Wallet is not connected</AlertTitle>
+          <AlertDescription>Please select the wallet to connect.</AlertDescription>
+        </Alert>
+      )}
+    </>
   )
 }
 
@@ -133,6 +152,7 @@ function DialogMenu({ navigation }: { navigation: Link[] }) {
         ))}
 
         <DevModeButton />
+        <ClusterSelect />
       </div>
       {/* here might be other elements that will be separated with a gray line */}
     </div>

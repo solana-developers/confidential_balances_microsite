@@ -1,5 +1,5 @@
 export const navigation: { label: string; path: string; blank?: boolean }[] = [
-  { label: 'Account', path: '/account' },
+  { label: 'OLD', path: '/account' },
   { label: 'Auditor', path: '/auditor' },
   {
     label: 'GitHub',

@@ -1,6 +1,16 @@
 'use client'
 
-import { FC, PropsWithChildren, useEffect, useRef } from 'react'
+import { FC, PropsWithChildren } from 'react'
+import {
+  Button,
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@hoodieshq/ms-tools-ui'
 
 type ModalProps = PropsWithChildren<{
   title: string
@@ -9,6 +19,8 @@ type ModalProps = PropsWithChildren<{
   submit?: () => void
   submitDisabled?: boolean
   submitLabel?: string
+  ariaDescribedBy?: string
+  description?: string
 }>
 
 export const Modal: FC<ModalProps> = ({
@@ -19,40 +31,30 @@ export const Modal: FC<ModalProps> = ({
   submit,
   submitDisabled,
   submitLabel,
+  ariaDescribedBy = 'modal-description',
+  description,
 }) => {
-  const dialogRef = useRef<HTMLDialogElement | null>(null)
-
-  useEffect(() => {
-    if (!dialogRef.current) return
-    if (show) {
-      dialogRef.current.showModal()
-    } else {
-      dialogRef.current.close()
-    }
-  }, [show, dialogRef])
-
   return (
-    <dialog className="modal" ref={dialogRef}>
-      <div className="modal-box space-y-5">
-        <h3 className="text-lg font-bold">{title}</h3>
+    <Dialog open={show} onOpenChange={hide}>
+      <DialogContent aria-describedby={description ? ariaDescribedBy : undefined}>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          {description && <DialogDescription id={ariaDescribedBy}>{description}</DialogDescription>}
+        </DialogHeader>
         {children}
-        <div className="modal-action">
-          <div className="join space-x-2">
-            {submit ? (
-              <button
-                className="btn btn-xs lg:btn-md btn-primary"
-                onClick={submit}
-                disabled={submitDisabled}
-              >
-                {submitLabel || 'Save'}
-              </button>
-            ) : null}
-            <button onClick={hide} className="btn">
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button onClick={hide} variant="ghost">
               Close
-            </button>
-          </div>
-        </div>
-      </div>
-    </dialog>
+            </Button>
+          </DialogClose>
+          {submit ? (
+            <Button type="submit" onClick={submit} disabled={submitDisabled}>
+              {submitLabel || 'Save changes'}
+            </Button>
+          ) : null}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
