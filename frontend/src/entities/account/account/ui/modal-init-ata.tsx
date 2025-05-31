@@ -1,6 +1,9 @@
 import { FC, useEffect, useState } from 'react'
+import { Form, FormField } from '@hoodieshq/ms-tools-ui'
 import { PublicKey } from '@solana/web3.js'
+import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
+import { FormItemInput } from '@/shared/ui/form'
 import { Modal } from '@/shared/ui/modal'
 
 type ModalInitATAProps = {
@@ -20,6 +23,8 @@ export const ModalInitATA: FC<ModalInitATAProps> = ({
 }) => {
   const [mintAddress, setMintAddress] = useState('')
   const [validMintAddress, setValidMintAddress] = useState(false)
+
+  const form = useForm()
 
   // Validate the input mint address when it changes
   useEffect(() => {
@@ -64,33 +69,42 @@ export const ModalInitATA: FC<ModalInitATAProps> = ({
       submitLabel={isInitializing ? 'Processing...' : 'Initialize'}
       submit={handleSubmit}
     >
-      <div className="form-control">
-        <label className="label">
-          <span className="label-text">Token Mint Address</span>
-        </label>
-        <input
-          type="text"
-          placeholder="Enter Solana mint address in base58"
-          className={`input input-bordered w-full ${
-            validMintAddress ? 'input-success' : mintAddress ? 'input-error' : ''
-          }`}
-          value={mintAddress}
-          onChange={(e) => setMintAddress(e.target.value)}
-          disabled={isInitializing}
-        />
-        {mintAddress && !validMintAddress && (
-          <label className="label">
-            <span className="label-text-alt text-error">Invalid mint address format</span>
-          </label>
-        )}
-      </div>
+      <Form {...form}>
+        <form>
+          <div className="form-control">
+            {/* TBC */}
+            {/* <input
+              type="text"
+              placeholder="Enter Solana mint address in base58"
+              className={`input input-bordered w-full ${
+                validMintAddress ? 'input-success' : mintAddress ? 'input-error' : ''
+              }`}
+              value={mintAddress}
+              onChange={(e) => setMintAddress(e.target.value)}
+              disabled={isInitializing}
+            /> */}
+            <FormField
+              control={form.control}
+              name="amount"
+              render={({ field }) => (
+                <FormItemInput label="Amount (tokens)" className="color-red" {...field} />
+              )}
+            ></FormField>
+            {mintAddress && !validMintAddress && (
+              <label className="label">
+                <span className="label-text-alt text-error">Invalid mint address format</span>
+              </label>
+            )}
+          </div>
 
-      <div className="text-base-content/70 mt-4 text-sm">
-        <p>
-          This will create an Associated Token Account (ATA) for this mint address with your wallet
-          as the owner.
-        </p>
-      </div>
+          <div className="text-base-content/70 mt-4 text-sm">
+            <p>
+              This will create an Associated Token Account (ATA) for this mint address with your
+              wallet as the owner.
+            </p>
+          </div>
+        </form>
+      </Form>
     </Modal>
   )
 }
