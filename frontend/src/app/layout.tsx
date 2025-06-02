@@ -8,6 +8,7 @@ import { AccountChecker } from '@/entities/account/account'
 import { ClusterChecker } from '@/entities/cluster/cluster'
 import { devModeOpenAtom, DevModePanel } from '@/entities/dev-mode'
 import { Header } from '@/shared/ui/header'
+import { StickyPanel } from '@/shared/ui/sticky-panel'
 
 type LayoutProps = PropsWithChildren<{
   links: ComponentProps<typeof Header>['navigation']
@@ -38,7 +39,9 @@ export const Layout: FC<LayoutProps> = ({ children, links }) => {
         </div>
         {devModeOpen && (
           <div className="col-span-12 -mt-12 md:col-span-4">
-            <DevModePanel />
+            <StickyPanel>
+              <DevModePanel />
+            </StickyPanel>
           </div>
         )}
       </div>

@@ -1,6 +1,7 @@
 import { FC, type PropsWithChildren } from 'react'
 import * as Icons from 'lucide-react'
 import { cn } from '@/shared/utils/cn'
+import styles from './panel.module.css'
 
 type PanelProps = PropsWithChildren<{
   className?: string
@@ -11,7 +12,8 @@ type PanelProps = PropsWithChildren<{
 export const Panel: FC<PanelProps> = ({ children, className, title, onClose }) => (
   <section
     className={cn(
-      'h-full border-t border-r border-b border-l border-[var(--border)] bg-[var(--table-background)] select-none',
+      'grid grid-rows-[auto_1fr] overflow-hidden border-t border-r border-b border-l border-[var(--border)] bg-[var(--table-background)] select-none',
+      styles.panel,
       className
     )}
   >
@@ -25,7 +27,7 @@ export const Panel: FC<PanelProps> = ({ children, className, title, onClose }) =
         </button>
       )}
     </header>
-    <div className="flex max-h-full flex-col divide-y divide-[var(--border)] overflow-y-auto">
+    <div className="flex flex-col divide-y divide-[var(--border)] overflow-x-hidden overflow-y-auto">
       {children}
     </div>
   </section>

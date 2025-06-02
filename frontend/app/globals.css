@@ -74,3 +74,27 @@ body {
 .wallet-adapter-dropdown-list-item:not([disabled]):hover {
   background-color: var(--accent);
 }
+
+/* Global scrollbar styles */
+body,
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted) var(--background);
+}
+
+body::-webkit-scrollbar,
+html::-webkit-scrollbar {
+  width: 8px;
+  background: var(--background);
+}
+
+body::-webkit-scrollbar-thumb,
+html::-webkit-scrollbar-thumb {
+  background: var(--muted);
+  border-radius: 8px;
+}
+
+body::-webkit-scrollbar-thumb:hover,
+html::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}

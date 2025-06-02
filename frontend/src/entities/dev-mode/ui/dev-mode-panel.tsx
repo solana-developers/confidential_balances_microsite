@@ -11,7 +11,7 @@ export const DevModePanel: FC = () => {
   return (
     <Panel
       title="Dev Mode"
-      className="-mx-5 border-t-0 border-r-0 border-b-0 border-l-0 md:mx-0 md:border-r md:border-l"
+      className="-mx-5 max-h-full border-t-0 border-r-0 border-b-0 border-l-0 md:mx-0 md:border-r md:border-l"
       onClose={() => setDevModeOpen(false)}
     >
       <Description />
