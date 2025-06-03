@@ -32,7 +32,7 @@ docker build $PLATFORM_FLAG -t $IMAGE_TAG . || {
 }
 
 echo "Running container locally on port 3003..."
-docker run $PLATFORM_FLAG -p 3003:3003 -e PORT=3003 $IMAGE_TAG
+docker run $PLATFORM_FLAG -p 3003:3003 -e PORT=3003 $IMAGE_TAG -i
 
 # If this is a production build, output the command to push to Cloud Run
 if [[ "$1" == "--prod" || "$1" == "-p" ]]; then
@@ -40,4 +40,4 @@ if [[ "$1" == "--prod" || "$1" == "-p" ]]; then
   echo "To push this image to Google Cloud, run:"
   echo "docker tag $IMAGE_TAG us-central1-docker.pkg.dev/microsite-453317/solana-backend/api:latest"
   echo "docker push us-central1-docker.pkg.dev/microsite-453317/solana-backend/api:latest"
-fi 
+fi

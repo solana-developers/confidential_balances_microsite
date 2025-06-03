@@ -17,12 +17,11 @@ export const AccountButtons: FC<AccountButtonsProps> = ({ address }) => {
       <ModalInitATA
         show={showInitializeModal}
         hide={() => setShowInitializeModal(false)}
-        address={address}
         initializeAccount={initializeAccount}
         isInitializing={isInitializing}
       />
-
       <div className="space-x-2">
+        345
         <button
           className="btn btn-xs lg:btn-md btn-outline"
           onClick={() => setShowInitializeModal(true)}
