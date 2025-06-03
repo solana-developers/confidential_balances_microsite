@@ -42,7 +42,7 @@ const RootLayout: FC<PropsWithChildren> = ({ children }) => (
     <head>
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     </head>
-    <body className="dark min-w-[320px]">
+    <body className="dark min-w-[320px] overflow-y-hidden">
       <App>
         <BaseLayout links={navigation}>{children}</BaseLayout>
       </App>

@@ -1,15 +1,30 @@
 import React, { FC, PropsWithChildren } from 'react'
+import { cva, VariantProps } from 'class-variance-authority'
 import copy from 'copy-to-clipboard'
 import { useToast } from '@/shared/ui/toast'
 import { cn } from '@/shared/utils'
 import { LogItemResult } from './log-item-result'
 
-type LogItemProps = PropsWithChildren<{
-  title?: string
-  success?: boolean
-}>
+const logItemVariants = cva('', {
+  variants: {
+    variant: {
+      success: 'text-[var(--success)]',
+      error: 'text-[var(--destructive)]',
+      muted: 'text-[var(--muted-foreground)]',
+    },
+  },
+  defaultVariants: {
+    variant: 'success',
+  },
+})
 
-export const LogItem: FC<LogItemProps> = ({ title, success, children }) => {
+type LogItemProps = PropsWithChildren<{
+  className?: string
+  title?: string
+}> &
+  VariantProps<typeof logItemVariants>
+
+export const LogItem: FC<LogItemProps> = ({ title, children, variant, className }) => {
   const toast = useToast()
 
   return (
@@ -18,7 +33,8 @@ export const LogItem: FC<LogItemProps> = ({ title, success, children }) => {
         'grid grid-cols-[auto_1fr] gap-2 px-6 py-4 select-none',
         !!title || !!children
           ? 'cursor-pointer hover:bg-[var(--border)]/20 active:bg-[var(--border)]/30'
-          : ''
+          : '',
+        className
       )}
       onClick={() => {
         if (title) {
@@ -44,7 +60,7 @@ export const LogItem: FC<LogItemProps> = ({ title, success, children }) => {
       <pre
         className={cn(
           'font-(family-name:--font-family-geist-mono) text-xs tracking-[-0.0375rem]',
-          success ? 'text-[var(--success)]' : 'text-[var(--destructive)]'
+          logItemVariants({ variant })
         )}
       >
         &gt;
@@ -54,7 +70,7 @@ export const LogItem: FC<LogItemProps> = ({ title, success, children }) => {
           className={cn(
             'overflow-hidden text-ellipsis',
             'font-(family-name:--font-family-geist-mono) text-xs font-bold tracking-[-0.0375rem]',
-            success ? 'text-[var(--success)]' : 'text-[var(--destructive)]'
+            logItemVariants({ variant })
           )}
         >
           {title}

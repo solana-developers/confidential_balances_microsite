@@ -13,7 +13,7 @@ export function OmniAccountHeader({
 }: { address?: PublicKey } & ComponentProps<'div'>) {
   const { balance, loading } = useNativeAndTokenBalance(address)
 
-  console.log({ balance })
+  // console.log({ balance })
 
   // TODO: change text according the account type
 
