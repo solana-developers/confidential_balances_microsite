@@ -11,6 +11,7 @@ type AccountTokensProps = {
   address: PublicKey
 }
 
+/** @deprecated Gonna use entities/account/token-accounts instead of this component */
 export const AccountTokens: FC<AccountTokensProps> = ({ address }) => {
   const [showAll, setShowAll] = useState(false)
   const query = useGetTokenAccounts({ address })

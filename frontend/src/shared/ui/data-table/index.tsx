@@ -26,7 +26,7 @@ type Props = {
   actionProps?: {}
   headers?: (string | JSX.Element)[]
   labels?: {
-    empty: string | JSX.Element
+    empty: string | JSX.Element | undefined
   }
   rows?: (string | JSX.Element)[][]
   title?: string
@@ -113,7 +113,9 @@ export function DataTable({
               </TableBody>
             </>
           ) : (
-            <TableCaption className="text-muted mt-0 px-6 text-left">{labels.empty}</TableCaption>
+            <TableCaption className="text-muted mt-0 px-6 text-left">
+              {labels.empty ?? ''}
+            </TableCaption>
           )}
         </Table>
       </div>
@@ -121,6 +123,7 @@ export function DataTable({
   )
 }
 
+// TODO: consider allowing to bypass component to render whole row as child
 function Row({ row }: { row: (string | JSX.Element)[] }) {
   const id = useId()
 

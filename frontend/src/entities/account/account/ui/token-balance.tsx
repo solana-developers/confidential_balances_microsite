@@ -6,6 +6,7 @@ type TokenBalanceProps = {
   tokenAccountPubkey: PublicKey
 }
 
+/** @deprecated balance functionality is coverred by AccountHeader */
 export const TokenBalance: FC<TokenBalanceProps> = ({ tokenAccountPubkey }) => {
   const tokenBalanceQuery = useGetTokenBalance({ tokenAccountPubkey })
 

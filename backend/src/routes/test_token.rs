@@ -6,8 +6,6 @@ use solana_sdk::{
     hash::Hash,
     message::{v0, VersionedMessage},
     pubkey::Pubkey,
-    signature::Keypair,
-    signer::Signer,
     system_instruction,
     transaction::VersionedTransaction,
 };
@@ -45,19 +43,12 @@ pub async fn create_test_token(
 ) -> Result<Json<TransactionResponse>, AppError> {
     // Parse the account address from base58 to use as mint authority and freeze authority
     let authority_pubkey = parse_base58_pubkey(&request.account)?;
-    // Parse the mint address to allow creating instructions for mint initialization and basic supply
+    // Parse the mint address to allow creating instructions for mint initialization with basic supply
     let mint_address = parse_base58_pubkey(&request.mint)?;
 
     println!(
-        ":mark: Request data is correct: account={}",
-        request.account
-    );
-
-    let random_pair = Keypair::new();
-
-    println!(
-        ":mark: Generate mint address for new mint: mint={}",
-        mint_address.to_string()
+        "✅ Request data is correct: account={}, mint={}",
+        request.account, request.mint
     );
 
     // Calculate space required for mint account with extensions
@@ -69,10 +60,11 @@ pub async fn create_test_token(
         .map_err(|_| AppError::SerializationError)?;
 
     println!(
-        ":mark: Space for mint is calculated: space={}",
+        "✅ Space for mint is calculated: space={}",
         mint_space.to_string()
     );
 
+    // TODO: bypass rent value from client
     // Use a hardcoded rent amount for the mint account (will be adjusted by frontend)
     // In production, this would be calculated dynamically
     let mint_rent = 10_000_000; // 0.01 SOL should be sufficient for most mint accounts
@@ -165,15 +157,14 @@ pub async fn create_test_token(
             .map_err(|_| AppError::SerializationError)?;
     println!("✅ V0 message created successfully");
 
-    // Note: Since we're using a random keypair for the mint account,
-    // the frontend will need both the transaction AND the mint keypair to sign.
-    // This means we need to return the mint keypair's secret key to the frontend
-    // or use a different approach like PDA-based mint creation.
-
     // Get the number of required signatures
     let num_required_signatures = v0_message.header.num_required_signatures as usize;
+    println!(
+        "🔑 Transaction requires {} signatures",
+        num_required_signatures
+    );
 
-    // Create a versioned message
+    println!("📝 Creating versioned message");
     let versioned_message = VersionedMessage::V0(v0_message);
 
     // Create placeholder signatures (will be replaced by the wallet)
@@ -182,24 +173,30 @@ pub async fn create_test_token(
         signatures.push(solana_sdk::signature::Signature::default());
     }
 
+    println!("📝 Creating versioned transaction with placeholder signatures");
     let versioned_transaction = VersionedTransaction {
         signatures,
         message: versioned_message,
     };
 
     // Serialize the transaction to base64
+    println!("🔄 Serializing transaction to base64");
     let serialized_transaction = match bincode::serialize(&versioned_transaction) {
         Ok(bytes) => BASE64_STANDARD.encode(bytes),
         Err(_) => return Err(AppError::SerializationError),
     };
+    println!(
+        "✅ Transaction serialized successfully, size: {} bytes",
+        serialized_transaction.len()
+    );
 
     // Create a structured message with mint info and keypair
     let response_message = format!(
-        "{{\"status\":\"success\",\"mint_address\":\"{}\",\"authority_ata\":\"{}\",\"initial_supply\":1000,\"info\":\"Token-2022 mint transaction created with 1000 token initial supply. Frontend must sign with authority account AND import and sign with the provided mint_keypair.\"}}",
-        random_pair.pubkey().to_string(),
+        "Token-2022 mint transaction created with 1000 token initial supply: ata={}",
         authority_token_account.to_string(),
     );
 
+    println!("🎉 Transaction creation completed successfully");
     Ok(Json(TransactionResponse {
         transaction: serialized_transaction,
         message: response_message,

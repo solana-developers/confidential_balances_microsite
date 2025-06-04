@@ -1,21 +1,10 @@
-import {
-  createInitializeMintCloseAuthorityInstruction,
-  createInitializeMintInstruction,
-  ExtensionType,
-  getMintLen,
-  TOKEN_2022_PROGRAM_ID,
-} from '@solana/spl-token'
+import { ExtensionType, getMintLen } from '@solana/spl-token'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
-import {
-  Keypair,
-  PublicKey,
-  SystemProgram,
-  TransactionMessage,
-  VersionedTransaction,
-} from '@solana/web3.js'
+import { Keypair, PublicKey, VersionedTransaction } from '@solana/web3.js'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { useTransactionToast } from '../ui/transaction-toast'
+import { getCacheKey as getTokenAccountsCacheKey } from './use-get-token-accounts'
 
 async function serverRequest({ account, mint }: { account: PublicKey; mint: PublicKey }) {
   // Now proceed with the transaction
@@ -36,8 +25,6 @@ async function serverRequest({ account, mint }: { account: PublicKey; mint: Publ
   }
 
   const data = await response.json()
-
-  console.log({ data })
 
   return data
 }
@@ -68,9 +55,10 @@ export const useCreateTestTokenCB = ({
         console.log('Generated new mint address:', mintKeypair.publicKey.toBase58())
 
         // Calculate the required space for the mint account with extensions
-        // Note: For full confidential transfer support, additional setup would be needed
-        // This creates a mint with close mint extension and proper authorities
-        const extensions = [ExtensionType.MintCloseAuthority]
+        const extensions = [
+          ExtensionType.ConfidentialTransferMint,
+          ExtensionType.MintCloseAuthority,
+        ]
         const mintSpace = getMintLen(extensions)
         console.log('Mint account space required:', mintSpace, 'bytes')
 
@@ -78,10 +66,10 @@ export const useCreateTestTokenCB = ({
         const mintRent = await connection.getMinimumBalanceForRentExemption(mintSpace)
         console.log('Mint account rent required:', mintRent, 'lamports')
 
+        const data = await serverRequest({ account: wallet.publicKey, mint: mintKeypair.publicKey })
+
         // Get the latest blockhash
         const latestBlockhash = await connection.getLatestBlockhash()
-
-        const data = await serverRequest({ account: wallet.publicKey, mint: mintKeypair.publicKey })
 
         // Deserialize the transaction from the response
         const serializedTransaction = Buffer.from(data.transaction, 'base64')
@@ -96,19 +84,19 @@ export const useCreateTestTokenCB = ({
           ;(transaction.message as any).recentBlockhash = latestBlockhash.blockhash
         }
 
-        // Sign and send the transaction
+        // Sign with mint's keypair to allow creating new mint
         transaction.sign([mintKeypair])
+
+        // Sign and send the transaction
         const signature = await wallet.sendTransaction(transaction, connection)
 
         // Confirm the transaction
         await connection.confirmTransaction({ signature, ...latestBlockhash }, 'confirmed')
-
         console.log('Transaction signature:', signature)
 
         return {
           signature,
           mintAddress: mintKeypair.publicKey.toBase58(),
-          mintKeypair: mintKeypair.publicKey,
         }
       } catch (error) {
         console.error('Error creating Token-2022 mint:', error)
@@ -118,27 +106,25 @@ export const useCreateTestTokenCB = ({
     onSuccess: (data) => {
       if (data.signature) {
         transactionToast(data.signature)
-        toast.success(
-          `Token-2022 mint created with close mint extension! Address: ${data.mintAddress}`
-        )
+        toast.success(`Token-2022 mint created! Address: ${data.mintAddress}`)
       }
-
-      // TODO: check invalidation keys
-      //!!!
 
       // Invalidate relevant queries to refresh data
       return Promise.all([
         client.invalidateQueries({
-          queryKey: ['get-balance', { endpoint: connection.rpcEndpoint, walletAddressPubkey }],
-        }),
-        client.invalidateQueries({
-          queryKey: ['get-signatures', { endpoint: connection.rpcEndpoint, walletAddressPubkey }],
+          queryKey: [
+            'get-balance',
+            { endpoint: connection.rpcEndpoint, address: walletAddressPubkey },
+          ],
         }),
         client.invalidateQueries({
           queryKey: [
-            'get-token-accounts',
-            { endpoint: connection.rpcEndpoint, walletAddressPubkey },
+            'get-signatures',
+            { endpoint: connection.rpcEndpoint, address: walletAddressPubkey },
           ],
+        }),
+        client.invalidateQueries({
+          queryKey: getTokenAccountsCacheKey(connection.rpcEndpoint, walletAddressPubkey),
         }),
       ])
     },

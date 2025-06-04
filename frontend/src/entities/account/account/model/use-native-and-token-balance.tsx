@@ -85,7 +85,7 @@ export function useNativeAndTokenBalance(
       }
       return empty
     },
-    queryKey: ['useTokenBalance', String(address), String(publicKey)],
+    queryKey: ['use-token-balance-by-mint', String(address), String(publicKey)],
     refetchInterval: opts?.refetchInterval ?? REFRESH_TIMEOUT,
     refetchIntervalInBackground: opts?.refetchIntervalInBackground,
     retry: NUMBER_OF_RETRIES,

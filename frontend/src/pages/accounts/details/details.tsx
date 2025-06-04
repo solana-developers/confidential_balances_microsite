@@ -14,7 +14,7 @@ import {
   useGetSingleTokenAccount,
 } from '@/entities/account/account'
 import { ExplorerLink } from '@/entities/cluster/cluster'
-import { OmniAccountHeader } from '@/features/omni-account-header'
+import { TokenAccountHeader } from '@/features/omni-account-header'
 import { BackwardControl } from '@/shared/ui/backward-control'
 import { Hero } from '@/shared/ui/hero'
 import { ellipsify } from '@/shared/utils'
@@ -57,7 +57,12 @@ export const Details: FC<DetailsProps> = ({ address: param }) => {
         <Link href={'/'}>Go back to wallet page</Link>
       </BackwardControl>
       {/* Use random token account. whould be one that is handled through pathname */}
-      <OmniAccountHeader address={new PublicKey('F5C4y8awLtvU98tkqBFV4zMmknEwqfdKte7428ooDhUy')} />
+      {!param ? (
+        <div>Loading..</div>
+      ) : (
+        <TokenAccountHeader label="Token account" address={address} />
+      )}
+
       {accountDescription.tokenAccount ? (
         <div>
           <Hero

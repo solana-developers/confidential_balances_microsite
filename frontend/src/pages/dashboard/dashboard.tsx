@@ -1,9 +1,10 @@
 import { FC } from 'react'
 import { Button } from '@hoodieshq/ms-tools-ui'
+import { NATIVE_MINT } from '@solana/spl-token'
 import { TokenAccounts } from '@/entities/account/token-accounts'
 import { useDevMode } from '@/entities/dev-mode/model/dev-mode-items'
 import { useOperationLog } from '@/entities/operation-log'
-import { OmniAccountHeader } from '@/features/omni-account-header'
+import { WalletAccountHeader } from '@/features/omni-account-header'
 import { CardStep } from '@/shared/ui/card-step'
 import { Text } from '@/shared/ui/text'
 
@@ -55,7 +56,7 @@ export const Dashboard: FC = () => {
           discarded immediately after use.
         </Text>
       </div>
-      <OmniAccountHeader className="mt-12 mb-5" />
+      <WalletAccountHeader address={NATIVE_MINT} className="mt-12 mb-5" />
       <TokenAccounts />
       <div className="flex gap-2">
         {/* TODO: Just for testing purposes, remove later */}
