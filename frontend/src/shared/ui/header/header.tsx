@@ -115,10 +115,7 @@ function MainMenu({
           </a>
         ))}
         <DevModeButton />
-        <Button variant="secondary">
-          <Icons.NetworkIcon />
-          Devnet
-        </Button>
+        <ClusterSelect />
         <div className="min-w-[118px]">
           <WalletButton />
         </div>
@@ -151,8 +148,11 @@ function DialogMenu({ navigation }: { navigation: Link[] }) {
           </a>
         ))}
 
+        {/* NOTE: I've limited width for ClusterSelector to match DevMode, but we have to tweak dropdown size for clusters as Badge does not fit */}
         <DevModeButton />
-        <ClusterSelect />
+        <div className="w-[125px]">
+          <ClusterSelect />
+        </div>
       </div>
       {/* here might be other elements that will be separated with a gray line */}
     </div>
