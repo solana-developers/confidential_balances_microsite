@@ -1,4 +1,4 @@
-import { ComponentProps, MouseEvent, useId } from 'react'
+import { ComponentProps, MouseEvent, ReactNode, useId } from 'react'
 import {
   Button,
   Table,
@@ -18,17 +18,17 @@ type Action = {
   action: string
   title: string
   onClick?: (a: Action['action'], b: MouseEvent<HTMLButtonElement>) => void
-  icon?: LucideIcon
+  icon?: LucideIcon | ReactNode
 }
 
 type Props = {
   actions?: Action[]
   actionProps?: {}
-  headers?: (string | JSX.Element)[]
-  labels?: {
-    empty: string | JSX.Element | undefined
+  headers?: ReactNode[]
+  labels?: { empty: Required<ReactNode> } & {
+    [key: string]: ReactNode
   }
-  rows?: (string | JSX.Element)[][]
+  rows?: ReactNode[][]
   title?: string
   asChild?: boolean
 } & ComponentProps<'table'> &
@@ -113,9 +113,7 @@ export function DataTable({
               </TableBody>
             </>
           ) : (
-            <TableCaption className="text-muted mt-0 px-6 text-left">
-              {labels.empty ?? ''}
-            </TableCaption>
+            <TableCaption className="text-muted mt-0 px-6 text-left">{labels.empty}</TableCaption>
           )}
         </Table>
       </div>
@@ -123,7 +121,6 @@ export function DataTable({
   )
 }
 
-// TODO: consider allowing to bypass component to render whole row as child
 function Row({ row }: { row: (string | JSX.Element)[] }) {
   const id = useId()
 

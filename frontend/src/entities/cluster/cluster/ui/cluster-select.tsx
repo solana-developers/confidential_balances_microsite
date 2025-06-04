@@ -1,7 +1,7 @@
 import { FC } from 'react'
 import { Combobox, ComboboxButton, ComboboxOption, ComboboxOptions } from '@headlessui/react'
 import { Badge, Button } from '@hoodieshq/ms-tools-ui'
-import { ChevronDown, NetworkIcon } from 'lucide-react'
+import { NetworkIcon } from 'lucide-react'
 import { useCluster } from '@/shared/solana'
 
 export const ClusterSelect: FC = () => {
@@ -33,7 +33,7 @@ export const ClusterSelect: FC = () => {
             >
               {({ selected }) => (
                 <div className="flex items-center justify-between capitalize">
-                  <span>{item.name}</span>
+                  <span className="text-xs">{item.name}</span>
                   {selected && (
                     <Badge variant="success" size="xxs" className="ml-2">
                       Active

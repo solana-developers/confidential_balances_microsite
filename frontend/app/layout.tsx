@@ -1,9 +1,5 @@
-import './globals.css'
-
 import { FC, PropsWithChildren } from 'react'
 import { Geist_Mono, Inter, Rubik } from 'next/font/google'
-import { App, Layout as BaseLayout } from '@/app'
-import { navigation } from '@/shared/navigation'
 
 const interFont = Inter({
   display: 'swap',
@@ -42,11 +38,7 @@ const RootLayout: FC<PropsWithChildren> = ({ children }) => (
     <head>
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     </head>
-    <body className="dark min-w-[320px] overflow-y-hidden">
-      <App>
-        <BaseLayout links={navigation}>{children}</BaseLayout>
-      </App>
-    </body>
+    <body className="dark min-w-[320px] overflow-y-hidden">{children}</body>
   </html>
 )
 

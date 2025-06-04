@@ -1,6 +1,6 @@
 'use client'
 
-import { ComponentProps, FC, PropsWithChildren, Suspense, useRef, useState } from 'react'
+import { ComponentProps, FC, PropsWithChildren, Suspense, useRef } from 'react'
 import { cn, Skeleton } from '@hoodieshq/ms-tools-ui'
 import { useAtomValue } from 'jotai'
 import { Toaster } from 'react-hot-toast'
@@ -19,7 +19,7 @@ type LayoutProps = PropsWithChildren<{
   links: ComponentProps<typeof Header>['navigation']
 }>
 
-export const Layout: FC<LayoutProps> = ({ children, links }) => {
+export const BaseLayout: FC<LayoutProps> = ({ children, links }) => {
   const ref = useRef<HTMLDivElement>(null)
 
   const devModeOpen = useAtomValue(devModeOpenAtom)

@@ -1,13 +1,14 @@
 'use client'
 
+// import wallet styles to not redeclare every style
+import '@solana/wallet-adapter-react-ui/styles.css'
+
 import { FC, PropsWithChildren, useCallback, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { WalletError } from '@solana/wallet-adapter-base'
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react'
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui'
 import { useCluster } from '@/shared/solana'
-
-import '@solana/wallet-adapter-react-ui/styles.css'
 
 export const WalletButton = dynamic(
   async () => (await import('@solana/wallet-adapter-react-ui')).WalletMultiButton,

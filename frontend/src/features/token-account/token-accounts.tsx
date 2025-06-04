@@ -5,12 +5,12 @@ import { useWallet } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
 import { useQueryClient } from '@tanstack/react-query'
 import { PlusCircle, RefreshCw } from 'lucide-react'
+import { useCreateAssociatedTokenAccountCB } from '@/entities/account/account/model/use-create-associated-token-account-cb'
+import { useCreateTestTokenCB } from '@/entities/account/account/model/use-create-test-token-cb'
+import { useGetTokenAccounts } from '@/entities/account/account/model/use-get-token-accounts'
+import { ModalInitATA } from '@/entities/account/account/ui/modal-init-ata'
 import { ExplorerLink } from '@/entities/cluster/cluster'
 import { DataTable } from '@/shared/ui/data-table'
-import { useCreateAssociatedTokenAccountCB } from '../account/model/use-create-associated-token-account-cb'
-import { useCreateTestTokenCB } from '../account/model/use-create-test-token-cb'
-import { useGetTokenAccounts } from '../account/model/use-get-token-accounts'
-import { ModalInitATA } from '../account/ui/modal-init-ata'
 
 export function TokenAccounts() {
   const { connected, publicKey } = useWallet()
@@ -59,11 +59,13 @@ function ConnectedWalletTokenAccounts({
   }, [createTestToken])
 
   const emptyLabel = useMemo(() => {
+    const noRecords = 'No token accounts found. Create new account to proceed'
     if (query.isLoading) return 'Loading...'
     if (query.isError) return 'Can not load data'
     if (query.isSuccess && (!query.data || query.data.length === 0)) {
-      return 'No token accounts found. Create new account to proceed'
+      return noRecords
     }
+    return noRecords
   }, [query])
 
   const actions = useMemo(() => {

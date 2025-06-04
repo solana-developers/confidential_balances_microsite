@@ -1,7 +1,7 @@
 'use client'
 
-import React, { FC, PropsWithChildren, ReactNode, useState } from 'react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import React, { FC, PropsWithChildren } from 'react'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryStreamedHydration } from '@tanstack/react-query-next-experimental'
 import { Provider } from 'jotai'
 import { jotai, queryClient } from '@/shared/state'
