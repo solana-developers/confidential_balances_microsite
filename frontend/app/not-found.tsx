@@ -19,8 +19,8 @@ export default function NotFound() {
         <div className="mb-8 space-y-4">
           <h2 className="text-3xl font-bold text-[var(--foreground)]">Account Not Found</h2>
           <p className="mx-auto max-w-lg text-lg text-[var(--muted-foreground)]">
-            The address you're looking for doesn't exist on this cluster, or the page has been moved
-            to a different location.
+            The address you&apos;re looking for doesn&apos;t exist on this cluster, or the page has
+            been moved to a different location.
           </p>
         </div>
 
@@ -51,7 +51,7 @@ export default function NotFound() {
           <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Need Help?</h3>
           <div className="space-y-2 text-sm text-[var(--muted-foreground)]">
             <p>• Check if the account address is correctly formatted</p>
-            <p>• Ensure you're connected to the right cluster</p>
+            <p>• Ensure you&apos;re connected to the right cluster</p>
             <p>• Try refreshing your wallet connection</p>
             <p>• Verify the account exists on the current network</p>
           </div>

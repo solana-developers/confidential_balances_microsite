@@ -41,7 +41,7 @@ export const Step: FC<StepProps> = ({ step, title, description, command, done, c
         </div>
       </div>
 
-      {children ?? <LogItem success={true} />}
+      {children ?? <LogItem variant="success" />}
     </>
   )
 }
