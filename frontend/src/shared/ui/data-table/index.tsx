@@ -1,4 +1,5 @@
 import { ComponentProps, MouseEvent, ReactNode, useId } from 'react'
+import { Slot } from '@radix-ui/react-slot'
 import {
   Button,
   Table,
@@ -8,8 +9,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@hoodieshq/ms-tools-ui'
-import { Slot } from '@radix-ui/react-slot'
+} from '@solana-foundation/ms-tools-ui'
 import { cva, VariantProps } from 'class-variance-authority'
 import { cn } from '@/shared/utils'
 

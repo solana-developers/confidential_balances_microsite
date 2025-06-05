@@ -1,5 +1,5 @@
 import { ComponentProps, FC } from 'react'
-import { Address } from '@hoodieshq/ms-tools-ui'
+import { Address } from '@solana-foundation/ms-tools-ui'
 import { useWallet } from '@solana/wallet-adapter-react'
 
 export const WalletTitle: FC<ComponentProps<'div'>> = () => {

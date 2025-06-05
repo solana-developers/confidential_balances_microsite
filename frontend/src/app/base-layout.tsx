@@ -1,7 +1,7 @@
 'use client'
 
 import { ComponentProps, FC, PropsWithChildren, Suspense, useRef } from 'react'
-import { cn, Skeleton } from '@hoodieshq/ms-tools-ui'
+import { cn, Skeleton } from '@solana-foundation/ms-tools-ui'
 import { useAtomValue } from 'jotai'
 import { Toaster } from 'react-hot-toast'
 import { AccountChecker } from '@/entities/account/account'

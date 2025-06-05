@@ -1,5 +1,5 @@
 import { FC, useCallback } from 'react'
-import { Form, FormField } from '@hoodieshq/ms-tools-ui'
+import { Form, FormField } from '@solana-foundation/ms-tools-ui'
 import { PublicKey } from '@solana/web3.js'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'

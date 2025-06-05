@@ -5,7 +5,7 @@ import {
   FormLabel,
   FormMessage,
   FormItem as UIFormItem,
-} from '@hoodieshq/ms-tools-ui'
+} from '@solana-foundation/ms-tools-ui'
 import { Input } from '../input/input'
 
 interface FormItemProps extends InputHTMLAttributes<HTMLInputElement> {

@@ -1,5 +1,5 @@
 import { ComponentProps, FC } from 'react'
-import { Address } from '@hoodieshq/ms-tools-ui'
+import { Address } from '@solana-foundation/ms-tools-ui'
 import { PublicKey } from '@solana/web3.js'
 import { useGetTokenBalance } from '@/entities/account/account/model/use-get-token-balance'
 import { useNativeAndTokenBalance } from '@/entities/account/account/model/use-native-and-token-balance'

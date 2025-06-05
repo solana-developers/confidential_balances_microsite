@@ -1,6 +1,6 @@
 import { FC } from 'react'
 import { Combobox, ComboboxButton, ComboboxOption, ComboboxOptions } from '@headlessui/react'
-import { Badge, Button } from '@hoodieshq/ms-tools-ui'
+import { Badge, Button } from '@solana-foundation/ms-tools-ui'
 import { NetworkIcon } from 'lucide-react'
 import { useCluster } from '@/shared/solana'
 

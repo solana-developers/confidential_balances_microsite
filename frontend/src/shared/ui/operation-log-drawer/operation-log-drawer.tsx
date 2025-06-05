@@ -1,7 +1,7 @@
 'use client'
 
 import { FC, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Button } from '@hoodieshq/ms-tools-ui'
+import { Button } from '@solana-foundation/ms-tools-ui'
 import * as Icons from 'lucide-react'
 import { Drawer } from 'vaul'
 import { LogItem, LogItemResult } from '@/shared/ui/log'

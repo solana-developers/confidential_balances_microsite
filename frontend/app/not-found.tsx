@@ -19,8 +19,8 @@ export default function NotFound() {
         <div className="mb-8 space-y-4">
           <h2 className="text-3xl font-bold text-[var(--foreground)]">Account Not Found</h2>
           <p className="mx-auto max-w-lg text-lg text-[var(--muted-foreground)]">
-            The address you&apos;re looking for doesn&apos;t exist on this cluster, or the page has
-            been moved to a different location.
+            The address you&apos;re looking for doesn&apos;t exist on this cluster, or&nbsp;the page
+            has been moved to a different location.
           </p>
         </div>
 

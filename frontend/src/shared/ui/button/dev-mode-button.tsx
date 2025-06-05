@@ -1,5 +1,5 @@
 import { ComponentProps, FC } from 'react'
-import { Button } from '@hoodieshq/ms-tools-ui'
+import { Button } from '@solana-foundation/ms-tools-ui'
 import * as Icons from 'lucide-react'
 import { cn } from '@/shared/utils'
 

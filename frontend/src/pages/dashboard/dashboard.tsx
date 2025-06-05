@@ -1,5 +1,5 @@
 import { FC } from 'react'
-import { Button } from '@hoodieshq/ms-tools-ui'
+import { Button } from '@solana-foundation/ms-tools-ui'
 import { NATIVE_MINT } from '@solana/spl-token'
 import { WalletAccountHeader } from '@/entities/account-header'
 import { useDevMode } from '@/entities/dev-mode/model/dev-mode-items'

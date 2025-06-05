@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { Dialog, DialogPanel } from '@headlessui/react'
-import { Alert, AlertDescription, AlertTitle } from '@hoodieshq/ms-tools-ui'
+import { Alert, AlertDescription, AlertTitle } from '@solana-foundation/ms-tools-ui'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { useWalletModal } from '@solana/wallet-adapter-react-ui'
 import { cva } from 'class-variance-authority'

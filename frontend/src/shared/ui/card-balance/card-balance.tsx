@@ -1,5 +1,5 @@
 import { ComponentProps, FC } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@hoodieshq/ms-tools-ui'
+import { Card, CardContent, CardHeader, CardTitle } from '@solana-foundation/ms-tools-ui'
 
 type CardBalanceProps = {
   balance: string | number | undefined

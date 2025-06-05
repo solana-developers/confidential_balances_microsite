@@ -1,4 +1,4 @@
-import uikitConfig from '@hoodieshq/ms-tools-config/postcss.config.mjs'
+import uikitConfig from '@solana-foundation/ms-tools-config/postcss.config.mjs'
 
 const config = {
   ...uikitConfig,

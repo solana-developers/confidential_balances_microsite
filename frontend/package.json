@@ -15,8 +15,8 @@
   },
   "dependencies": {
     "@headlessui/react": "^2.2.4",
-    "@hoodieshq/ms-tools-config": "^0.1.0",
-    "@hoodieshq/ms-tools-ui": "^0.8.2",
+    "@solana-foundation/ms-tools-config": "^0.1.0",
+    "@solana-foundation/ms-tools-ui": "^0.8.2",
     "@radix-ui/react-slot": "^1.2.3",
     "@solana/spl-token": "0.4.12",
     "@solana/wallet-adapter-base": "0.9.26",

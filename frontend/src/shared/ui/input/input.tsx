@@ -1,5 +1,5 @@
 import { ComponentProps, FC } from 'react'
-import { Input as UIInput } from '@hoodieshq/ms-tools-ui'
+import { Input as UIInput } from '@solana-foundation/ms-tools-ui'
 import { cva } from 'class-variance-authority'
 import { cn } from '@/shared/utils'
 

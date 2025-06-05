@@ -10,7 +10,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@hoodieshq/ms-tools-ui'
+} from '@solana-foundation/ms-tools-ui'
 
 type ModalProps = PropsWithChildren<{
   title: string

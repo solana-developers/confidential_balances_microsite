@@ -1,6 +1,6 @@
 import { ComponentProps, FC, useCallback, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Address } from '@hoodieshq/ms-tools-ui'
+import { Address } from '@solana-foundation/ms-tools-ui'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
 import { useQueryClient } from '@tanstack/react-query'
