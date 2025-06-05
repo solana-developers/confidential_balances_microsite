@@ -1,4 +1,4 @@
-import { FC, useCallback, useMemo, useState } from 'react'
+import { ComponentProps, FC, useMemo, useState } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
 import { useQueryClient } from '@tanstack/react-query'
@@ -7,6 +7,8 @@ import { useGetSignatures } from '@/entities/account/account/model/use-get-signa
 import { ExplorerLink } from '@/entities/cluster/cluster'
 import { DataTable } from '@/shared/ui/data-table'
 import { ellipsify } from '@/shared/utils'
+
+type DataTableAction = NonNullable<ComponentProps<typeof DataTable>['actions']>[0]
 
 export function TransactionHistory() {
   const { connected, publicKey } = useWallet()
@@ -61,11 +63,11 @@ function ConnectedWalletTransactionHistory({
       })
     }
 
-    let list = [
+    let list: DataTableAction[] = [
       {
         action: 'refetch',
         title: '',
-        icon: RefreshCw,
+        icon: <RefreshCw />,
         onClick: onRefreshSignatures,
       },
     ]

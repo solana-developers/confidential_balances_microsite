@@ -11,14 +11,13 @@ import {
 } from '@hoodieshq/ms-tools-ui'
 import { Slot } from '@radix-ui/react-slot'
 import { cva, VariantProps } from 'class-variance-authority'
-import { LucideIcon } from 'lucide-react'
 import { cn } from '@/shared/utils'
 
 type Action = {
   action: string
   title: string
   onClick?: (a: Action['action'], b: MouseEvent<HTMLButtonElement>) => void
-  icon?: LucideIcon | ReactNode
+  icon?: ReactNode
 }
 
 type Props = {
@@ -77,7 +76,7 @@ export function DataTable({
               className="flex flex-row items-center gap-1"
               {...actionProps}
             >
-              {actions.map(({ icon: Icon, ...action }) => (
+              {actions.map(({ icon, ...action }) => (
                 <Button
                   aria-label={`${action.action}`}
                   key={action.action}
@@ -85,7 +84,7 @@ export function DataTable({
                   variant="secondary"
                   onClick={action?.onClick?.bind(null, action.action)}
                 >
-                  {Icon ? <Icon /> : undefined}
+                  {icon ?? undefined}
                   {action.title}
                 </Button>
               ))}
@@ -121,7 +120,7 @@ export function DataTable({
   )
 }
 
-function Row({ row }: { row: (string | JSX.Element)[] }) {
+function Row({ row }: { row: ReactNode[] }) {
   const id = useId()
 
   return (

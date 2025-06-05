@@ -1,4 +1,4 @@
-import { FC, useCallback, useMemo, useState } from 'react'
+import { ComponentProps, FC, useCallback, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Address } from '@hoodieshq/ms-tools-ui'
 import { useWallet } from '@solana/wallet-adapter-react'
@@ -11,6 +11,8 @@ import { useGetTokenAccounts } from '@/entities/account/account/model/use-get-to
 import { ModalInitATA } from '@/entities/account/account/ui/modal-init-ata'
 import { ExplorerLink } from '@/entities/cluster/cluster'
 import { DataTable } from '@/shared/ui/data-table'
+
+type DataTableAction = NonNullable<ComponentProps<typeof DataTable>['actions']>[0]
 
 export function TokenAccounts() {
   const { connected, publicKey } = useWallet()
@@ -77,7 +79,7 @@ function ConnectedWalletTokenAccounts({
       })
     }
 
-    let list = [
+    let list: DataTableAction[] = [
       {
         action: 'createCTA',
         title: 'Create account',
@@ -87,12 +89,12 @@ function ConnectedWalletTokenAccounts({
         action: 'createTestToken',
         title: 'Create 1000 test tokens',
         onClick: onCreateTestToken,
-        icon: PlusCircle,
+        icon: <PlusCircle />,
       },
       {
         action: 'refetch',
         title: '',
-        icon: RefreshCw,
+        icon: <RefreshCw />,
         onClick: onInvalidateBalance,
       },
     ]

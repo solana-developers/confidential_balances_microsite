@@ -1,4 +1,4 @@
-import { FC, useCallback, useMemo, useState } from 'react'
+import { ComponentProps, FC, useCallback, useMemo, useState } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
 import { useQueryClient } from '@tanstack/react-query'
@@ -43,6 +43,8 @@ const mockOperations = [
   },
 ]
 
+type DataTableAction = NonNullable<ComponentProps<typeof DataTable>['actions']>[0]
+
 export function PendingOperations() {
   const { connected, publicKey } = useWallet()
 
@@ -73,7 +75,7 @@ function ConnectedWalletPendingOperations({
 
   // For now, we'll use mock data since we don't have a specific API for pending operations list
   // In a real implementation, this would fetch from a pending operations endpoint
-  const operations: typeof mockOperations = [] //mockOperations
+  const operations: typeof mockOperations = useMemo(() => [], []) //mockOperations
 
   const items = useMemo(() => {
     if (showAll) return operations
@@ -93,11 +95,11 @@ function ConnectedWalletPendingOperations({
       })
     }
 
-    let list = [
+    let list: DataTableAction[] = [
       {
         action: 'refetch',
         title: '',
-        icon: RefreshCw,
+        icon: <RefreshCw />,
         onClick: onRefresh,
       },
     ]

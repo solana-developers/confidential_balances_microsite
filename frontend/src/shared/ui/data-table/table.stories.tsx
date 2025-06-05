@@ -32,7 +32,7 @@ export const WithActions: Story = {
         action: 'createTokens',
         title: 'Create test account with 1000 tokens',
         onClick: fn(),
-        icon: PlusCircle,
+        icon: <PlusCircle />,
       },
       {
         action: 'createCTA',

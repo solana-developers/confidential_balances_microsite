@@ -1,7 +1,6 @@
-import { FC, useCallback, useMemo, useState } from 'react'
+import { ComponentProps, FC, useCallback, useMemo, useState } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
-import { useQueryClient } from '@tanstack/react-query'
 import {
   ArrowDown,
   ArrowDownToLine,
@@ -9,7 +8,6 @@ import {
   ArrowUp,
   ArrowUpFromLine,
   EyeOff,
-  RefreshCw,
   Send,
   Unlock,
 } from 'lucide-react'
@@ -20,6 +18,8 @@ import { ModalDeposit } from '@/entities/account/account/ui/modal-deposit'
 import { ModalTransfer } from '@/entities/account/account/ui/modal-transfer'
 import { ModalWithdraw } from '@/entities/account/account/ui/modal-withdraw'
 import { DataTable } from '@/shared/ui/data-table'
+
+type DataTableAction = NonNullable<ComponentProps<typeof DataTable>['actions']>[0]
 
 export function ConfidentialBalances() {
   const { connected, publicKey } = useWallet()
@@ -95,28 +95,28 @@ function ConnectedWalletConfidentialBalances({
     [query.data]
   )
 
-  const actions = useMemo(() => {
+  const actions = useMemo<DataTableAction[]>(() => {
     return [
       {
         action: 'deposit',
         title: 'Deposit',
-        icon: ArrowDown,
-        onClick: openDepositModal,
+        icon: <ArrowDown />,
+        onClick: () => openDepositModal(address),
       },
       {
         action: 'withdraw',
         title: 'Withdraw',
-        icon: ArrowUp,
-        onClick: openWithdrawModal,
+        icon: <ArrowUp />,
+        onClick: () => openWithdrawModal(address),
       },
       {
         action: 'transfer',
         title: 'Transfer',
-        icon: Send,
-        onClick: openTransferModal,
+        icon: <Send />,
+        onClick: () => openTransferModal(address),
       },
     ]
-  }, [openDepositModal, openWithdrawModal, openTransferModal])
+  }, [openDepositModal, openWithdrawModal, openTransferModal, address])
 
   return (
     <>

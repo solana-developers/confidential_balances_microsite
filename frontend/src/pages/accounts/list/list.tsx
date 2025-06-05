@@ -1,5 +1,5 @@
 import { FC } from 'react'
-import { WalletButton } from '@/app/solana-provider'
+import { WalletButton } from '@/features/solana-provider'
 
 export const List: FC = () => (
   <div className="hero py-[64px]">
