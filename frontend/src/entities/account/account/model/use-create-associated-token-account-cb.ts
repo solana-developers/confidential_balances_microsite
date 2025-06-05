@@ -6,6 +6,7 @@ import { useTransactionToast } from '../ui/transaction-toast'
 import { AES_SEED_MESSAGE } from './aes-seed-message'
 import { ELGAMAL_SEED_MESSAGE } from './elgamal-seed-message'
 import { generateSeedSignature } from './generate-seed-signature'
+import { getCacheKey as getTokenAccountsCacheKey } from './use-get-token-accounts'
 
 export const useCreateAssociatedTokenAccountCB = ({
   walletAddressPubkey,
@@ -106,16 +107,19 @@ export const useCreateAssociatedTokenAccountCB = ({
       // Invalidate relevant queries to refresh data
       return Promise.all([
         client.invalidateQueries({
-          queryKey: ['get-balance', { endpoint: connection.rpcEndpoint, walletAddressPubkey }],
-        }),
-        client.invalidateQueries({
-          queryKey: ['get-signatures', { endpoint: connection.rpcEndpoint, walletAddressPubkey }],
+          queryKey: [
+            'get-balance',
+            { endpoint: connection.rpcEndpoint, address: walletAddressPubkey },
+          ],
         }),
         client.invalidateQueries({
           queryKey: [
-            'get-token-accounts',
-            { endpoint: connection.rpcEndpoint, walletAddressPubkey },
+            'get-signatures',
+            { endpoint: connection.rpcEndpoint, address: walletAddressPubkey },
           ],
+        }),
+        client.invalidateQueries({
+          queryKey: getTokenAccountsCacheKey(connection.rpcEndpoint, walletAddressPubkey),
         }),
       ])
     },

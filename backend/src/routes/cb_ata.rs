@@ -1,12 +1,12 @@
 use {
     crate::{errors::AppError, models::{
         ApplyCbRequest, CreateCbAtaRequest, DecryptCbRequest, DecryptCbResponse, DepositCbRequest, MultiTransactionResponse, TransactionResponse, TransferCbRequest, TransferCbSpaceResponse, WithdrawCbRequest, WithdrawCbSpaceResponse
-    }}, 
-    axum::extract::Json, 
-    base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _}, 
-    bincode, bs58, solana_sdk::{hash::Hash, message::{v0, VersionedMessage}, pubkey::Pubkey, signature::{Keypair, NullSigner, Signature}, signer::Signer, system_instruction, transaction::VersionedTransaction}, 
-    solana_zk_sdk::{encryption::auth_encryption::AeCiphertext, zk_elgamal_proof_program::{self, instruction::{close_context_state, ContextStateInfo}}}, 
-    spl_associated_token_account::{get_associated_token_address_with_program_id, instruction::create_associated_token_account}, 
+    }},
+    axum::extract::Json,
+    base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _},
+    bincode, bs58, solana_sdk::{hash::Hash, message::{v0, VersionedMessage}, pubkey::Pubkey, signature::{Keypair, NullSigner, Signature}, signer::Signer, system_instruction, transaction::VersionedTransaction},
+    solana_zk_sdk::{encryption::auth_encryption::AeCiphertext, zk_elgamal_proof_program::{self, instruction::{close_context_state, ContextStateInfo}}},
+    spl_associated_token_account::{get_associated_token_address_with_program_id, instruction::create_associated_token_account},
     spl_token_2022::{
         error::TokenError,
         extension::{
@@ -28,29 +28,29 @@ use {
 // Helper function to parse a base64-encoded base58 address into a Pubkey
 fn parse_base64_base58_pubkey(encoded_address: &str) -> Result<Pubkey, AppError> {
     println!("🔍 Attempting to parse base64-base58 pubkey: {}", encoded_address);
-    
+
     // First, try to decode from base64
     let decoded_base64 = BASE64_STANDARD.decode(encoded_address)?;
     println!("✅ Base64 decoding successful, got {} bytes", decoded_base64.len());
-    
+
     // Then, decode the resulting string as base58
     let decoded_string = String::from_utf8(decoded_base64)?;
     println!("✅ UTF-8 decoding successful: {}", decoded_string);
-    
+
     // Finally, decode the base58 string to bytes
     let bytes = bs58::decode(&decoded_string).into_vec()?;
     println!("✅ Base58 decoding successful, got {} bytes", bytes.len());
-    
+
     if bytes.len() != 32 {
         println!("❌ Invalid pubkey length: expected 32 bytes, got {}", bytes.len());
         return Err(AppError::InvalidAddress);
     }
-    
+
     // Convert to fixed-size array and create Pubkey
     let bytes_array: [u8; 32] = bytes.try_into().unwrap();
     let pubkey = Pubkey::new_from_array(bytes_array);
     println!("✅ Successfully created Pubkey: {}", pubkey.to_string());
-    
+
     Ok(pubkey)
 }
 
@@ -60,12 +60,12 @@ pub async fn create_cb_ata(
 ) -> Result<Json<TransactionResponse>, AppError> {
     println!("🚀 Starting create_cb_ata handler");
     println!("📝 Request data: mint={}, authority={}", request.mint, request.ata_authority);
-    
+
     // Parse the authority address
     println!("🔑 Parsing authority address");
     let token_account_authority = parse_base64_base58_pubkey(&request.ata_authority)?;
     println!("✅ Authority parsed successfully: {}", token_account_authority);
-    
+
     // Parse the mint address
     println!("🪙 Parsing mint address");
     let mint = parse_base64_base58_pubkey(&request.mint)?;
@@ -79,7 +79,7 @@ pub async fn create_cb_ata(
         &spl_token_2022::id(),
     );
     println!("✅ Associated token address derived: {}", token_account_pubkey);
-    
+
     // Instruction to create associated token account
     println!("📋 Creating instruction to create associated token account");
     let create_associated_token_account_instruction = create_associated_token_account(
@@ -106,12 +106,12 @@ pub async fn create_cb_ata(
     println!("🔐 Decoding ElGamal signature: {}", request.elgamal_signature);
     let decoded_elgamal_signature = BASE64_STANDARD.decode(&request.elgamal_signature)?;
     println!("✅ ElGamal signature base64 decoded, got {} bytes", decoded_elgamal_signature.len());
-    
+
     // Create signature directly from bytes
     let elgamal_signature = Signature::try_from(decoded_elgamal_signature.as_slice())
         .map_err(|_| AppError::SerializationError)?;
     println!("✅ ElGamal signature created successfully");
-    
+
     let token_account_authority_elgamal_keypair = ElGamalKeypair::new_from_signature(&elgamal_signature)
         .map_err(|_| AppError::SerializationError)?;
     println!("✅ ElGamal keypair created successfully");
@@ -119,12 +119,12 @@ pub async fn create_cb_ata(
     println!("🔐 Decoding AES signature: {}", request.aes_signature);
     let decoded_aes_signature = BASE64_STANDARD.decode(&request.aes_signature)?;
     println!("✅ AES signature base64 decoded, got {} bytes", decoded_aes_signature.len());
-    
+
     // Create signature directly from bytes
     let aes_signature = Signature::try_from(decoded_aes_signature.as_slice())
         .map_err(|_| AppError::SerializationError)?;
     println!("✅ AES signature created successfully");
-    
+
     let token_account_authority_aes_key = AeKey::new_from_signature(&aes_signature)
         .map_err(|_| AppError::SerializationError)?;
     println!("✅ AES key created successfully");
@@ -186,22 +186,32 @@ pub async fn create_cb_ata(
 
     let num_required_signatures = v0_message.header.num_required_signatures as usize;
     println!("🔑 Transaction requires {} signatures", num_required_signatures);
-    
+
     println!("📝 Creating versioned message");
     let versioned_message = VersionedMessage::V0(v0_message);
-    
+
     println!("📝 Creating versioned transaction with placeholder signatures");
-    let versioned_transaction = VersionedTransaction::try_new(versioned_message, 
-    &[
-        &NullSigner::new(&token_account_authority) as &dyn Signer,
-    ])?;
-    
+    // Create a versioned transaction with placeholder signatures for required signers
+    let mut signatures = Vec::with_capacity(num_required_signatures);
+
+    // Add empty signatures as placeholders (will be replaced by the wallet)
+    for _ in 0..num_required_signatures {
+        signatures.push(solana_sdk::signature::Signature::default());
+    }
+
+    let versioned_transaction = VersionedTransaction {
+        signatures,
+        message: versioned_message,
+    };
+
     // Serialize the transaction to base64
     println!("🔄 Serializing transaction to base64");
-    let serialized_transaction = bincode::serialize(&versioned_transaction)
-        .map(|bytes| BASE64_STANDARD.encode(bytes))?;
+    let serialized_transaction = match bincode::serialize(&versioned_transaction) {
+        Ok(bytes) => BASE64_STANDARD.encode(bytes),
+        Err(_) => return Err(AppError::SerializationError),
+    };
     println!("✅ Transaction serialized successfully, size: {} bytes", serialized_transaction.len());
-    
+
     println!("🎉 Transaction creation completed successfully");
     Ok(Json(TransactionResponse {
         transaction: serialized_transaction,
@@ -214,7 +224,7 @@ pub async fn deposit_cb(
     Json(request): Json<DepositCbRequest>,
 ) -> Result<Json<TransactionResponse>, AppError> {
     println!("🚀 Starting deposit_cb handler");
-    
+
     // Deserialize the account data
     println!("📦 Decoding token account data from request");
     let token_account_info = {
@@ -222,7 +232,7 @@ pub async fn deposit_cb(
         let token_account_data = BASE64_STANDARD.decode(&request.token_account_data)?;
         StateWithExtensionsOwned::<spl_token_2022::state::Account>::unpack(token_account_data)?
     };
-    
+
     // Parse the amount to deposit
     println!("💰 Parsing amount: {}", request.lamport_amount);
     let deposit_amount = match request.lamport_amount.parse::<u64>() {
@@ -258,7 +268,7 @@ pub async fn deposit_cb(
 
     // Use Hash::default() instead of hardcoded blockhash
     let dummy_blockhash = Hash::default();
-    
+
     // Create a V0 message with the dummy blockhash
     let v0_message = v0::Message::try_compile(
         &token_account_authority,
@@ -269,31 +279,31 @@ pub async fn deposit_cb(
 
     // Get the number of required signatures before moving v0_message
     let num_required_signatures = v0_message.header.num_required_signatures as usize;
-    
+
     // Create a versioned message
     let versioned_message = VersionedMessage::V0(v0_message);
-    
+
     // Create a versioned transaction with placeholder signatures for required signers
     let mut signatures = Vec::with_capacity(num_required_signatures);
-    
+
     // Add empty signatures as placeholders (will be replaced by the wallet)
     for _ in 0..num_required_signatures {
         signatures.push(solana_sdk::signature::Signature::default());
     }
-    
+
     let versioned_transaction = VersionedTransaction {
         signatures,
         message: versioned_message,
     };
-    
+
     // Serialize the transaction to base64
     let serialized_transaction = match bincode::serialize(&versioned_transaction) {
         Ok(bytes) => BASE64_STANDARD.encode(bytes),
         Err(_) => return Err(AppError::SerializationError),
     };
-    
+
     println!("✅ Transaction created successfully");
-    
+
     // Empty handler implementation
     Ok(Json(TransactionResponse {
         transaction: serialized_transaction,
@@ -305,11 +315,11 @@ pub async fn apply_cb(
     Json(request): Json<ApplyCbRequest>,
 ) -> Result<Json<TransactionResponse>, AppError> {
     println!("🔄 Processing apply_cb request");
-    
+
     // Parse the authority address
     let ata_authority = parse_base64_base58_pubkey(&request.ata_authority)?;
     println!("✅ Parsed authority pubkey: {}", ata_authority);
-    
+
     // Deserialize the account data
     println!("📦 Decoding token account data from request");
     let token_account_info = {
@@ -318,28 +328,28 @@ pub async fn apply_cb(
         StateWithExtensionsOwned::<spl_token_2022::state::Account>::unpack(token_account_data)?
     };
     println!("✅ Successfully decoded ATA data from owner {}", token_account_info.base.owner.to_string());
-    
+
     // Parse the mint address
     let mint_pubkey = token_account_info.base.mint;
-    
+
     // Parse ElGamal signature
     println!("🔐 Decoding ElGamal signature: {}", request.elgamal_signature);
     let decoded_elgamal_signature = BASE64_STANDARD.decode(&request.elgamal_signature)?;
     let elgamal_signature = Signature::try_from(decoded_elgamal_signature.as_slice())
         .map_err(|_| AppError::SerializationError)?;
-    
+
     let elgamal_keypair = ElGamalKeypair::new_from_signature(&elgamal_signature)
         .map_err(|_| AppError::SerializationError)?;
-    
+
     // Parse AES signature
     println!("🔐 Decoding AES signature: {}", request.aes_signature);
     let decoded_aes_signature = BASE64_STANDARD.decode(&request.aes_signature)?;
     let aes_signature = Signature::try_from(decoded_aes_signature.as_slice())
         .map_err(|_| AppError::SerializationError)?;
-    
+
     let aes_key = AeKey::new_from_signature(&aes_signature)
         .map_err(|_| AppError::SerializationError)?;
-    
+
     // Get the associated token account address
     let ata = get_associated_token_address_with_program_id(
         &ata_authority,
@@ -390,7 +400,7 @@ pub async fn apply_cb(
         AppError::SerializationError
     })?;
     println!("✅ Successfully created apply_pending_balance instruction");
-    
+
     // Create a dummy recent blockhash
     println!("🔑 Creating dummy blockhash for transaction");
     let dummy_blockhash = Hash::new_unique();
@@ -405,29 +415,29 @@ pub async fn apply_cb(
         dummy_blockhash,
     ).map_err(|_| AppError::SerializationError)?;
     println!("✅ V0 message created successfully");
-    
+
     // Get the number of required signatures before moving v0_message
     let num_required_signatures = v0_message.header.num_required_signatures as usize;
     println!("🔑 Transaction requires {} signatures", num_required_signatures);
-    
+
     // Create a versioned message
     println!("📝 Creating versioned message");
     let versioned_message = VersionedMessage::V0(v0_message);
-    
+
     // Create a versioned transaction with placeholder signatures for required signers
     println!("📝 Creating versioned transaction with placeholder signatures");
     let mut signatures = Vec::with_capacity(num_required_signatures);
-    
+
     // Add empty signatures as placeholders (will be replaced by the wallet)
     for _ in 0..num_required_signatures {
         signatures.push(solana_sdk::signature::Signature::default());
     }
-    
+
     let versioned_transaction = VersionedTransaction {
         signatures,
         message: versioned_message,
     };
-    
+
     // Serialize the transaction to base64
     println!("🔄 Serializing transaction");
     let serialized_transaction = match bincode::serialize(&versioned_transaction) {
@@ -435,7 +445,7 @@ pub async fn apply_cb(
         Err(_) => return Err(AppError::SerializationError),
     };
     println!("✅ Transaction created successfully");
-    
+
     // Return the transaction
     Ok(Json(TransactionResponse {
         transaction: serialized_transaction,
@@ -444,7 +454,7 @@ pub async fn apply_cb(
 }
 
 /// Handler for the transfer-cb endpoint
-/// 
+///
 /// This endpoint creates a transaction to transfer tokens between confidential token accounts
 pub async fn transfer_cb(
     Json(request): Json<TransferCbRequest>,
@@ -456,7 +466,7 @@ pub async fn transfer_cb(
     let transfer_amount_lamports = request.amount.parse::<u64>()
         .map_err(|_| AppError::InvalidAmount)?;
     println!("✅ Successfully decoded amount: {}", transfer_amount_lamports);
-    
+
     // Parse rent values for proof account creation
     let equality_proof_rent = request.equality_proof_rent.parse::<u64>()
         .map_err(|_| AppError::SerializationError)?;
@@ -464,7 +474,7 @@ pub async fn transfer_cb(
         .map_err(|_| AppError::SerializationError)?;
     let range_proof_rent = request.range_proof_rent.parse::<u64>()
         .map_err(|_| AppError::SerializationError)?;
-    
+
     // Decode sender token account data from request
     println!("📦 Decoding sender token account data from request");
     let sender_token_account_info = {
@@ -472,7 +482,7 @@ pub async fn transfer_cb(
         StateWithExtensionsOwned::<spl_token_2022::state::Account>::unpack(sender_token_account_data)?
     };
     println!("✅ Successfully decoded sender token account data from owner {}", sender_token_account_info.base.owner.to_string());
-    
+
     // Decode recipient token account data from request
     println!("📦 Decoding recipient token account data from request");
     let recipient_token_account_info = {
@@ -480,14 +490,14 @@ pub async fn transfer_cb(
         StateWithExtensionsOwned::<spl_token_2022::state::Account>::unpack(recipient_token_account_data)?
     };
     println!("✅ Successfully decoded recipient token account data from owner {}", recipient_token_account_info.base.owner.to_string());
-    
+
     // Verify that both accounts reference the same mint
     let mint = {
         let sender_mint = sender_token_account_info.base.mint;
         let recipient_mint = recipient_token_account_info.base.mint;
-        
+
         if sender_token_account_info.base.mint != recipient_token_account_info.base.mint {
-            println!("❌ Mint mismatch: sender mint {} does not match recipient mint {}", 
+            println!("❌ Mint mismatch: sender mint {} does not match recipient mint {}",
                 sender_mint.to_string(), recipient_mint.to_string());
             return Err(AppError::MintMismatch);
         }
@@ -503,7 +513,7 @@ pub async fn transfer_cb(
         &spl_token_2022::id(),
     );
     println!("✅ Calculated sender token account address: {}", sender_token_account);
-    
+
     // Get the recipient token account address
     let recipient_ata_authority = recipient_token_account_info.base.owner;
     let recipient_token_account = get_associated_token_address_with_program_id(
@@ -519,7 +529,7 @@ pub async fn transfer_cb(
     // Equality Proof - prove that two ciphertexts encrypt the same value
     // Ciphertext Validity Proof - prove that ciphertexts are properly generated
     // Range Proof - prove that ciphertexts encrypt a value in a specified range (0, u64::MAX)
-    
+
     // "Authority" for the proof accounts (to close the accounts after the transfer)
     let context_state_authority = &sender_ata_authority;
 
@@ -537,7 +547,7 @@ pub async fn transfer_cb(
         TransferAccountInfo::new(sender_account_extension_data)
     };
 
-    let recipient_elgamal_pubkey: solana_zk_sdk::encryption::elgamal::ElGamalPubkey  = 
+    let recipient_elgamal_pubkey: solana_zk_sdk::encryption::elgamal::ElGamalPubkey  =
         recipient_token_account_info.get_extension::<ConfidentialTransferAccount>()?
         .elgamal_pubkey.try_into()?;
 
@@ -560,12 +570,12 @@ pub async fn transfer_cb(
         println!("🔐 Decoding ElGamal signature: {}", request.elgamal_signature);
         let decoded_elgamal_signature = BASE64_STANDARD.decode(&request.elgamal_signature)?;
         println!("✅ ElGamal signature base64 decoded, got {} bytes", decoded_elgamal_signature.len());
-        
+
         // Create signature directly from bytes
         let elgamal_signature = Signature::try_from(decoded_elgamal_signature.as_slice())
             .map_err(|_| AppError::SerializationError)?;
         println!("✅ ElGamal signature created successfully");
-        
+
         ElGamalKeypair::new_from_signature(&elgamal_signature)
             .map_err(|_| AppError::SerializationError)?
     };
@@ -576,12 +586,12 @@ pub async fn transfer_cb(
         println!("🔐 Decoding AES signature: {}", request.aes_signature);
         let decoded_aes_signature = BASE64_STANDARD.decode(&request.aes_signature)?;
         println!("✅ AES signature base64 decoded, got {} bytes", decoded_aes_signature.len());
-        
+
         // Create signature directly from bytes
         let aes_signature = Signature::try_from(decoded_aes_signature.as_slice())
             .map_err(|_| AppError::SerializationError)?;
         println!("✅ AES signature created successfully");
-        
+
         AeKey::new_from_signature(&aes_signature)
             .map_err(|_| AppError::SerializationError)?
     };
@@ -645,23 +655,23 @@ pub async fn transfer_cb(
     let tx1 = {
         // Create instructions vector
         let mut instructions = Vec::new();
-        
+
         // Add priority fee instructions if the fee is greater than 0
         if priority_fee > 0 {
             // Convert lamports to micro-lamports per compute unit
             // For example, 10,000,000 lamports with 200,000 compute units = 50,000 micro-lamports per CU
             let micro_lamports = priority_fee * 1_000_000 / 200_000;
-            
+
             // Add compute budget program instructions
             let compute_budget_program_id = solana_sdk::compute_budget::id();
-            
+
             // Set compute unit limit (optional but recommended)
             instructions.push(solana_sdk::instruction::Instruction::new_with_borsh(
                 compute_budget_program_id,
                 &solana_sdk::compute_budget::ComputeBudgetInstruction::SetComputeUnitLimit(200_000),
                 vec![],
             ));
-            
+
             // Set compute unit price (priority fee)
             instructions.push(solana_sdk::instruction::Instruction::new_with_borsh(
                 compute_budget_program_id,
@@ -669,12 +679,12 @@ pub async fn transfer_cb(
                 vec![],
             ));
         }
-        
+
         // Add the original instructions
         instructions.push(range_create_ix.clone());
         instructions.push(equality_create_ix.clone());
         instructions.push(cv_create_ix.clone());
-        
+
         // Rest of the code remains the same...
         let message = v0::Message::try_compile(
             &sender_ata_authority,
@@ -682,11 +692,11 @@ pub async fn transfer_cb(
             &[],
             client_blockhash,
         )?;
-        
+
         // Create a versioned message
         let versioned_message = VersionedMessage::V0(message.clone());
 
-        VersionedTransaction::try_new(versioned_message, 
+        VersionedTransaction::try_new(versioned_message,
         &[
             &NullSigner::new(&sender_ata_authority) as &dyn Signer,
             &range_proof_context_state_account,
@@ -694,7 +704,7 @@ pub async fn transfer_cb(
             &ciphertext_validity_proof_context_state_account,
         ])?
     };
-    
+
     // Transaction 2: Encode Range Proof on its own (because it's the largest).
     let tx2 = {
         let message = v0::Message::try_compile(
@@ -703,7 +713,7 @@ pub async fn transfer_cb(
             &[],
             client_blockhash,
         )?;
-        
+
         // Create a versioned transaction with a placeholder signature for the sender
         VersionedTransaction {
             // Single placeholder signature for the sender as the fee payer.
@@ -720,7 +730,7 @@ pub async fn transfer_cb(
             &[],
             client_blockhash,
         )?;
-        
+
         // Create a versioned transaction with a placeholder signature for the sender
         VersionedTransaction {
             // Single placeholder signature for the sender
@@ -758,7 +768,7 @@ pub async fn transfer_cb(
             &[],
             client_blockhash,
         )?;
-        
+
         // Create a versioned transaction with a placeholder signature for the sender
         VersionedTransaction {
             // Single placeholder signature for the sender
@@ -810,7 +820,7 @@ pub async fn transfer_cb(
             &[],
             client_blockhash,
         )?;
-        
+
         // Create a versioned transaction with a placeholder signature for the sender
         VersionedTransaction {
             // Single placeholder signature for the sender
@@ -818,7 +828,7 @@ pub async fn transfer_cb(
             message: VersionedMessage::V0(message),
         }
     };
-    
+
     // Return all transactions
     let transactions = vec![tx1, tx2, tx3, tx4, tx5];
     let response = MultiTransactionResponse {
@@ -835,11 +845,11 @@ pub async fn transfer_cb(
     };
 
     Ok(Json(response))
-    
+
 }
 
 /// Handler for the withdraw-cb endpoint
-/// 
+///
 /// This endpoint creates a transaction to withdraw tokens from a confidential token account
 pub async fn withdraw_cb(
     Json(request): Json<WithdrawCbRequest>,
@@ -876,12 +886,12 @@ pub async fn withdraw_cb(
         println!("🔐 Decoding ElGamal signature: {}", request.elgamal_signature);
         let decoded_elgamal_signature = BASE64_STANDARD.decode(&request.elgamal_signature)?;
         println!("✅ ElGamal signature base64 decoded, got {} bytes", decoded_elgamal_signature.len());
-        
+
         // Create signature directly from bytes
         let elgamal_signature = Signature::try_from(decoded_elgamal_signature.as_slice())
             .map_err(|_| AppError::SerializationError)?;
         println!("✅ ElGamal signature created successfully");
-        
+
         ElGamalKeypair::new_from_signature(&elgamal_signature)
             .map_err(|_| AppError::SerializationError)?
     };
@@ -892,17 +902,17 @@ pub async fn withdraw_cb(
         println!("🔐 Decoding AES signature: {}", request.aes_signature);
         let decoded_aes_signature = BASE64_STANDARD.decode(&request.aes_signature)?;
         println!("✅ AES signature base64 decoded, got {} bytes", decoded_aes_signature.len());
-        
+
         // Create signature directly from bytes
         let aes_signature = Signature::try_from(decoded_aes_signature.as_slice())
             .map_err(|_| AppError::SerializationError)?;
         println!("✅ AES signature created successfully");
-        
+
         AeKey::new_from_signature(&aes_signature)
             .map_err(|_| AppError::SerializationError)?
     };
     println!("✅ AES key created successfully");
-    
+
     // Unpack the ConfidentialTransferAccount extension portion of the token account data
     let extension_data = recipient_token_account_info.get_extension::<ConfidentialTransferAccount>()?;
 
@@ -948,16 +958,16 @@ pub async fn withdraw_cb(
         let message = v0::Message::try_compile(
             &context_state_authority,
             &[
-                equality_create_ix, 
-                equality_verify_ix, 
-                range_create_ix 
+                equality_create_ix,
+                equality_verify_ix,
+                range_create_ix
             ],
             &[],
             client_blockhash,
         )?;
 
         let versioned_message = VersionedMessage::V0(message.clone());
-        VersionedTransaction::try_new(versioned_message, 
+        VersionedTransaction::try_new(versioned_message,
         &[
             &NullSigner::new(&context_state_authority) as &dyn Signer,
             &range_proof_context_state_keypair,
@@ -974,7 +984,7 @@ pub async fn withdraw_cb(
         )?;
 
         let versioned_message = VersionedMessage::V0(message.clone());
-        VersionedTransaction::try_new(versioned_message, 
+        VersionedTransaction::try_new(versioned_message,
         &[
             &NullSigner::new(&context_state_authority) as &dyn Signer,
         ])?
@@ -992,7 +1002,7 @@ pub async fn withdraw_cb(
             &recipient_token_account_info.base.mint,
             &spl_token_2022::id(),
         );
-        
+
         let instructions = withdraw(
             &spl_token_2022::id(),
             &recipient_token_account,
@@ -1073,7 +1083,7 @@ pub async fn withdraw_cb(
 }
 
 /// Refactored version of spl_token_client::token::Token::confidential_transfer_create_context_state_account().
-/// Instead of sending transactions internally or calculating rent via RPC, this function now accepts 
+/// Instead of sending transactions internally or calculating rent via RPC, this function now accepts
 /// the rent value from the caller and returns the instructions to be used externally.
 fn get_zk_proof_context_state_account_creation_instructions<
     ZK: bytemuck::Pod + zk_elgamal_proof_program::proof_data::ZkProofData<U>,
@@ -1099,7 +1109,7 @@ fn get_zk_proof_context_state_account_creation_instructions<
 
     let instruction_type = zk_proof_type_to_instruction(ZK::PROOF_TYPE)?;
 
-    println!("🔧 Creating context state account with inputs: fee_payer={}, context_state_account={}, rent={}, space={}", 
+    println!("🔧 Creating context state account with inputs: fee_payer={}, context_state_account={}, rent={}, space={}",
         fee_payer_pubkey, context_state_account_pubkey, rent, space);
     let create_account_ix = system_instruction::create_account(
         fee_payer_pubkey,
@@ -1119,11 +1129,11 @@ fn get_zk_proof_context_state_account_creation_instructions<
 /// GET handler to provide space requirements for transfer-cb operation
 pub async fn transfer_cb_space() -> Result<Json<TransferCbSpaceResponse>, AppError> {
     println!("📊 Processing transfer-cb-space request");
-    
+
     let equality_proof_space = size_of::<zk_elgamal_proof_program::state::ProofContextState<
         solana_zk_sdk::zk_elgamal_proof_program::proof_data::ciphertext_commitment_equality::CiphertextCommitmentEqualityProofContext
     >>();
-    
+
     let ciphertext_validity_proof_space = size_of::<zk_elgamal_proof_program::state::ProofContextState<
         solana_zk_sdk::zk_elgamal_proof_program::proof_data::batched_grouped_ciphertext_validity::BatchedGroupedCiphertext3HandlesValidityProofContext
     >>();
@@ -1131,7 +1141,7 @@ pub async fn transfer_cb_space() -> Result<Json<TransferCbSpaceResponse>, AppErr
     let range_proof_space = size_of::<zk_elgamal_proof_program::state::ProofContextState<
         solana_zk_sdk::zk_elgamal_proof_program::proof_data::batched_range_proof::batched_range_proof_u128::BatchedRangeProofU128Data
     >>();
-    
+
     Ok(Json(TransferCbSpaceResponse {
         equality_proof_space,
         ciphertext_validity_proof_space,
@@ -1143,15 +1153,15 @@ pub async fn transfer_cb_space() -> Result<Json<TransferCbSpaceResponse>, AppErr
 /// GET handler to provide space requirements for withdraw-cb operation
 pub async fn withdraw_cb_space() -> Result<Json<WithdrawCbSpaceResponse>, AppError> {
     println!("📊 Processing withdraw-cb-space request");
-    
+
     let equality_proof_space = size_of::<zk_elgamal_proof_program::state::ProofContextState<
         solana_zk_sdk::zk_elgamal_proof_program::proof_data::ciphertext_commitment_equality::CiphertextCommitmentEqualityProofContext
     >>();
-    
+
     let range_proof_space = size_of::<zk_elgamal_proof_program::state::ProofContextState<
         solana_zk_sdk::zk_elgamal_proof_program::proof_data::batched_range_proof::batched_range_proof_u128::BatchedRangeProofU128Data
     >>();
-    
+
     Ok(Json(WithdrawCbSpaceResponse {
         equality_proof_space,
         range_proof_space,
@@ -1164,14 +1174,14 @@ pub async fn decrypt_cb(
     Json(request): Json<DecryptCbRequest>,
 ) -> Result<Json<DecryptCbResponse>, AppError> {
     println!("🔐 Starting decrypt_cb handler");
-    
+
     // Create the AES key
     let aes_key = {
         let decoded_aes_signature = BASE64_STANDARD.decode(&request.aes_signature)?;
 
         let aes_signature = Signature::try_from(decoded_aes_signature.as_slice())
         .map_err(|_| AppError::SerializationError)?;
-        
+
         AeKey::new_from_signature(&aes_signature)
             .map_err(|_| AppError::SerializationError)?
     };

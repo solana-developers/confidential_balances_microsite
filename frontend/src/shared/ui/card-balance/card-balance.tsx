@@ -13,7 +13,7 @@ export const CardBalance: FC<CardBalanceProps> = ({ className, title, balance, s
       <CardTitle>{title}</CardTitle>
     </CardHeader>
     <CardContent>
-      {balance ? (
+      {balance !== undefined ? (
         <span className="font-semibold">
           {balance} {symbol}
         </span>
