@@ -1,10 +1,10 @@
 import { FC, useEffect, useState } from 'react'
 import { PublicKey } from '@solana/web3.js'
+import { ModalDeposit } from '@/features/deposit-tokens'
+import { ModalTransfer } from '@/features/transfer-tokens'
+import { ModalWithdraw } from '@/features/withdraw-tokens'
 import { useApplyCB } from '../model/use-apply-cb'
 import { useHasPendingBalance } from '../model/use-has-pending-balance'
-import { ModalDeposit } from './modal-deposit'
-import { ModalTransfer } from './modal-transfer'
-import { ModalWithdraw } from './modal-withdraw'
 
 type TokenAccountButtonsProps = {
   address: PublicKey
@@ -37,7 +37,7 @@ export const TokenAccountButtons: FC<TokenAccountButtonsProps> = ({ address }) =
       <ModalTransfer
         show={showTransferModal}
         hide={() => setShowTransferModal(false)}
-        address={address}
+        tokenAccountPubkey={address}
       />
       <ModalWithdraw
         show={showWithdraw}

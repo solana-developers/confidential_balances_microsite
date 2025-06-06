@@ -1,0 +1,4 @@
+input[type='number'].input::-webkit-inner-spin-button,
+input[type='number'].input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+}

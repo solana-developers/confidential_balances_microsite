@@ -1,13 +1,12 @@
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { PublicKey, TransactionSignature } from '@solana/web3.js'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import toast from 'react-hot-toast'
-import { useTransactionToast } from '../ui/transaction-toast'
+import { useToast } from '@/shared/ui/toast'
 import { createTransaction } from './create-transaction'
 
 export const useTransferSol = ({ address }: { address: PublicKey }) => {
   const { connection } = useConnection()
-  const transactionToast = useTransactionToast()
+  const toast = useToast()
   const wallet = useWallet()
   const client = useQueryClient()
 
@@ -39,7 +38,7 @@ export const useTransferSol = ({ address }: { address: PublicKey }) => {
     },
     onSuccess: (signature) => {
       if (signature) {
-        transactionToast(signature)
+        toast.info(signature)
       }
       return Promise.all([
         client.invalidateQueries({

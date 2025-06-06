@@ -2,11 +2,13 @@ import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { useTransactionToast } from '../ui/transaction-toast'
-import { AES_SEED_MESSAGE } from './aes-seed-message'
-import { ELGAMAL_SEED_MESSAGE } from './elgamal-seed-message'
-import { generateSeedSignature } from './generate-seed-signature'
-import { processMultiTransaction } from './process-multi-transaction'
+import {
+  AES_SEED_MESSAGE,
+  ELGAMAL_SEED_MESSAGE,
+  generateSeedSignature,
+  processMultiTransaction,
+} from '@/entities/account/account'
+import { useToast } from '@/shared/ui/toast'
 
 export const useTransferCB = ({
   senderTokenAccountPubkey,
@@ -15,7 +17,7 @@ export const useTransferCB = ({
 }) => {
   const { connection } = useConnection()
   const client = useQueryClient()
-  const transactionToast = useTransactionToast()
+  const toast = useToast()
   const wallet = useWallet()
 
   return useMutation({
@@ -166,7 +168,7 @@ export const useTransferCB = ({
       if (data.signatures && data.signatures.length > 0) {
         // Display toast for each signature
         data.signatures.forEach((signature: string) => {
-          transactionToast(signature)
+          toast.info(signature)
         })
         toast.success('Transfer transaction successful')
       }

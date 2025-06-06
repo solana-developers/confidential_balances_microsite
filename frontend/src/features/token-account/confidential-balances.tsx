@@ -14,9 +14,9 @@ import {
 import { useConfidentialVisibility } from '@/entities/account/account/model/use-confidential-visibility'
 import { useDecryptConfidentialBalance } from '@/entities/account/account/model/use-decrypt-confidential-balance'
 import { useGetTokenAccounts } from '@/entities/account/account/model/use-get-token-accounts'
-import { ModalDeposit } from '@/entities/account/account/ui/modal-deposit'
-import { ModalTransfer } from '@/entities/account/account/ui/modal-transfer'
-import { ModalWithdraw } from '@/entities/account/account/ui/modal-withdraw'
+import { ModalDeposit } from '@/features/deposit-tokens'
+import { ModalTransfer } from '@/features/transfer-tokens'
+import { ModalWithdraw } from '@/features/withdraw-tokens'
 import { DataTable } from '@/shared/ui/data-table'
 
 type DataTableAction = NonNullable<ComponentProps<typeof DataTable>['actions']>[0]
@@ -136,7 +136,7 @@ function ConnectedWalletConfidentialBalances({
           <ModalTransfer
             show={showTransferModal}
             hide={() => setShowTransferModal(false)}
-            address={selectedTokenAccount}
+            tokenAccountPubkey={selectedTokenAccount}
           />
         </>
       )}

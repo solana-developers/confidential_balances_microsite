@@ -81,7 +81,7 @@ export function DataTable({
                   aria-label={`${action.action}`}
                   key={action.action}
                   size="sm"
-                  variant="secondary"
+                  variant="outline"
                   onClick={action?.onClick?.bind(null, action.action)}
                 >
                   {icon ?? undefined}

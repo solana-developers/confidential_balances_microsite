@@ -15,6 +15,9 @@ importers:
       '@headlessui/react':
         specifier: ^2.2.4
         version: 2.2.4(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      '@radix-ui/react-radio-group':
+        specifier: ^1.3.7
+        version: 1.3.7(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@radix-ui/react-slot':
         specifier: ^1.2.3
         version: 1.2.3(@types/react@18.3.18)(react@19.1.0)
@@ -75,6 +78,9 @@ importers:
       next:
         specifier: ^15.3.2
         version: 15.3.2(@babel/core@7.26.10)(@playwright/test@1.52.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(sass@1.88.0)
+      pluralize:
+        specifier: ^8.0.0
+        version: 8.0.0
       react:
         specifier: ^19.1.0
         version: 19.1.0
@@ -133,6 +139,9 @@ importers:
       '@types/node':
         specifier: ^22
         version: 22.13.10
+      '@types/pluralize':
+        specifier: ^0.0.33
+        version: 0.0.33
       '@types/react':
         specifier: ^18
         version: 18.3.18
@@ -4228,6 +4237,9 @@ packages:
   '@types/parse-json@4.0.2':
     resolution: {integrity: sha512-dISoDXWWQwUquiKsyZ4Ng+HX2KsPL7LyHKHQwgGFEA3IaKac4Obd+h2a/a6waisAoepJlBcx9paWqjA8/HVjCw==}
 
+  '@types/pluralize@0.0.33':
+    resolution: {integrity: sha512-JOqsl+ZoCpP4e8TDke9W79FDcSgPAR0l6pixx2JHkhnRjvShyYiAYw2LVsnA7K08Y6DeOnaU6ujmENO4os/cYg==}
+
   '@types/prop-types@15.7.14':
     resolution: {integrity: sha512-gNMvNH49DJ7OJYv+KAKn0Xp45p8PLl6zo2YnvDIbTd4J6MER2BmWN49TG7n9LvkyihINxeKW8+3bfS2yDC9dzQ==}
 
@@ -7423,6 +7435,10 @@ packages:
     resolution: {integrity: sha512-JAwMNMBlxJ2oD1kce4KPtMkDeKGHQstdpFPcPH3maElAXon/QZeTvtsfXmTMRyO9TslfoYOXkSsvao2nE1ilTw==}
     engines: {node: '>=18'}
     hasBin: true
+
+  pluralize@8.0.0:
+    resolution: {integrity: sha512-Nc3IT5yHzflTfbjgqWcCPpo7DaKy4FnpB0l/zCAW0Tc7jxAiuqSxHasntB3D7887LSrA93kDJ9IXovxJYxyLCA==}
+    engines: {node: '>=4'}
 
   pngjs@5.0.0:
     resolution: {integrity: sha512-40QW5YalBNfQo5yRYmiw7Yz6TKKVr3h6970B2YE+3fQpsWcrbj1PzJgxeJ19DRQjhMbKPIuMY8rFaXc8moolVw==}
@@ -14527,6 +14543,8 @@ snapshots:
 
   '@types/parse-json@4.0.2': {}
 
+  '@types/pluralize@0.0.33': {}
+
   '@types/prop-types@15.7.14': {}
 
   '@types/react-dom@18.3.5(@types/react@18.3.18)':
@@ -18725,6 +18743,8 @@ snapshots:
       playwright-core: 1.52.0
     optionalDependencies:
       fsevents: 2.3.2
+
+  pluralize@8.0.0: {}
 
   pngjs@5.0.0: {}
 

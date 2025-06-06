@@ -11,18 +11,23 @@ import { Input } from '../input/input'
 interface FormItemProps extends InputHTMLAttributes<HTMLInputElement> {
   description?: string
   label?: string
+  hint?: string
 }
 
 export const FormItemInput: FC<FormItemProps & InputHTMLAttributes<HTMLInputElement>> = ({
   description,
   label,
-  name,
-  value,
+  hint,
   ...inputProps
 }) => {
   return (
     <UIFormItem>
-      {label && <FormLabel className="text-sm leading-5 font-normal text-white">{label}</FormLabel>}
+      {(label || hint) && (
+        <FormLabel className="flex flex-nowrap items-center gap-2 text-sm leading-5 font-normal text-white">
+          {label && <span className="flex-1">{label}</span>}
+          {hint && <span className="shrink-0 text-xs text-[var(--muted-foreground)]">{hint}</span>}
+        </FormLabel>
+      )}
       <FormControl>
         <Input {...inputProps} />
       </FormControl>
