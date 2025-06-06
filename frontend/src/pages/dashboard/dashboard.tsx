@@ -7,10 +7,12 @@ import { useOperationLog } from '@/entities/operation-log'
 import { TokenAccounts } from '@/features/token-account/token-accounts'
 import { CardStep } from '@/shared/ui/card-step'
 import { Text } from '@/shared/ui/text'
+import { useToast } from '@/shared/ui/toast'
 
 export const Dashboard: FC = () => {
   const { push } = useOperationLog()
   const { set } = useDevMode()
+  const toast = useToast()
 
   return (
     <section className="flex flex-col gap-5">

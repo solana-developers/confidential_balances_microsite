@@ -3,7 +3,6 @@
 import { ComponentProps, FC, PropsWithChildren, Suspense, useRef } from 'react'
 import { cn, Skeleton } from '@solana-foundation/ms-tools-ui'
 import { useAtomValue } from 'jotai'
-import { Toaster } from 'react-hot-toast'
 import { AccountChecker } from '@/entities/account/account'
 import { ClusterChecker } from '@/entities/cluster/cluster'
 import { devModeOpenAtom, DevModePanel } from '@/entities/dev-mode'
@@ -60,7 +59,6 @@ export const BaseLayout: FC<LayoutProps> = ({ children, links }) => {
           )}
         </div>
         <OperationLogButton />
-        <Toaster position="bottom-right" />
       </div>
 
       <OperationLogDrawer />

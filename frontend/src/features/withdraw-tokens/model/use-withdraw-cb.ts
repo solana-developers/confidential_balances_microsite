@@ -2,18 +2,19 @@ import { getAccount, TOKEN_2022_PROGRAM_ID, unpackAccount } from '@solana/spl-to
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
 import {
   AES_SEED_MESSAGE,
   ELGAMAL_SEED_MESSAGE,
   generateSeedSignature,
   processMultiTransaction,
 } from '@/entities/account/account'
+import { useToast } from '@/shared/ui/toast'
 
 export const useWithdrawCB = ({ tokenAccountPubkey }: { tokenAccountPubkey: PublicKey }) => {
   const { connection } = useConnection()
   const client = useQueryClient()
   const wallet = useWallet()
+  const toast = useToast()
 
   return useMutation({
     mutationKey: ['withdraw-cb', { endpoint: connection.rpcEndpoint, tokenAccountPubkey }],
@@ -144,7 +145,7 @@ export const useWithdrawCB = ({ tokenAccountPubkey }: { tokenAccountPubkey: Publ
       if (data.signatures && data.signatures.length > 0) {
         // Display toast for each signature
         data.signatures.forEach((signature: string) => {
-          toast.info(signature)
+          toast.transaction(signature)
         })
         toast.success('Withdraw transaction successful')
       }

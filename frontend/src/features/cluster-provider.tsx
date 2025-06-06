@@ -3,7 +3,6 @@
 import { FC, PropsWithChildren } from 'react'
 import { Connection } from '@solana/web3.js'
 import { useAtomValue, useSetAtom } from 'jotai'
-import toast from 'react-hot-toast'
 import {
   activeClusterAtom,
   activeClustersAtom,
@@ -16,12 +15,14 @@ import {
   getClusterUrlParam,
   type Cluster,
 } from '@/shared/solana'
+import { useToast } from '@/shared/ui/toast'
 
 export const ClusterProvider: FC<PropsWithChildren> = ({ children }) => {
   const cluster = useAtomValue(activeClusterAtom)
   const clusters = useAtomValue(activeClustersAtom)
   const setCluster = useSetAtom(clusterAtom)
   const setClusters = useSetAtom(clustersAtom)
+  const toast = useToast()
 
   const value: ClusterProviderContext = {
     cluster,

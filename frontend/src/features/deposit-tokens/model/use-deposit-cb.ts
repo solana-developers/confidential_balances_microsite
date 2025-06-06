@@ -96,7 +96,7 @@ export const useDepositCb = ({ tokenAccountPubkey }: { tokenAccountPubkey: Publi
     },
     onSuccess: (data) => {
       if (data.signature) {
-        toast.info(data.signature)
+        toast.transaction(data.signature)
         toast.success('Deposit transaction successful')
       }
 

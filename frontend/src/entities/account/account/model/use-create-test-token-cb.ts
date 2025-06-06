@@ -2,8 +2,7 @@ import { ExtensionType, getMintLen } from '@solana/spl-token'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { Keypair, PublicKey, VersionedTransaction } from '@solana/web3.js'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import toast from 'react-hot-toast'
-import { useTransactionToast } from '../ui/transaction-toast'
+import { useToast } from '@/shared/ui/toast'
 import { getCacheKey as getTokenAccountsCacheKey } from './use-get-token-accounts'
 
 async function serverRequest({ account, mint }: { account: PublicKey; mint: PublicKey }) {
@@ -36,7 +35,7 @@ export const useCreateTestTokenCB = ({
 }) => {
   const { connection } = useConnection()
   const client = useQueryClient()
-  const transactionToast = useTransactionToast()
+  const toast = useToast()
   const wallet = useWallet()
 
   return useMutation({
@@ -105,7 +104,7 @@ export const useCreateTestTokenCB = ({
     },
     onSuccess: (data) => {
       if (data.signature) {
-        transactionToast(data.signature)
+        toast.transaction(data.signature)
         toast.success(`Token-2022 mint created! Address: ${data.mintAddress}`)
       }
 

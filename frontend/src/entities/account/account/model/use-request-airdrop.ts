@@ -1,11 +1,11 @@
 import { useConnection } from '@solana/wallet-adapter-react'
 import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useTransactionToast } from '../ui/transaction-toast'
+import { useToast } from '@/shared/ui/toast'
 
 export const useRequestAirdrop = ({ address }: { address: PublicKey }) => {
   const { connection } = useConnection()
-  const transactionToast = useTransactionToast()
+  const toast = useToast()
   const client = useQueryClient()
 
   return useMutation({
@@ -20,7 +20,7 @@ export const useRequestAirdrop = ({ address }: { address: PublicKey }) => {
       return signature
     },
     onSuccess: (signature) => {
-      transactionToast(signature)
+      toast.transaction(signature)
       return Promise.all([
         client.invalidateQueries({
           queryKey: ['get-balance', { endpoint: connection.rpcEndpoint, address }],

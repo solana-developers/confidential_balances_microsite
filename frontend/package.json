@@ -40,7 +40,6 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-hook-form": "^7.56.4",
-    "react-hot-toast": "^2.5.2",
     "sonner": "^2.0.3",
     "vaul": "^1.1.2"
   },

@@ -1,7 +1,6 @@
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import toast from 'react-hot-toast'
 import {
   AES_SEED_MESSAGE,
   ELGAMAL_SEED_MESSAGE,
@@ -168,7 +167,7 @@ export const useTransferCB = ({
       if (data.signatures && data.signatures.length > 0) {
         // Display toast for each signature
         data.signatures.forEach((signature: string) => {
-          toast.info(signature)
+          toast.transaction(signature)
         })
         toast.success('Transfer transaction successful')
       }

@@ -2,8 +2,7 @@ import { getAccount, getMint, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { PublicKey, VersionedTransaction } from '@solana/web3.js'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import toast from 'react-hot-toast'
-import { useTransactionToast } from '../ui/transaction-toast'
+import { useToast } from '@/shared/ui/toast'
 import { AES_SEED_MESSAGE } from './aes-seed-message'
 import { ELGAMAL_SEED_MESSAGE } from './elgamal-seed-message'
 import { generateSeedSignature } from './generate-seed-signature'
@@ -11,7 +10,7 @@ import { generateSeedSignature } from './generate-seed-signature'
 export const useApplyCB = ({ address }: { address: PublicKey }) => {
   const { connection } = useConnection()
   const client = useQueryClient()
-  const transactionToast = useTransactionToast()
+  const toast = useToast()
   const wallet = useWallet()
 
   return useMutation({
@@ -115,7 +114,7 @@ export const useApplyCB = ({ address }: { address: PublicKey }) => {
     },
     onSuccess: (data) => {
       if (data.signature) {
-        transactionToast(data.signature)
+        toast.transaction(data.signature)
         toast.success('Pending balance applied successfully')
       }
 

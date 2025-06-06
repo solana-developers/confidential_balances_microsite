@@ -2,9 +2,9 @@ import { FC, useCallback } from 'react'
 import { Form, FormField } from '@solana-foundation/ms-tools-ui'
 import { PublicKey } from '@solana/web3.js'
 import { useForm } from 'react-hook-form'
-import toast from 'react-hot-toast'
 import { FormItemInput } from '@/shared/ui/form'
 import { Modal } from '@/shared/ui/modal'
+import { useToast } from '@/shared/ui/toast'
 
 type ModalInitATAProps = {
   show: boolean
@@ -27,6 +27,8 @@ export const ModalInitATA: FC<ModalInitATAProps> = ({
   onSuccess,
   onError,
 }) => {
+  const toast = useToast()
+
   const form = useForm<FormData>({
     defaultValues: {
       mintAddress: undefined,
@@ -78,7 +80,7 @@ export const ModalInitATA: FC<ModalInitATAProps> = ({
         `Initialize ATA failed: ${error instanceof Error ? error.message : String(error)}`
       )
     }
-  }, [initializeAccount, hide, form, onSuccess, onError, isValid])
+  }, [initializeAccount, hide, form, onSuccess, onError, isValid, toast])
 
   return (
     <Modal
