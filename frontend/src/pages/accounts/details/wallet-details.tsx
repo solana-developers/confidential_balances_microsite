@@ -2,12 +2,13 @@
 
 import { FC, useMemo } from 'react'
 import Link from 'next/link'
+import { NATIVE_MINT } from '@solana/spl-token'
 import { PublicKey } from '@solana/web3.js'
-import { TokenAccountHeader } from '@/entities/account-header'
+import { WalletAccountHeader } from '@/entities/account-header'
 import {
+  AccountButtons,
+  AccountTokens,
   AccountTransactions,
-  TokenAccountButtons,
-  TokenConfidentialBalanceDisplay,
   useGetSingleTokenAccount,
 } from '@/entities/account/account'
 import {
@@ -22,7 +23,7 @@ type DetailsProps = {
   address?: string
 }
 
-export const Details: FC<DetailsProps> = ({ address: param }) => {
+export const WalletDetails: FC<DetailsProps> = ({ address: param }) => {
   const address = useMemo(() => {
     if (!param) {
       return
@@ -39,7 +40,7 @@ export const Details: FC<DetailsProps> = ({ address: param }) => {
   const tokenAccountQuery = useGetSingleTokenAccount(
     address ? { address } : { address: PublicKey.default }
   )
-  const { data: accountDescription, isLoading } = tokenAccountQuery
+  const { isLoading } = tokenAccountQuery
 
   if (!address) {
     return <div>Error loading account</div>
@@ -49,8 +50,6 @@ export const Details: FC<DetailsProps> = ({ address: param }) => {
     return <div>Loading account data...</div>
   }
 
-  console.log({ accountDescription }, PublicKey.default.toString())
-
   return (
     <div>
       {/* TODO: replace with UI::Breadcrumbs */}
@@ -58,30 +57,21 @@ export const Details: FC<DetailsProps> = ({ address: param }) => {
         <Link href={'/'}>Go back to wallet page</Link>
       </BackwardControl>
       {/* Use random token account. whould be one that is handled through pathname */}
-      {!param ? (
-        <div>Loading..</div>
-      ) : (
-        <TokenAccountHeader
-          label="Token account"
-          address={address}
-          secondaryLabel="Account balance"
-        />
-      )}
+      {!param ? <div>Loading..</div> : <WalletAccountHeader address={NATIVE_MINT} />}
       <div className="flex flex-col gap-5">
         <ConfidentialBalances />
         <PendingOperations />
         <TransactionHistory />
       </div>
-      LEGACY ACCOUNT MARKUP DOWN THERE
+      LEGACY WALLET MARKUP DOWN THERE
       <div>
         <Hero title="" subtitle="">
           <div className="my-4">
-            <TokenAccountButtons address={address} />
-            <div className="my-4" />
-            <TokenConfidentialBalanceDisplay tokenAccountPubkey={address} />
+            <AccountButtons address={address} />
           </div>
         </Hero>
         <div className="space-y-8">
+          <AccountTokens address={address} />
           <AccountTransactions address={address} />
         </div>
       </div>

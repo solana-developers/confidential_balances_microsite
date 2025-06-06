@@ -6,7 +6,7 @@ import { useNativeAndTokenBalance } from '@/entities/account/account/model/use-n
 import { WalletTitle } from '@/entities/account/account/ui/wallet-title'
 import { CardBalance } from '@/shared/ui/card-balance'
 import { Text } from '@/shared/ui/text'
-import { cn, ellipsify } from '@/shared/utils'
+import { cn } from '@/shared/utils'
 import { ExplorerLink } from '../cluster/cluster'
 
 type AccountHeaderParams = {

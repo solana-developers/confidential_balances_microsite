@@ -3,6 +3,14 @@ import { useConnection } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
 import { useQuery } from '@tanstack/react-query'
 
+export enum StatusReasons {
+  NOT_ATA = 'Account is not owned by Token Program',
+  NOT_EXISTS = 'Account does not exist',
+  PARSE_ERROR = 'Failed to parse token account data',
+  NETWORK_ERROR = 'Network or RPC error',
+  LOADING = 'Query not started',
+}
+
 export const useGetSingleTokenAccount = ({ address }: { address: PublicKey }) => {
   const { connection } = useConnection()
 
@@ -18,7 +26,7 @@ export const useGetSingleTokenAccount = ({ address }: { address: PublicKey }) =>
           return {
             tokenAccount: null,
             error: null,
-            reason: 'Account does not exist',
+            reason: StatusReasons.NOT_EXISTS,
           }
         }
 
@@ -31,7 +39,7 @@ export const useGetSingleTokenAccount = ({ address }: { address: PublicKey }) =>
           return {
             tokenAccount: null,
             error: null,
-            reason: 'Account is not owned by Token Program',
+            reason: StatusReasons.NOT_ATA,
           }
         }
 
@@ -69,7 +77,7 @@ export const useGetSingleTokenAccount = ({ address }: { address: PublicKey }) =>
             return {
               tokenAccount: null,
               error: 'Account is owned by Token Program but could not be parsed as a token account',
-              reason: 'Failed to parse token account data',
+              reason: StatusReasons.PARSE_ERROR,
             }
           }
         }
@@ -79,7 +87,7 @@ export const useGetSingleTokenAccount = ({ address }: { address: PublicKey }) =>
         return {
           tokenAccount: null,
           error: error.message || 'Unknown error',
-          reason: 'Network or RPC error',
+          reason: StatusReasons.NETWORK_ERROR,
         }
       }
     },
@@ -87,7 +95,7 @@ export const useGetSingleTokenAccount = ({ address }: { address: PublicKey }) =>
     initialData: {
       tokenAccount: null,
       error: null,
-      reason: 'Query not started',
+      reason: StatusReasons.LOADING,
     },
   })
 }
