@@ -5,19 +5,6 @@
   --default-font-family: 'Rubik';
   --font-family-inter: 'Inter';
   --font-family-geist-mono: 'Geist Mono';
-
-  /* TODO: candidate for "stone" colors */
-  /* --color-stone-50: oklch(0.985 0.0005 182.31);
-  --color-stone-100: oklch(0.965 0.001 182.31);
-  --color-stone-200: oklch(0.925 0.0015 182.31);
-  --color-stone-300: oklch(0.865 0.002 182.31);
-  --color-stone-400: oklch(0.78 0.003 182.31);
-  --color-stone-500: oklch(0.68 0.004 182.31);
-  --color-stone-600: oklch(0.56 0.005 182.31);
-  --color-stone-700: oklch(0.44 0.006 182.31);
-  --color-stone-800: oklch(0.32 0.007 182.31);
-  --color-stone-900: oklch(0.2423 0.0076 182.31);
-  --color-stone-950: oklch(0.16 0.008 182.31); */
 }
 
 html,
