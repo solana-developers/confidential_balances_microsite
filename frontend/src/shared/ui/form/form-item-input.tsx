@@ -12,6 +12,7 @@ interface FormItemProps extends InputHTMLAttributes<HTMLInputElement> {
   description?: string
   label?: string
   hint?: string
+  icon?: React.ReactNode
 }
 
 export const FormItemInput: FC<FormItemProps & InputHTMLAttributes<HTMLInputElement>> = ({

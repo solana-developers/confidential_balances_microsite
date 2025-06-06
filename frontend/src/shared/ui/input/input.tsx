@@ -31,6 +31,27 @@ const inputVariants = cva(
   }
 )
 
-export const Input: FC<ComponentProps<'input'>> = ({ className, ...props }) => (
-  <UIInput className={cn(inputVariants(), styles.input, className)} {...props} />
+export const Input: FC<ComponentProps<'input'> & { icon?: React.ReactNode }> = ({
+  className,
+  icon,
+  ...props
+}) => (
+  <div className="relative flex flex-col">
+    {icon && (
+      <div className="absolute top-1/2 left-2 -translate-y-1/2 text-[var(--foreground)]/50">
+        {icon}
+      </div>
+    )}
+    <UIInput
+      className={cn(
+        inputVariants(),
+        styles.input,
+        {
+          '!pl-10': !!icon,
+        },
+        className
+      )}
+      {...props}
+    />
+  </div>
 )
