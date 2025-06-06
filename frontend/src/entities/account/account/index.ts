@@ -13,6 +13,6 @@ export { ELGAMAL_SEED_MESSAGE } from './model/elgamal-seed-message'
 export { generateSeedSignature } from './model/generate-seed-signature'
 export { processMultiTransaction } from './model/process-multi-transaction'
 
-export { useGetSingleTokenAccount } from './model/use-get-single-token-account'
+export { useGetSingleTokenAccount, StatusReasons } from './model/use-get-single-token-account'
 export { useMint } from './model/use-mint'
 export { useGetMintInfo } from './model/use-get-mint-info'

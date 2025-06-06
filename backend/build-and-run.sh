@@ -31,8 +31,15 @@ docker build $PLATFORM_FLAG -t $IMAGE_TAG . || {
   exit 1
 }
 
+# Allow to bypass additional argument for better reusability
+# Reuse same argument for additional flag to handle arguments similar way
+DOCKER_RUN_ARGS=""
+if [[ "$1" == "--dev" || "$1" == "-d"  ]]; then
+    DOCKER_RUN_ARGS="--rm -it"
+fi
+
 echo "Running container locally on port 3003..."
-docker run $PLATFORM_FLAG -p 3003:3003 -e PORT=3003 $IMAGE_TAG -i
+docker run $PLATFORM_FLAG -p 3003:3003 -e PORT=3003 $DOCKER_RUN_ARGS $IMAGE_TAG
 
 # If this is a production build, output the command to push to Cloud Run
 if [[ "$1" == "--prod" || "$1" == "-p" ]]; then

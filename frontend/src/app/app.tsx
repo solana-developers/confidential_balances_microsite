@@ -2,9 +2,9 @@
 
 import { FC, type PropsWithChildren } from 'react'
 import { Toaster } from '@solana-foundation/ms-tools-ui'
-import { ClusterProvider } from '../features/cluster-provider'
-import { SolanaProvider } from '../features/solana-provider'
-import { JotaiProvider, ReactQueryProvider } from '../features/state-providers'
+import { ClusterProvider } from './providers/cluster-provider'
+import { SolanaProvider } from './providers/solana-provider'
+import { JotaiProvider, ReactQueryProvider } from './providers/state-providers'
 
 export const App: FC<PropsWithChildren> = ({ children }) => (
   <JotaiProvider>
