@@ -4,7 +4,10 @@ import { AuditTransaction } from '@/features/audit-transaction'
 
 export const Auditor: FC = () => (
   <Dialog open={true} modal={false}>
-    <DialogContent className="top-40 translate-y-0">
+    <DialogContent
+      className="relative top-auto right-0 left-auto z-0 mx-auto mt-12 translate-x-0 translate-y-0"
+      renderPortal={false}
+    >
       <DialogHeader>
         <DialogTitle>Audit transaction</DialogTitle>
       </DialogHeader>
