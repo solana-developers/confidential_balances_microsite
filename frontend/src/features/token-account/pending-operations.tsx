@@ -48,7 +48,7 @@ function ConnectedWalletPendingOperations({
 
   // Log whenever hasPending changes
   useEffect(() => {
-    console.log('TokenAccountButtons: hasPending value changed:', hasPending)
+    console.log('hasPending value changed:', hasPending)
   }, [hasPending])
 
   // For now, we'll use mock data since we don't have a specific API for pending operations list

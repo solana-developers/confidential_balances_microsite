@@ -2,18 +2,20 @@ import { useConnection } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
 import { useQuery } from '@tanstack/react-query'
 
+export const queryKey = (endpoint: string, address: PublicKey) => [
+  'get-token-balance',
+  {
+    endpoint,
+    tokenAccountPubkey: address,
+  },
+]
+
 // New hook for getting token balance
 export const useGetTokenBalance = ({ tokenAccountPubkey }: { tokenAccountPubkey: PublicKey }) => {
   const { connection } = useConnection()
 
   return useQuery({
-    queryKey: [
-      'get-token-balance',
-      {
-        endpoint: connection.rpcEndpoint,
-        tokenAccountPubkey: tokenAccountPubkey.toString(),
-      },
-    ],
+    queryKey: queryKey(connection.rpcEndpoint, tokenAccountPubkey),
     queryFn: async () => {
       try {
         const response = await connection.getTokenAccountBalance(tokenAccountPubkey)

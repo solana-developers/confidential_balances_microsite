@@ -5,6 +5,7 @@ type HeroProps = PropsWithChildren<{
   subtitle: ReactNode
 }>
 
+/** @deprecated */
 export const Hero: FC<HeroProps> = ({ children, title, subtitle }) => (
   <div className="hero py-[64px]">
     <div className="hero-content text-center">

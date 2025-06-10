@@ -74,7 +74,6 @@ export function TokenAccountHeader({
 export const AccountHeaderView: FC<
   AccountHeaderParams & { isWallet?: boolean; symbol: string } & ComponentProps<'div'>
 > = ({ address, className, label, balance, loading, secondaryLabel, symbol, isWallet = false }) => {
-  console.log({ balance })
   return (
     <div className={cn(className, 'mb-5')}>
       <div className="flex flex-col items-baseline justify-between gap-4 sm:!flex-row sm:items-center">

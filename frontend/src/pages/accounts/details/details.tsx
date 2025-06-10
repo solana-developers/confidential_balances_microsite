@@ -1,22 +1,16 @@
 'use client'
 
-import { FC, useMemo } from 'react'
+import { FC } from 'react'
 import Link from 'next/link'
 import { PublicKey } from '@solana/web3.js'
 import { TokenAccountHeader } from '@/entities/account-header'
-import {
-  AccountTransactions,
-  TokenAccountButtons,
-  TokenConfidentialBalanceDisplay,
-  useGetSingleTokenAccount,
-} from '@/entities/account/account'
+import { useGetSingleTokenAccount } from '@/entities/account/account'
 import {
   ConfidentialBalances,
   PendingOperations,
   TransactionHistory,
 } from '@/features/token-account'
 import { BackwardControl } from '@/shared/ui/backward-control'
-import { Hero } from '@/shared/ui/hero'
 
 type DetailsProps = {
   address: string
@@ -27,30 +21,11 @@ export const Details: FC<DetailsProps> = ({ address: param, account: ataParam })
   const address = new PublicKey(param)
   const account = new PublicKey(ataParam)
 
-  // Frontend builds fail if calling the hook within a conditional `if` statement.
-  // The workaround is to call the hook with a dummy/default PublicKey when there's no address.
-  const tokenAccountQuery = useGetSingleTokenAccount(
-    address ? { address } : { address: PublicKey.default }
-  )
-  const { data: accountDescription, isLoading } = tokenAccountQuery
-
-  if (!address) {
-    return <div>Error loading account</div>
-  }
-
-  if (isLoading) {
-    return <div>Loading account data...</div>
-  }
-
-  console.log({ accountDescription }, PublicKey.default.toString())
-
   return (
     <div>
-      {/* TODO: replace with UI::Breadcrumbs */}
       <BackwardControl asChild>
-        <Link href={'/'}>Go back to wallet page</Link>
+        <Link href="/">Go back to wallet page</Link>
       </BackwardControl>
-      {/* Use random token account. whould be one that is handled through pathname */}
       {!param ? (
         <div>Loading..</div>
       ) : (
@@ -64,19 +39,6 @@ export const Details: FC<DetailsProps> = ({ address: param, account: ataParam })
         <ConfidentialBalances account={account} />
         <PendingOperations account={account} />
         <TransactionHistory />
-      </div>
-      LEGACY ACCOUNT MARKUP DOWN THERE
-      <div>
-        <Hero title="" subtitle="">
-          <div className="my-4">
-            <TokenAccountButtons address={address} />
-            <div className="my-4" />
-            <TokenConfidentialBalanceDisplay tokenAccountPubkey={address} />
-          </div>
-        </Hero>
-        <div className="space-y-8">
-          <AccountTransactions address={address} />
-        </div>
       </div>
     </div>
   )

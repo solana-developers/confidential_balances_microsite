@@ -1,8 +1,9 @@
 import { ComponentProps, FC, useMemo, useState } from 'react'
+import { Address, Badge } from '@solana-foundation/ms-tools-ui'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
 import { useQueryClient } from '@tanstack/react-query'
-import { RefreshCw } from 'lucide-react'
+import { Loader, RefreshCw } from 'lucide-react'
 import { useGetSignatures } from '@/entities/account/account/model/use-get-signatures'
 import { ExplorerLink } from '@/entities/cluster/cluster'
 import { DataTable } from '@/shared/ui/data-table'
@@ -36,6 +37,7 @@ function ConnectedWalletTransactionHistory({
   limit = 5,
 }: Required<{ address: PublicKey }> & { limit?: number }) {
   const [showAll, setShowAll] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const query = useGetSignatures({ address })
   const client = useQueryClient()
 
@@ -57,17 +59,19 @@ function ConnectedWalletTransactionHistory({
   const actions = useMemo(() => {
     // NOTE: preserve original functionality by invalidating data
     const onRefreshSignatures = async () => {
+      setIsRefreshing(true)
       await query.refetch()
       await client.invalidateQueries({
         queryKey: ['get-signatures'],
       })
+      setIsRefreshing(false)
     }
 
     let list: DataTableAction[] = [
       {
         action: 'refetch',
         title: '',
-        icon: <RefreshCw />,
+        icon: isRefreshing ? <Loader /> : <RefreshCw />,
         onClick: onRefreshSignatures,
       },
     ]
@@ -82,7 +86,7 @@ function ConnectedWalletTransactionHistory({
     }
 
     return list
-  }, [showAll, client, query, limit])
+  }, [showAll, client, query, limit, setIsRefreshing, isRefreshing])
 
   return (
     <DataTable
@@ -91,12 +95,13 @@ function ConnectedWalletTransactionHistory({
       actions={actions}
       headers={['Signature', 'Slot', 'Block Time', 'Status']}
       rows={items?.map((item, i) => [
-        <ExplorerLink
-          key={`tx-sig-${i}`}
-          path={`tx/${item.signature}`}
-          label={ellipsify(item.signature, 8)}
-          className="font-mono text-(color:--accent)"
-        />,
+        <Address key={`tx-sig-${i}`} address={item.signature} asChild>
+          <ExplorerLink
+            path={`tx/${item.signature}`}
+            label={ellipsify(item.signature, 8)}
+            className="font-mono text-(color:--accent)"
+          />
+        </Address>,
         <ExplorerLink
           key={`tx-slot-${i}`}
           path={`block/${item.slot}`}
@@ -106,15 +111,15 @@ function ConnectedWalletTransactionHistory({
         <span key={`tx-time-${i}`} className="text-sm">
           {new Date((item.blockTime ?? 0) * 1000).toISOString()}
         </span>,
-        <div key={`tx-status-${i}`} className="text-right">
-          {item.err ? (
-            <div className="badge badge-error text-xs" title={JSON.stringify(item.err)}>
-              Failed
-            </div>
-          ) : (
-            <div className="badge badge-success text-xs">Success</div>
-          )}
-        </div>,
+        item.err ? (
+          <Badge key={`tx-status-${i}`} variant="destructive" size="xxs">
+            Failure
+          </Badge>
+        ) : (
+          <Badge key={`tx-status-${i}`} variant="success" size="xxs">
+            Success
+          </Badge>
+        ),
       ])}
     />
   )

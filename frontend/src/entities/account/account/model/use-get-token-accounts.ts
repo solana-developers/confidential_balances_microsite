@@ -3,7 +3,7 @@ import { useConnection } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
 import { useQuery } from '@tanstack/react-query'
 
-export const getCacheKey = (endpoint: string, address: PublicKey) => [
+export const queryKey = (endpoint: string, address: PublicKey) => [
   'get-token-accounts',
   { endpoint, address },
 ]
@@ -12,7 +12,7 @@ export const useGetTokenAccounts = ({ address }: { address: PublicKey }) => {
   const { connection } = useConnection()
 
   return useQuery({
-    queryKey: getCacheKey(connection.rpcEndpoint, address),
+    queryKey: queryKey(connection.rpcEndpoint, address),
     queryFn: async () => {
       const [tokenAccounts, token2022Accounts] = await Promise.all([
         connection.getParsedTokenAccountsByOwner(address, {

@@ -32,7 +32,7 @@ export const BaseLayout: FC<LayoutProps> = ({ children, links }) => {
         })}
       >
         <Header navigation={links} />
-        <div className="mx-auto grid w-full max-w-7xl flex-grow grid-cols-12 gap-4 px-5">
+        <div className="mx-auto grid w-full max-w-7xl flex-grow grid-cols-12 gap-4 px-5 pb-5">
           <div className={cn(devModeOpen ? 'col-span-8 hidden md:block' : 'col-span-12')}>
             <WalletChecker>
               <Suspense

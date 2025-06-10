@@ -51,8 +51,6 @@ function ConnectedWalletTokenAccounts({
     return query.data?.slice(0, limit)
   }, [query.data, showAll, limit])
 
-  console.log({ items })
-
   const [showInitializeModal, setShowInitializeModal] = useState(false)
   const [showMintModal, setShowMintModal] = useState(false)
   const { mutate: initializeAccount, isPending: isInitializing } =

@@ -1,4 +1,4 @@
-import { getAccount, TOKEN_2022_PROGRAM_ID, unpackAccount } from '@solana/spl-token'
+import { TOKEN_2022_PROGRAM_ID, unpackAccount } from '@solana/spl-token'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -9,6 +9,10 @@ import {
   processMultiTransaction,
 } from '@/entities/account/account'
 import { queryKey as confidentialVisibilityQK } from '@/entities/account/account/model/use-confidential-visibility'
+import { queryKey as getBalanceQK } from '@/entities/account/account/model/use-get-balance'
+import { queryKey as getSignaturesQK } from '@/entities/account/account/model/use-get-signatures'
+import { queryKey as getTokenAccountsQK } from '@/entities/account/account/model/use-get-token-accounts'
+import { queryKey as getTokenBalanceQK } from '@/entities/account/account/model/use-get-token-balance'
 import { useToast } from '@/shared/ui/toast'
 
 export const queryKey = (endpoint: string, address: PublicKey) => [
@@ -168,25 +172,16 @@ export const useWithdrawCB = ({ tokenAccountPubkey }: { tokenAccountPubkey: Publ
           queryKey: confidentialVisibilityQK(tokenAccountPubkey),
         }),
         client.invalidateQueries({
-          queryKey: ['get-balance', { endpoint: connection.rpcEndpoint, tokenAccountPubkey }],
+          queryKey: getBalanceQK(connection.rpcEndpoint, tokenAccountPubkey),
         }),
         client.invalidateQueries({
-          queryKey: ['get-signatures', { endpoint: connection.rpcEndpoint, tokenAccountPubkey }],
+          queryKey: getSignaturesQK(connection.rpcEndpoint, tokenAccountPubkey),
         }),
         client.invalidateQueries({
-          queryKey: [
-            'get-token-accounts',
-            { endpoint: connection.rpcEndpoint, tokenAccountPubkey },
-          ],
+          queryKey: getTokenAccountsQK(connection.rpcEndpoint, tokenAccountPubkey),
         }),
         client.invalidateQueries({
-          queryKey: [
-            'get-token-balance',
-            {
-              endpoint: connection.rpcEndpoint,
-              tokenAccountPubkey: tokenAccountPubkey.toString(),
-            },
-          ],
+          queryKey: getTokenBalanceQK(connection.rpcEndpoint, tokenAccountPubkey),
         }),
       ])
     },

@@ -8,6 +8,8 @@ import {
   processMultiTransaction,
 } from '@/entities/account/account'
 import { queryKey as getBalanceQueryKey } from '@/entities/account/account/model/use-get-balance'
+import { queryKey as getSignaturesQK } from '@/entities/account/account/model/use-get-signatures'
+import { queryKey as getTokenAccountsQK } from '@/entities/account/account/model/use-get-token-accounts'
 import { useToast } from '@/shared/ui/toast'
 
 export const useTransferCB = ({
@@ -182,16 +184,10 @@ export const useTransferCB = ({
           queryKey: getBalanceQueryKey(connection.rpcEndpoint, senderTokenAccountPubkey),
         }),
         client.invalidateQueries({
-          queryKey: [
-            'get-signatures',
-            { endpoint: connection.rpcEndpoint, senderTokenAccountPubkey },
-          ],
+          queryKey: getSignaturesQK(connection.rpcEndpoint, senderTokenAccountPubkey),
         }),
         client.invalidateQueries({
-          queryKey: [
-            'get-token-accounts',
-            { endpoint: connection.rpcEndpoint, senderTokenAccountPubkey },
-          ],
+          queryKey: getTokenAccountsQK(connection.rpcEndpoint, senderTokenAccountPubkey),
         }),
       ])
     },

@@ -7,6 +7,9 @@ import { AES_SEED_MESSAGE } from './aes-seed-message'
 import { ELGAMAL_SEED_MESSAGE } from './elgamal-seed-message'
 import { generateSeedSignature } from './generate-seed-signature'
 import { queryKey as confidentialVisibilityQK } from './use-confidential-visibility'
+import { queryKey as getBalanceQK } from './use-get-balance'
+import { queryKey as getSignaturesQK } from './use-get-signatures'
+import { queryKey as getTokenAccountsQK } from './use-get-token-accounts'
 
 export const useApplyCB = ({ address }: { address: PublicKey }) => {
   const { connection } = useConnection()
@@ -145,13 +148,13 @@ export const useApplyCB = ({ address }: { address: PublicKey }) => {
           queryKey: confidentialVisibilityQK(address),
         }),
         client.invalidateQueries({
-          queryKey: ['get-balance', { endpoint: connection.rpcEndpoint, address }],
+          queryKey: getBalanceQK(connection.rpcEndpoint, address),
         }),
         client.invalidateQueries({
-          queryKey: ['get-signatures', { endpoint: connection.rpcEndpoint, address }],
+          queryKey: getSignaturesQK(connection.rpcEndpoint, address),
         }),
         client.invalidateQueries({
-          queryKey: ['get-token-accounts', { endpoint: connection.rpcEndpoint, address }],
+          queryKey: getTokenAccountsQK(connection.rpcEndpoint, address),
         }),
       ])
     },

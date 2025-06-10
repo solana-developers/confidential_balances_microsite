@@ -10,6 +10,9 @@ const textVariants = cva('', {
       textSmall: 'text-xs tracking-[-0.01875rem] text-[var(--muted)]',
     },
   },
+  defaultVariants: {
+    variant: 'text',
+  },
 })
 
 type TextProps = PropsWithChildren<{

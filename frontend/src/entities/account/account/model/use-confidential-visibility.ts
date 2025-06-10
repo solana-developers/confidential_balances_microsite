@@ -8,8 +8,6 @@ export const queryKey = (address: PublicKey) => [
 
 // Simple hook to manage confidential balance visibility
 export const useConfidentialVisibility = (tokenAccountPubkey: PublicKey) => {
-  console.log(1, { tokenAccountPubkey: tokenAccountPubkey.toBase58() })
-
   const client = useQueryClient()
   const qk = queryKey(tokenAccountPubkey) //['confidential-visibility', { address: tokenAccountPubkey.toString() }]
 
