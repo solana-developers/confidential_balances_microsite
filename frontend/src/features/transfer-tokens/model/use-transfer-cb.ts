@@ -7,6 +7,7 @@ import {
   generateSeedSignature,
   processMultiTransaction,
 } from '@/entities/account/account'
+import { queryKey as getBalanceQueryKey } from '@/entities/account/account/model/use-get-balance'
 import { useToast } from '@/shared/ui/toast'
 
 export const useTransferCB = ({
@@ -178,7 +179,7 @@ export const useTransferCB = ({
       // Invalidate relevant queries to refresh data
       return Promise.all([
         client.invalidateQueries({
-          queryKey: ['get-balance', { endpoint: connection.rpcEndpoint, senderTokenAccountPubkey }],
+          queryKey: getBalanceQueryKey(connection.rpcEndpoint, senderTokenAccountPubkey),
         }),
         client.invalidateQueries({
           queryKey: [

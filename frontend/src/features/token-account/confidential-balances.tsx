@@ -1,6 +1,6 @@
-import { ComponentProps, FC, useCallback, useMemo, useState } from 'react'
+import { ComponentProps, FC, useCallback, useLayoutEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Address } from '@solana-foundation/ms-tools-ui'
+import { Address, Button } from '@solana-foundation/ms-tools-ui'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
 import {
@@ -9,22 +9,23 @@ import {
   ArrowRightLeft,
   ArrowUp,
   ArrowUpFromLine,
-  EyeOff,
+  Loader,
+  Lock,
   Send,
   Unlock,
 } from 'lucide-react'
 import { useConfidentialVisibility } from '@/entities/account/account/model/use-confidential-visibility'
 import { useDecryptConfidentialBalance } from '@/entities/account/account/model/use-decrypt-confidential-balance'
 import { useGetTokenAccounts } from '@/entities/account/account/model/use-get-token-accounts'
-import { ExplorerLink } from '@/entities/cluster/cluster'
 import { ModalDeposit } from '@/features/deposit-tokens'
 import { ModalTransfer } from '@/features/transfer-tokens'
 import { ModalWithdraw } from '@/features/withdraw-tokens'
 import { DataTable } from '@/shared/ui/data-table'
+import { useToast } from '@/shared/ui/toast'
 
 type DataTableAction = NonNullable<ComponentProps<typeof DataTable>['actions']>[0]
 
-export function ConfidentialBalances() {
+export function ConfidentialBalances({ account }: { account: PublicKey }) {
   const { connected, publicKey } = useWallet()
 
   return (
@@ -32,7 +33,7 @@ export function ConfidentialBalances() {
       {!connected || !publicKey ? (
         <DisconnectedWalletConfidentialBalances />
       ) : (
-        <ConnectedWalletConfidentialBalances address={publicKey} />
+        <ConnectedWalletConfidentialBalances address={publicKey} account={account} />
       )}
     </>
   )
@@ -46,78 +47,97 @@ const DisconnectedWalletConfidentialBalances: FC = () => (
 )
 
 function ConnectedWalletConfidentialBalances({
-  address,
-  limit = 5,
-}: Required<{ address: PublicKey }> & { limit?: number }) {
-  const [showAll] = useState(false)
+  account,
+}: Required<{ address: PublicKey; account: PublicKey }>) {
   const [showDepositModal, setShowDepositModal] = useState(false)
   const [showWithdrawModal, setShowWithdrawModal] = useState(false)
   const [showTransferModal, setShowTransferModal] = useState(false)
   const [selectedTokenAccount, setSelectedTokenAccount] = useState<PublicKey | null>(null)
+  const toast = useToast()
 
-  const query = useMemo(
-    () => ({ data: [], isLoading: false, isError: false, isSuccess: false }),
-    []
-  ) // useGetTokenAccounts({ address })
-  const { decryptBalance, isDecrypting, confidentialBalance } = useDecryptConfidentialBalance()
+  const { isVisible, showBalance, hideBalance } = useConfidentialVisibility(account)
+  const {
+    error: decryptError,
+    decryptBalance,
+    isDecrypting,
+    confidentialBalance,
+  } = useDecryptConfidentialBalance()
 
-  const items = useMemo(() => {
-    if (showAll) return query.data
-    return query.data?.slice(0, limit)
-  }, [query.data, showAll, limit])
-
-  // TODO: should allow to bypass empty record into DataTable to support control on the row level
-
-  const emptyLabel = useMemo(() => {
-    const empty = 'Balance is encrypted. Decrypt with wallet to see the balance'
-    if (query.isLoading) return 'Loading...'
-    if (query.isError) return 'Can not load confidential balance data'
-    if (query.isSuccess && (!query.data || query.data.length === 0)) {
-      return empty
+  const onDecryptBalance = async () => {
+    const result = await decryptBalance(account)
+    if (result) {
+      showBalance()
     }
-    return empty
-  }, [query])
+  }
 
-  const openDepositModal = useCallback((tokenAccount?: PublicKey) => {
-    // if (tokenAccount) setSelectedTokenAccount(tokenAccount)
-    // else if (query.data?.[0]?.pubkey) setSelectedTokenAccount(query.data[0].pubkey)
+  const onHideBalance = useCallback(() => {
+    hideBalance()
+  }, [hideBalance])
+
+  const openDepositModal = useCallback((tokenAccount: PublicKey) => {
+    setSelectedTokenAccount(tokenAccount)
     setShowDepositModal(true)
   }, [])
 
-  const openWithdrawModal = useCallback((tokenAccount?: PublicKey) => {
-    // if (tokenAccount) setSelectedTokenAccount(tokenAccount)
-    // else if (query.data?.[0]?.pubkey) setSelectedTokenAccount(query.data[0].pubkey)
+  const openWithdrawModal = useCallback((tokenAccount: PublicKey) => {
+    setSelectedTokenAccount(tokenAccount)
     setShowWithdrawModal(true)
   }, [])
 
-  const openTransferModal = useCallback((tokenAccount?: PublicKey) => {
-    // if (tokenAccount) setSelectedTokenAccount(tokenAccount)
-    // else if (query.data?.[0]?.pubkey) setSelectedTokenAccount(query.data[0].pubkey)
+  const openTransferModal = useCallback((tokenAccount: PublicKey) => {
+    setSelectedTokenAccount(tokenAccount)
     setShowTransferModal(true)
   }, [])
 
   const actions = useMemo<DataTableAction[]>(() => {
-    return [
+    const list = [
       {
         action: 'deposit',
         title: 'Deposit',
         icon: <ArrowDown />,
-        onClick: () => openDepositModal(address),
+        onClick: () => openDepositModal(account),
       },
       {
         action: 'withdraw',
         title: 'Withdraw',
         icon: <ArrowUp />,
-        onClick: () => openWithdrawModal(address),
+        onClick: () => openWithdrawModal(account),
       },
       {
         action: 'transfer',
         title: 'Transfer',
         icon: <Send />,
-        onClick: () => openTransferModal(address),
+        onClick: () => openTransferModal(account),
       },
     ]
-  }, [openDepositModal, openWithdrawModal, openTransferModal, address])
+
+    // push extra action to allow hiding of balance
+    if (confidentialBalance && isVisible) {
+      list.push({
+        action: 'hideBalance',
+        title: 'Hide balance',
+        icon: <Lock />,
+        onClick: () => onHideBalance(),
+      })
+    }
+
+    return list
+  }, [
+    account,
+    confidentialBalance,
+    isVisible,
+    onHideBalance,
+    openDepositModal,
+    openTransferModal,
+    openWithdrawModal,
+  ])
+
+  // handle decrypting error
+  useLayoutEffect(() => {
+    if (decryptError) {
+      toast.error(decryptError)
+    }
+  }, [decryptError, toast])
 
   return (
     <>
@@ -144,21 +164,20 @@ function ConnectedWalletConfidentialBalances({
 
       <DataTable
         title="Confidential Balances"
-        labels={{ empty: emptyLabel }}
+        emptyComp={
+          <div className="flex justify-between">
+            Balance is encrypted. Decrypt with wallet to see the balance.
+            <Button disabled={isDecrypting} size="sm" variant="outline" onClick={onDecryptBalance}>
+              {isDecrypting ? <Loader /> : <Unlock />} Decrypt available balance
+            </Button>
+          </div>
+        }
         actions={actions}
-        headers={['Account', 'Public Balance', 'Confidential Balance', 'Actions']}
-        rows={items?.map(({ account, pubkey }, i) => {
-          // const address = pubkey?.toString()
-          // const mint = account.data.parsed.info.mint.toString()
-          const address = ''
-          const mint = ''
-          return [
-            <Address key={`ta-wor-mint-${i}`} address={mint} asChild>
-              <span className="text-(color:--accent)">{address}</span>
-            </Address>,
-            '...',
-          ]
-        })}
+        rows={
+          confidentialBalance && isVisible
+            ? [[<div key="confidential-balance">{confidentialBalance} Token</div>]]
+            : undefined
+        }
       />
     </>
   )

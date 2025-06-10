@@ -32,6 +32,7 @@ pub struct CreateCbAtaRequest {
 // Request model for the deposit_cb endpoint
 #[derive(Deserialize)]
 pub struct DepositCbRequest {
+    pub token_account_address: String, // BASE64 encoded token account address
     pub token_account_data: String, // BASE64 encoded account data
     pub lamport_amount: String,     // The amount to deposit (as a string to handle large numbers)
     pub mint_decimals: u8,          // The number of decimals for the mint
@@ -111,4 +112,7 @@ pub struct DecryptCbResponse {
 pub struct CreateTestTokenTransactionRequest {
     pub account: String,
     pub mint: String,
+    pub mint_rent: Option<u64>,           // Optional rent amount for mint account
+    pub initial_supply: Option<u64>,      // Optional initial supply in lamports
+    pub recent_blockhash: Option<String>, // Optional recent blockhash for simulation
 }

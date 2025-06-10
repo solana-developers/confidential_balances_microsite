@@ -23,6 +23,7 @@ type Action = {
 type Props = {
   actions?: Action[]
   actionProps?: {}
+  emptyComp?: ReactNode
   headers?: ReactNode[]
   labels?: { empty: Required<ReactNode> } & {
     [key: string]: ReactNode
@@ -58,6 +59,7 @@ export function DataTable({
   actionProps = {},
   asChild = false,
   className,
+  emptyComp,
   headers,
   rows,
   labels = LABELS,
@@ -111,6 +113,8 @@ export function DataTable({
                 })}
               </TableBody>
             </>
+          ) : emptyComp ? (
+            <TableCaption className="text-muted mt-0 px-6 text-left">{emptyComp}</TableCaption>
           ) : (
             <TableCaption className="text-muted mt-0 px-6 text-left">{labels.empty}</TableCaption>
           )}

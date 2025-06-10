@@ -19,20 +19,13 @@ import { BackwardControl } from '@/shared/ui/backward-control'
 import { Hero } from '@/shared/ui/hero'
 
 type DetailsProps = {
-  address?: string
+  address: string
+  account: string
 }
 
-export const Details: FC<DetailsProps> = ({ address: param }) => {
-  const address = useMemo(() => {
-    if (!param) {
-      return
-    }
-    try {
-      return new PublicKey(param)
-    } catch (e) {
-      console.warn(`Invalid public key`, e)
-    }
-  }, [param])
+export const Details: FC<DetailsProps> = ({ address: param, account: ataParam }) => {
+  const address = new PublicKey(param)
+  const account = new PublicKey(ataParam)
 
   // Frontend builds fail if calling the hook within a conditional `if` statement.
   // The workaround is to call the hook with a dummy/default PublicKey when there's no address.
@@ -68,8 +61,8 @@ export const Details: FC<DetailsProps> = ({ address: param }) => {
         />
       )}
       <div className="flex flex-col gap-5">
-        <ConfidentialBalances />
-        <PendingOperations />
+        <ConfidentialBalances account={account} />
+        <PendingOperations account={account} />
         <TransactionHistory />
       </div>
       LEGACY ACCOUNT MARKUP DOWN THERE

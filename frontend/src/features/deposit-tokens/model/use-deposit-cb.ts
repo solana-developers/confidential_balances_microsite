@@ -43,6 +43,8 @@ export const useDepositCb = ({ tokenAccountPubkey }: { tokenAccountPubkey: Publi
           return mint.decimals
         })()
 
+        console.log({ ataAccountInfo })
+
         // Call the deposit-cb endpoint
         const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT}/deposit-cb`, {
           method: 'POST',
@@ -50,6 +52,7 @@ export const useDepositCb = ({ tokenAccountPubkey }: { tokenAccountPubkey: Publi
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
+            token_account_address: Buffer.from(tokenAccountPubkey.toBytes()).toString('base64'),
             token_account_data: Buffer.from(ataAccountInfo.data).toString('base64'),
             lamport_amount: lamportAmount,
             mint_decimals: decimals,

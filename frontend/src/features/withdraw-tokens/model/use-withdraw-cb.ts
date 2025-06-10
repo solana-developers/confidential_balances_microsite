@@ -8,7 +8,16 @@ import {
   generateSeedSignature,
   processMultiTransaction,
 } from '@/entities/account/account'
+import { queryKey as confidentialVisibilityQK } from '@/entities/account/account/model/use-confidential-visibility'
 import { useToast } from '@/shared/ui/toast'
+
+export const queryKey = (endpoint: string, address: PublicKey) => [
+  'withdraw-cb',
+  {
+    endpoint,
+    address,
+  },
+]
 
 export const useWithdrawCB = ({ tokenAccountPubkey }: { tokenAccountPubkey: PublicKey }) => {
   const { connection } = useConnection()
@@ -17,7 +26,7 @@ export const useWithdrawCB = ({ tokenAccountPubkey }: { tokenAccountPubkey: Publ
   const toast = useToast()
 
   return useMutation({
-    mutationKey: ['withdraw-cb', { endpoint: connection.rpcEndpoint, tokenAccountPubkey }],
+    mutationKey: queryKey(connection.rpcEndpoint, tokenAccountPubkey), //['withdraw-cb', { endpoint: connection.rpcEndpoint, tokenAccountPubkey }],
     mutationFn: async ({ amount }: { amount: number }) => {
       try {
         if (!wallet.publicKey) {
@@ -151,10 +160,13 @@ export const useWithdrawCB = ({ tokenAccountPubkey }: { tokenAccountPubkey: Publ
       }
 
       // Hide confidential balance using query cache
-      client.setQueryData(['confidential-visibility', tokenAccountPubkey.toString()], false)
+      client.setQueryData(confidentialVisibilityQK(tokenAccountPubkey), false)
 
       // Invalidate relevant queries to refresh data
       return Promise.all([
+        client.invalidateQueries({
+          queryKey: confidentialVisibilityQK(tokenAccountPubkey),
+        }),
         client.invalidateQueries({
           queryKey: ['get-balance', { endpoint: connection.rpcEndpoint, tokenAccountPubkey }],
         }),

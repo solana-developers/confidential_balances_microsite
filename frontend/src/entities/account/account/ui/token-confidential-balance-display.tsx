@@ -8,6 +8,7 @@ type TokenConfidentialBalanceDisplayProps = {
   tokenAccountPubkey: PublicKey
 }
 
+/** @deprecated component is replaced with confidential-transfers comp */
 export const TokenConfidentialBalanceDisplay: FC<TokenConfidentialBalanceDisplayProps> = ({
   tokenAccountPubkey,
 }) => {

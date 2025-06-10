@@ -1,6 +1,9 @@
 import { WalletContextState } from '@solana/wallet-adapter-react'
 
-export const generateSeedSignature = async (wallet: WalletContextState, message: Uint8Array) => {
+export const generateSeedSignatureMessage = async (
+  wallet: WalletContextState,
+  message: Uint8Array
+) => {
   if (!wallet.publicKey) {
     throw new Error('Wallet public key is undefined')
   }
@@ -13,6 +16,12 @@ export const generateSeedSignature = async (wallet: WalletContextState, message:
   const messageToSign = Buffer.concat([message, emptyPublicSeed])
 
   console.log('Full message to sign (hex):', Buffer.from(messageToSign).toString('hex'))
+
+  return messageToSign
+}
+
+export const generateSeedSignature = async (wallet: WalletContextState, message: Uint8Array) => {
+  const messageToSign = await generateSeedSignatureMessage(wallet, message)
 
   // Sign the message
   if (!wallet.signMessage) {

@@ -1,4 +1,4 @@
-import { getAccount, getMint, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token'
+import { getAccount, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { PublicKey, VersionedTransaction } from '@solana/web3.js'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -6,6 +6,7 @@ import { useToast } from '@/shared/ui/toast'
 import { AES_SEED_MESSAGE } from './aes-seed-message'
 import { ELGAMAL_SEED_MESSAGE } from './elgamal-seed-message'
 import { generateSeedSignature } from './generate-seed-signature'
+import { queryKey as confidentialVisibilityQK } from './use-confidential-visibility'
 
 export const useApplyCB = ({ address }: { address: PublicKey }) => {
   const { connection } = useConnection()
@@ -22,11 +23,13 @@ export const useApplyCB = ({ address }: { address: PublicKey }) => {
           throw new Error('Wallet does not support message signing')
         }
 
+        toast.info('Sign elGamal message...')
         // Sign the ElGamal message
         const elGamalSignature = await generateSeedSignature(wallet, ELGAMAL_SEED_MESSAGE)
         const elGamalSignatureBase64 = Buffer.from(elGamalSignature).toString('base64')
         console.log('ElGamal base64 signature:', elGamalSignatureBase64)
 
+        toast.info('Sign AES message...')
         // Sign the AES message
         const aesSignature = await generateSeedSignature(wallet, AES_SEED_MESSAGE)
         const aesSignatureBase64 = Buffer.from(aesSignature).toString('base64')
@@ -41,17 +44,12 @@ export const useApplyCB = ({ address }: { address: PublicKey }) => {
           throw new Error('Token account not found')
         }
 
+        toast.info('Fetching account...')
         // Prepare the request to the backend
         // Convert pubkeys to base58 strings and then base64 encode them
-        const ataAuthorityBase58 = await (async () => {
-          const tokenAccountInfo = await getAccount(
-            connection,
-            address,
-            'confirmed',
-            TOKEN_2022_PROGRAM_ID
-          )
-          return tokenAccountInfo.owner.toBase58()
-        })()
+        const ataAuthorityBase58 = (
+          await getAccount(connection, address, 'confirmed', TOKEN_2022_PROGRAM_ID)
+        ).owner.toBase58()
 
         const request = {
           ata_authority: Buffer.from(ataAuthorityBase58).toString('base64'),
@@ -92,6 +90,7 @@ export const useApplyCB = ({ address }: { address: PublicKey }) => {
           ;(transaction.message as any).recentBlockhash = latestBlockhash.blockhash
         }
 
+        toast.info('Finalize applying...')
         // Sign and send the transaction
         const signature = await wallet.sendTransaction(transaction, connection, {
           skipPreflight: true, // Skip client-side verification to avoid potential issues
@@ -119,7 +118,7 @@ export const useApplyCB = ({ address }: { address: PublicKey }) => {
       }
 
       // Hide confidential balance using query cache
-      client.setQueryData(['confidential-visibility', address.toString()], false)
+      client.setQueryData(confidentialVisibilityQK(address), false)
 
       // Directly set has-pending-balance to false to hide the prompt
       console.log('Setting has-pending-balance to false after successful apply')
@@ -136,6 +135,15 @@ export const useApplyCB = ({ address }: { address: PublicKey }) => {
 
       // Invalidate relevant queries to refresh data
       return Promise.all([
+        client.invalidateQueries({
+          queryKey: [
+            'has-pending-balance',
+            { endpoint: connection.rpcEndpoint, tokenAccountPubkey: address.toString() },
+          ],
+        }),
+        client.invalidateQueries({
+          queryKey: confidentialVisibilityQK(address),
+        }),
         client.invalidateQueries({
           queryKey: ['get-balance', { endpoint: connection.rpcEndpoint, address }],
         }),
