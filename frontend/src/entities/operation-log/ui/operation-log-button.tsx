@@ -1,6 +1,6 @@
 import { FC } from 'react'
 import { Button } from '@solana-foundation/ms-tools-ui'
-import { useAtom, useSetAtom } from 'jotai'
+import { useAtom } from 'jotai'
 import * as Icons from 'lucide-react'
 import { cn } from '@/shared/utils'
 import { operationLogOpenAtom } from '../model/operation-log-open'

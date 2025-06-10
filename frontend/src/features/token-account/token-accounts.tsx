@@ -94,19 +94,19 @@ function ConnectedWalletTokenAccounts({
 
     let list: DataTableAction[] = [
       {
+        action: 'createTestToken',
+        title: 'Create test token',
+        onClick: onCreateTestToken,
+        icon: <PlusCircle />,
+      },
+      {
         action: 'createCTA',
         title: 'Create account',
         onClick: onCreateCTA,
       },
       {
-        action: 'createTestToken',
-        title: 'Create test tokens',
-        onClick: onCreateTestToken,
-        icon: <PlusCircle />,
-      },
-      {
         action: 'mintTestToken',
-        title: 'Mint 1000 of token',
+        title: 'Mint token',
         onClick: onMintTestToken,
         icon: <Coins />,
       },

@@ -54,7 +54,6 @@ export const useDepositCb = ({ tokenAccountPubkey }: { tokenAccountPubkey: Publi
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            token_account_address: Buffer.from(tokenAccountPubkey.toBytes()).toString('base64'),
             token_account_data: Buffer.from(ataAccountInfo.data).toString('base64'),
             lamport_amount: lamportAmount,
             mint_decimals: decimals,

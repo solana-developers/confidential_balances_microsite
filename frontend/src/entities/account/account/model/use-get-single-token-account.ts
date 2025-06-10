@@ -3,6 +3,7 @@ import { useConnection } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
 import { useQuery } from '@tanstack/react-query'
 
+/* eslint-disable no-unused-vars */
 export enum StatusReasons {
   NOT_ATA = 'Account is not owned by Token Program',
   NOT_EXISTS = 'Account does not exist',
@@ -10,6 +11,7 @@ export enum StatusReasons {
   NETWORK_ERROR = 'Network or RPC error',
   LOADING = 'Query not started',
 }
+/* eslint-enable no-unused-vars */
 
 export const useGetSingleTokenAccount = ({ address }: { address: PublicKey }) => {
   const { connection } = useConnection()

@@ -1,4 +1,4 @@
-import { atom, useAtomValue, useSetAtom } from 'jotai'
+import { atom, useSetAtom } from 'jotai'
 import { atomWithStorage } from 'jotai/utils'
 
 export type OperationLogItem = {

@@ -4,7 +4,6 @@ import { FC } from 'react'
 import Link from 'next/link'
 import { PublicKey } from '@solana/web3.js'
 import { TokenAccountHeader } from '@/entities/account-header'
-import { useGetSingleTokenAccount } from '@/entities/account/account'
 import {
   ConfidentialBalances,
   PendingOperations,

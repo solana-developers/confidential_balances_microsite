@@ -7,7 +7,8 @@ import {
   generateSeedSignature,
   processMultiTransaction,
 } from '@/entities/account/account'
-import { queryKey as getBalanceQueryKey } from '@/entities/account/account/model/use-get-balance'
+import { queryKey as confidentialVisibilityQK } from '@/entities/account/account/model/use-confidential-visibility'
+import { queryKey as getBalanceQK } from '@/entities/account/account/model/use-get-balance'
 import { queryKey as getSignaturesQK } from '@/entities/account/account/model/use-get-signatures'
 import { queryKey as getTokenAccountsQK } from '@/entities/account/account/model/use-get-token-accounts'
 import { useToast } from '@/shared/ui/toast'
@@ -176,12 +177,15 @@ export const useTransferCB = ({
       }
 
       // Hide confidential balance using query cache
-      client.setQueryData(['confidential-visibility', senderTokenAccountPubkey.toString()], false)
+      client.setQueryData(confidentialVisibilityQK(senderTokenAccountPubkey), false)
 
       // Invalidate relevant queries to refresh data
       return Promise.all([
         client.invalidateQueries({
-          queryKey: getBalanceQueryKey(connection.rpcEndpoint, senderTokenAccountPubkey),
+          queryKey: confidentialVisibilityQK(senderTokenAccountPubkey),
+        }),
+        client.invalidateQueries({
+          queryKey: getBalanceQK(connection.rpcEndpoint, senderTokenAccountPubkey),
         }),
         client.invalidateQueries({
           queryKey: getSignaturesQK(connection.rpcEndpoint, senderTokenAccountPubkey),

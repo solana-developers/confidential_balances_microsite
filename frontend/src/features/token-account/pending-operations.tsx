@@ -1,9 +1,8 @@
-import { ComponentProps, FC, useCallback, useEffect, useMemo, useState } from 'react'
+import { ComponentProps, FC, useEffect, useMemo } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
 import { IconChecks } from '@tabler/icons-react'
-import { useQueryClient } from '@tanstack/react-query'
-import { CheckCircle, Clock, Loader, RefreshCw, XCircle } from 'lucide-react'
+import { Clock, Loader } from 'lucide-react'
 import { useApplyCB } from '@/entities/account/account/model/use-apply-cb'
 import { useHasPendingBalance } from '@/entities/account/account/model/use-has-pending-balance'
 import { DataTable } from '@/shared/ui/data-table'
@@ -32,13 +31,8 @@ const DisconnectedWalletPendingOperations: FC = () => (
 )
 
 function ConnectedWalletPendingOperations({
-  address,
   account,
-  limit = 5,
-}: Required<{ address: PublicKey; account: PublicKey }> & { limit?: number }) {
-  const [showAll, setShowAll] = useState(false)
-  const client = useQueryClient()
-
+}: Required<{ address: PublicKey; account: PublicKey }>) {
   const { mutate: applyPendingBalance, isPending: isApplying } = useApplyCB({
     address: account,
   })
@@ -51,20 +45,11 @@ function ConnectedWalletPendingOperations({
     console.log('hasPending value changed:', hasPending)
   }, [hasPending])
 
-  // For now, we'll use mock data since we don't have a specific API for pending operations list
-  // In a real implementation, this would fetch from a pending operations endpoint
-  const operations: typeof mockOperations = useMemo(() => [], []) //mockOperations
-
-  const items = useMemo(() => {
-    if (showAll) return operations
-    return operations?.slice(0, limit)
-  }, [operations, showAll, limit])
-
   const emptyLabel = useMemo(() => {
-    if (!operations || operations.length === 0) {
+    if (!hasPending) {
       return 'No pending operations found'
     }
-  }, [operations])
+  }, [hasPending])
 
   const isPending = useMemo(() => hasPending && !isApplying, [hasPending, isApplying])
 

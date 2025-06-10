@@ -6,20 +6,24 @@ import {
   TOKEN_2022_PROGRAM_ID,
 } from '@solana/spl-token'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
-import {
-  Keypair,
-  PublicKey,
-  Transaction,
-  VersionedMessage,
-  VersionedTransaction,
-} from '@solana/web3.js'
+import { Keypair, PublicKey, Transaction, VersionedTransaction } from '@solana/web3.js'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/shared/ui/toast'
 import { queryKey as getBalanceQK } from './use-get-balance'
 import { queryKey as getSignaturesQK } from './use-get-signatures'
 import { queryKey as getTokenAccountsQK } from './use-get-token-accounts'
 
-async function serverRequest({ account, mint }: { account: PublicKey; mint: PublicKey }) {
+async function serverRequest({
+  account,
+  mint,
+  mintRent,
+  mintAmount,
+}: {
+  account: PublicKey
+  mint: PublicKey
+  mintRent: number
+  mintAmount: number
+}) {
   // Now proceed with the transaction
   const route = `${process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT}/create-test-token`
   const response = await fetch(route, {
@@ -30,6 +34,8 @@ async function serverRequest({ account, mint }: { account: PublicKey; mint: Publ
     body: JSON.stringify({
       account: account.toBase58(),
       mint: mint.toBase58(),
+      mintRent,
+      mintAmount,
     }),
   })
 
@@ -79,20 +85,19 @@ export const useCreateTestTokenCB = ({
         const mintRent = await connection.getMinimumBalanceForRentExemption(mintSpace)
         console.log('Mint account rent required:', mintRent, 'lamports')
 
-        const data = await serverRequest({ account: wallet.publicKey, mint: mintKeypair.publicKey })
+        const data = await serverRequest({
+          account: wallet.publicKey,
+          mint: mintKeypair.publicKey,
+          mintRent,
+          mintAmount: 1000,
+        })
+
+        // Deserialize the transaction from the response
+        const serializedTransaction = Buffer.from(data.transaction, 'base64')
+        const transaction = VersionedTransaction.deserialize(serializedTransaction)
 
         // Get the latest blockhash
         const latestBlockhash = await connection.getLatestBlockhash()
-
-        // Deserialize the VersionedMessage from the server response
-        const serializedMessage = Buffer.from(data.message, 'base64')
-        console.log('Deserializing message from server...')
-
-        let message = VersionedMessage.deserialize(serializedMessage)
-        console.log('Message deserialized successfully')
-
-        // Create a new VersionedTransaction from the message
-        const transaction = new VersionedTransaction(message)
 
         // Update the transaction's blockhash to the latest one
         if (transaction.message.version === 0) {
@@ -103,21 +108,13 @@ export const useCreateTestTokenCB = ({
           ;(transaction.message as any).recentBlockhash = latestBlockhash.blockhash
         }
 
-        // Clear existing signatures to prepare for fresh signing
-        transaction.signatures = new Array(transaction.message.header.numRequiredSignatures).fill(
-          new Uint8Array(64).fill(0)
-        )
-
         // Sign the transaction with the mint keypair first
         // The mint keypair must sign because it's creating a new mint account
         transaction.sign([mintKeypair])
         console.log('Transaction signed with mint keypair')
 
-        // Send the transaction with the wallet (this will prompt user to sign)
-        const signature = await wallet.sendTransaction(transaction, connection, {
-          skipPreflight: false,
-          preflightCommitment: 'confirmed',
-        })
+        // Sign and send the transaction
+        const signature = await wallet.sendTransaction(transaction, connection)
 
         // Confirm the transaction
         await connection.confirmTransaction({ signature, ...latestBlockhash }, 'confirmed')

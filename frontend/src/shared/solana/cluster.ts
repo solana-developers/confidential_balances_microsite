@@ -13,20 +13,22 @@ export type Cluster = {
   active?: boolean
 }
 
+/* eslint-disable no-unused-vars */
 export enum ClusterNetwork {
   Mainnet = 'mainnet-beta',
   Testnet = 'testnet',
   Devnet = 'devnet',
   Custom = 'custom',
 }
+/* eslint-enable no-unused-vars */
 
 export type ClusterProviderContext = {
   cluster: Cluster
   clusters: Cluster[]
-  addCluster: (cluster: Cluster) => void
-  deleteCluster: (cluster: Cluster) => void
-  setCluster: (cluster: Cluster) => void
-  getExplorerUrl(path: string): string
+  addCluster: (_cluster: Cluster) => void
+  deleteCluster: (_cluster: Cluster) => void
+  setCluster: (_cluster: Cluster) => void
+  getExplorerUrl(_path: string): string
 }
 
 export const ClusterContext = createContext<ClusterProviderContext>({} as ClusterProviderContext)

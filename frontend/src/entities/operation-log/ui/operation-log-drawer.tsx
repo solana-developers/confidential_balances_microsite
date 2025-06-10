@@ -1,7 +1,7 @@
 'use client'
 
-import { FC, use, useEffect, useMemo, useState } from 'react'
-import { useAtom, useAtomValue, useSetAtom } from 'jotai'
+import { FC, useMemo } from 'react'
+import { useAtom } from 'jotai'
 import { OperationLogDrawer as OperationLogDrawerBase } from '@/shared/ui/operation-log-drawer'
 import { MAX_LOG_ITEMS, operationLogAtom, OperationLogItem } from '../model/operation-log-items'
 import { operationLogOpenAtom } from '../model/operation-log-open'

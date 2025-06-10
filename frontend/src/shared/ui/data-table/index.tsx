@@ -16,7 +16,7 @@ import { cn } from '@/shared/utils'
 type Action = {
   action: string
   title: string
-  onClick?: (a: Action['action'], b: MouseEvent<HTMLButtonElement>) => void
+  onClick?: (_a: Action['action'], _b: MouseEvent<HTMLButtonElement>) => void
   icon?: ReactNode
 }
 

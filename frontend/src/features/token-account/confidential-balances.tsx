@@ -44,8 +44,6 @@ function ConnectedWalletConfidentialBalances({
   const [selectedTokenAccount, setSelectedTokenAccount] = useState<PublicKey | null>(null)
   const toast = useToast()
 
-  console.log({ account })
-
   const { isVisible, showBalance, hideBalance } = useConfidentialVisibility(account)
   const {
     error: decryptError,

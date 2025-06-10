@@ -9,7 +9,7 @@ import { useToast } from '@/shared/ui/toast'
 type ModalInitATAProps = {
   show: boolean
   hide: () => void
-  initializeAccount: (params: { mintAddress: string }) => void
+  initializeAccount: (_params: { mintAddress: string }) => void
   isInitializing: boolean
   onSuccess?: () => void
   onError?: () => void
