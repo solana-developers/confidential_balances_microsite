@@ -177,22 +177,6 @@ export const useMintTestTokenCB = ({
           throw new Error('Wallet not connected')
         }
 
-        // Generate a new mint keypair
-        // const mintKeypair = Keypair.generate()
-        // console.log('Generated new mint address:', mintKeypair.publicKey.toBase58())
-
-        // Calculate the required space for the mint account with extensions
-        // const extensions = [
-        //   ExtensionType.ConfidentialTransferMint,
-        //   ExtensionType.MintCloseAuthority,
-        // ]
-        // const mintSpace = getMintLen(extensions)
-        // console.log('Mint account space required:', mintSpace, 'bytes')
-
-        // Get the minimum rent for the mint account
-        // const mintRent = await connection.getMinimumBalanceForRentExemption(mintSpace)
-        // console.log('Mint account rent required:', mintRent, 'lamports')
-
         const tokenAmount = amount * Math.pow(10, 9)
 
         const destination = await getAssociatedTokenAddress(
@@ -237,10 +221,6 @@ export const useMintTestTokenCB = ({
 
         // Get the latest blockhash
         const latestBlockhash = await connection.getLatestBlockhash()
-
-        // Deserialize the transaction from the response
-        // const serializedTransaction = Buffer.from(data.transaction, 'base64')
-        // const transaction = VersionedTransaction.deserialize(serializedTransaction)
 
         // Update the transaction's blockhash
         transaction.recentBlockhash = latestBlockhash.blockhash

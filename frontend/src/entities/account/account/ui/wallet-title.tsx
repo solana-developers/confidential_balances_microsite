@@ -25,7 +25,6 @@ export function WalletTitleView({
           </span>
         </div>
       ) : (
-        // make font smaller than text-sm to not import additional font
         <span className="text-muted font-mono text-[12px] leading-4">No wallet connected</span>
       )}
     </>

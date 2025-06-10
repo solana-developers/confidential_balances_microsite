@@ -113,6 +113,7 @@ export const Dashboard: FC = () => {
   )
 }
 
+// TODO: templates for real ones
 const operations: {
   title: string
   content: string
