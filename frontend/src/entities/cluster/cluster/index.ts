@@ -4,7 +4,6 @@ export { clusterAtom } from './model/cluster'
 export { clustersAtom } from './model/clusters'
 export { defaultClusters } from './model/default-clusters'
 
-export { ClusterChecker } from './ui/cluster-checker'
 export { ClusterSelect } from './ui/cluster-select'
 export { ClusterModal } from './ui/cluster-modal'
 export { ClusterTable } from './ui/cluster-table'

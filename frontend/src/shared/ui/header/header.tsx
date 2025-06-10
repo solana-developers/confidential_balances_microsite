@@ -1,9 +1,6 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { Dialog, DialogPanel } from '@headlessui/react'
-import { Alert, AlertDescription, AlertTitle } from '@solana-foundation/ms-tools-ui'
-import { useWallet } from '@solana/wallet-adapter-react'
-import { useWalletModal } from '@solana/wallet-adapter-react-ui'
 import { cva } from 'class-variance-authority'
 import * as Icons from 'lucide-react'
 import { WalletButton } from '@/app/providers/solana-provider'
@@ -27,15 +24,9 @@ const themeVariants = cva('text-white font-(family-name:--font-family-inter)', {
 
 export function Header({ navigation }: { navigation: Link[] }) {
   const pathname = usePathname()
-  const { connected } = useWallet()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const { setVisible } = useWalletModal()
 
   const themeCls = useMemo(() => themeVariants({ theme: 'dark' }), [])
-
-  const onWalletWarningClick = useCallback(() => {
-    setVisible(true)
-  }, [setVisible])
 
   return (
     <>
@@ -87,12 +78,6 @@ export function Header({ navigation }: { navigation: Link[] }) {
           </DialogPanel>
         </Dialog>
       </header>
-      {!connected && (
-        <Alert className="cursor-pointer" variant="warning" onClick={onWalletWarningClick}>
-          <AlertTitle>Wallet is not connected</AlertTitle>
-          <AlertDescription>Please select the wallet to connect.</AlertDescription>
-        </Alert>
-      )}
     </>
   )
 }

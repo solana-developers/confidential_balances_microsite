@@ -1,4 +1,3 @@
-export { AccountChecker } from './ui/account-checker'
 export { TokenBalance } from './ui/token-balance'
 export { TokenAccountButtons } from './ui/token-account-buttons'
 export { TokenConfidentialBalanceDisplay } from './ui/token-confidential-balance-display'
