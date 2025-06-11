@@ -132,7 +132,7 @@ export const useCreateTestTokenCB = ({
     onSuccess: (data) => {
       if (data.signature) {
         toast.transaction(data.signature)
-        toast.success(`Token-2022 mint created! Address: ${data.mintAddress}`)
+        toast.address('Token-2022 mint created!', data.mintAddress)
       }
 
       // Invalidate relevant queries to refresh data
@@ -246,7 +246,7 @@ export const useMintTestTokenCB = ({
     onSuccess: (data) => {
       if (data.signature) {
         toast.transaction(data.signature)
-        toast.success(`Token-2022 minted! Address: ${data.mintAddress}, amount=${data.amount}`)
+        toast.address(`Token-2022 minted (${data.amount})!`, data.mintAddress)
       }
 
       // Invalidate relevant queries to refresh data
