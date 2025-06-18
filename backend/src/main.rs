@@ -16,10 +16,22 @@ mod models;
 mod routes;
 
 // Use our route handlers
+#[rustfmt::skip]
 use routes::{
-    apply_cb, audit_transaction_cb, create_cb_ata, create_memo_transaction, create_test_token_cb,
-    decrypt_cb, deposit_cb, health_check, reveal_elgamal_pubkey_cb, transfer_cb, transfer_cb_space,
-    version_check, withdraw_cb, withdraw_cb_space,
+    apply_cb,
+    audit_transaction_cb,
+    create_cb_ata,
+    create_memo_transaction,
+    create_test_token_cb,
+    decrypt_cb,
+    deposit_cb,
+    health_check,
+    reveal_elgamal_pubkey_cb,
+    transfer_cb,
+    transfer_cb_space,
+    version_check,
+    withdraw_cb,
+    withdraw_cb_space,
 };
 
 #[tokio::main]
