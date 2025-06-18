@@ -2,14 +2,13 @@ use {
     crate::{
         errors::AppError,
         models::{CreateTestTokenTransactionRequest, TransactionResponse},
-        routes::util::parse_latest_blockhash,
+        routes::util::{parse_base58_pubkey, parse_latest_blockhash},
     },
     axum::extract::Json,
     base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _},
-    bincode, bs58,
+    bincode,
     solana_sdk::{
         message::{v0, VersionedMessage},
-        pubkey::Pubkey,
         system_instruction,
         transaction::VersionedTransaction,
     },
@@ -24,19 +23,6 @@ use {
     },
     std::str::FromStr,
 };
-
-// Helper function to parse a base58 address string into a Pubkey
-fn parse_base58_pubkey(address: &str) -> Result<Pubkey, AppError> {
-    match bs58::decode(address).into_vec() {
-        Ok(bytes) => {
-            if bytes.len() != 32 {
-                return Err(AppError::InvalidAddress);
-            }
-            Ok(Pubkey::new_from_array(bytes.try_into().unwrap()))
-        }
-        Err(_) => Err(AppError::InvalidAddress),
-    }
-}
 
 /// Handler for creating a test token mint with confidential transfers and close mint support
 pub async fn create_test_token_cb(

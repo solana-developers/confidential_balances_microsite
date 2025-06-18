@@ -2,9 +2,25 @@ use {
     crate::errors::AppError,
     base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _},
     bs58,
-    solana_sdk::{hash::Hash, pubkey::Pubkey},
+    solana_sdk::{
+        hash::Hash,
+        pubkey::{Pubkey, PUBKEY_BYTES},
+    },
     std::str::FromStr,
 };
+
+// Helper function to parse a base58 address string into a Pubkey
+pub fn parse_base58_pubkey(address: &str) -> Result<Pubkey, AppError> {
+    match bs58::decode(address).into_vec() {
+        Ok(bytes) => {
+            if bytes.len() != PUBKEY_BYTES {
+                return Err(AppError::InvalidAddress);
+            }
+            Ok(Pubkey::new_from_array(bytes.try_into().unwrap()))
+        }
+        Err(_) => Err(AppError::InvalidAddress),
+    }
+}
 
 // Helper function to parse blockhash bypassed from client
 pub fn parse_latest_blockhash(latest_blockhash: &String) -> Result<Hash, AppError> {
@@ -42,16 +58,17 @@ pub fn parse_base64_base58_pubkey(encoded_address: &str) -> Result<Pubkey, AppEr
     let bytes = bs58::decode(&decoded_string).into_vec()?;
     println!("✅ Base58 decoding successful, got {} bytes", bytes.len());
 
-    if bytes.len() != 32 {
+    if bytes.len() != PUBKEY_BYTES {
         println!(
-            "⛔️ Invalid pubkey length: expected 32 bytes, got {}",
+            "⛔️ Invalid pubkey length: expected {} bytes, got {}",
+            PUBKEY_BYTES,
             bytes.len()
         );
         return Err(AppError::InvalidAddress);
     }
 
     // Convert to fixed-size array and create Pubkey
-    let bytes_array: [u8; 32] = bytes.try_into().unwrap();
+    let bytes_array: [u8; PUBKEY_BYTES] = bytes.try_into().unwrap();
     let pubkey = Pubkey::new_from_array(bytes_array);
     println!("✅ Successfully created Pubkey: {}", pubkey.to_string());
 

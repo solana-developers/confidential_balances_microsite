@@ -2,15 +2,15 @@ use {
     crate::{
         errors::AppError,
         models::{TransactionRequest, TransactionResponse},
+        routes::util::parse_base58_pubkey,
     },
     axum::extract::Json,
     base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _},
-    bincode, bs58,
+    bincode,
     solana_sdk::{
         hash::Hash,
         instruction::{AccountMeta, Instruction},
         message::{v0, VersionedMessage},
-        pubkey::Pubkey,
         transaction::VersionedTransaction,
     },
     spl_memo::id as memo_program_id,
@@ -21,15 +21,7 @@ pub async fn create_memo_transaction(
     Json(request): Json<TransactionRequest>,
 ) -> Result<Json<TransactionResponse>, AppError> {
     // Parse the account address from base58
-    let account_pubkey = match bs58::decode(&request.account).into_vec() {
-        Ok(bytes) => {
-            if bytes.len() != 32 {
-                return Err(AppError::InvalidAddress);
-            }
-            Pubkey::new_from_array(bytes.try_into().unwrap())
-        }
-        Err(_) => return Err(AppError::InvalidAddress),
-    };
+    let account_pubkey = parse_base58_pubkey(&request.account)?;
 
     // Create a memo instruction with the user's account as a signer
     let memo_instruction = Instruction {
