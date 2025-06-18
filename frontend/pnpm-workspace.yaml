@@ -2,5 +2,20 @@ packages:
   - packages/*
 allowedDeprecatedVersions:
   eslint: 8.57.1
+onlyBuiltDependencies:
+  - '@tailwindcss/oxide'
+  - esbuild
+  - sharp
 ignoredBuiltDependencies:
   - core-js-pure
+  - '@parcel/watcher'
+  - '@swc/core'
+  - bigint-buffer
+  - blake-hash
+  - brace-expansion
+  - bufferutil
+  - core-js-pure
+  - protobufjs
+  - tiny-secp256k1
+  - usb
+  - utf-8-validate

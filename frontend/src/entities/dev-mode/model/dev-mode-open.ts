@@ -1,3 +1,3 @@
-import { atom } from 'jotai'
+import { atomWithStorage } from 'jotai/utils'
 
-export const devModeOpenAtom = atom<boolean>(false)
+export const devModeOpenAtom = atomWithStorage<boolean>('dev-mode-open', false)

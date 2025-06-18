@@ -2,6 +2,7 @@ import { TOKEN_2022_PROGRAM_ID, unpackAccount } from '@solana/spl-token'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import pluralize from 'pluralize'
 import {
   AES_SEED_MESSAGE,
   ELGAMAL_SEED_MESSAGE,
@@ -13,6 +14,7 @@ import { queryKey as getBalanceQK } from '@/entities/account/account/model/use-g
 import { queryKey as getSignaturesQK } from '@/entities/account/account/model/use-get-signatures'
 import { queryKey as getTokenAccountsQK } from '@/entities/account/account/model/use-get-token-accounts'
 import { queryKey as getTokenBalanceQK } from '@/entities/account/account/model/use-get-token-balance'
+import { useOperationLog } from '@/entities/operation-log'
 import { useToast } from '@/shared/ui/toast'
 
 export const queryKey = (endpoint: string, address: PublicKey) => [
@@ -25,9 +27,11 @@ export const queryKey = (endpoint: string, address: PublicKey) => [
 
 export const useWithdrawCB = ({ tokenAccountPubkey }: { tokenAccountPubkey: PublicKey }) => {
   const { connection } = useConnection()
-  const client = useQueryClient()
   const wallet = useWallet()
+  const client = useQueryClient()
+
   const toast = useToast()
+  const log = useOperationLog()
 
   return useMutation({
     mutationKey: queryKey(connection.rpcEndpoint, tokenAccountPubkey), //['withdraw-cb', { endpoint: connection.rpcEndpoint, tokenAccountPubkey }],
@@ -132,7 +136,7 @@ export const useWithdrawCB = ({ tokenAccountPubkey }: { tokenAccountPubkey: Publ
         )
 
         if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`)
+          throw new Error(`😵 HTTP error! Status: ${response.status}`)
         }
 
         const data = await response.json()
@@ -147,6 +151,7 @@ export const useWithdrawCB = ({ tokenAccountPubkey }: { tokenAccountPubkey: Publ
 
         return {
           signatures,
+          amount,
           ...data,
         }
       } catch (error) {
@@ -161,6 +166,12 @@ export const useWithdrawCB = ({ tokenAccountPubkey }: { tokenAccountPubkey: Publ
           toast.transaction(signature)
         })
         toast.success('Withdraw transaction successful')
+
+        log.push({
+          title: 'Withdraw Operation - COMPLETE',
+          content: `Withdraw transaction successful\n  Token account: ${tokenAccountPubkey}\n  Amount: ${pluralize('token unit', data.amount, true)}${data.signatures.map((signature: string, index: number) => `\n  Signature${data.signatures.length > 1 ? ` #${index + 1}` : ''}: ${signature}`).join('')}`,
+          variant: 'success',
+        })
       }
 
       // Hide confidential balance using query cache
@@ -187,6 +198,11 @@ export const useWithdrawCB = ({ tokenAccountPubkey }: { tokenAccountPubkey: Publ
     },
     onError: (error) => {
       toast.error(`Withdraw failed! ${error}`)
+      log.push({
+        title: 'Withdraw Operation - FAILED',
+        content: `Withdraw transaction failed\n  Token account: ${tokenAccountPubkey}\n  Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: 'error',
+      })
     },
   })
 }

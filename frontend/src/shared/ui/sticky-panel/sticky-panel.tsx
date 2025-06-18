@@ -3,7 +3,7 @@ import { cn } from '@/shared/utils'
 
 type StickyPanelProps = PropsWithChildren<{
   className?: string
-  containerRef?: RefObject<HTMLElement>
+  containerRef?: RefObject<HTMLElement | null>
 }>
 
 export const StickyPanel: FC<StickyPanelProps> = ({ children, className, containerRef }) => {

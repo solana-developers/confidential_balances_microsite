@@ -1,7 +1,7 @@
 import { ComponentProps, MouseEvent, ReactNode, useId } from 'react'
 import { Slot } from '@radix-ui/react-slot'
+import { Button } from '@solana-foundation/ms-tools-ui/components/button'
 import {
-  Button,
   Table,
   TableBody,
   TableCaption,
@@ -9,7 +9,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@solana-foundation/ms-tools-ui'
+} from '@solana-foundation/ms-tools-ui/components/table'
 import { cva, VariantProps } from 'class-variance-authority'
 import { cn } from '@/shared/utils'
 
@@ -70,12 +70,12 @@ export function DataTable({
   return (
     <div className={cn(dataTableVariants(), className)}>
       {title ? (
-        <div className="flex flex-row justify-between px-6 py-4">
+        <div className="flex flex-col justify-between gap-2 px-6 py-4 sm:flex-row">
           {title}
           {actions ? (
             <ActionsComp
               data-slot="data-table-actions"
-              className="flex flex-row items-center gap-1"
+              className="flex flex-row flex-wrap items-center gap-1 overflow-hidden"
               {...actionProps}
             >
               {actions.map(({ icon, ...action }) => (

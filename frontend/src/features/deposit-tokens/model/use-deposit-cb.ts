@@ -6,13 +6,41 @@ import { queryKey as getBalanceQK } from '@/entities/account/account/model/use-g
 import { queryKey as getSignaturesQK } from '@/entities/account/account/model/use-get-signatures'
 import { queryKey as getTokenAccountsQK } from '@/entities/account/account/model/use-get-token-accounts'
 import { queryKey as getTokenBalanceQK } from '@/entities/account/account/model/use-get-token-balance'
+import { useDevMode } from '@/entities/dev-mode'
+import { useOperationLog } from '@/entities/operation-log'
 import { useToast } from '@/shared/ui/toast'
+
+async function serverRequest(request: {
+  token_account_data: string
+  lamport_amount: string
+  mint_decimals: number
+  latest_blockhash: string
+}) {
+  const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT}/deposit-cb`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  })
+
+  if (!response.ok) {
+    throw new Error(`😵 HTTP error! Status: ${response.status}`)
+  }
+
+  const data = await response.json()
+
+  return data
+}
 
 export const useDepositCb = ({ tokenAccountPubkey }: { tokenAccountPubkey: PublicKey }) => {
   const { connection } = useConnection()
-  const client = useQueryClient()
-  const toast = useToast()
   const wallet = useWallet()
+  const client = useQueryClient()
+
+  const toast = useToast()
+  const log = useOperationLog()
+  const devMode = useDevMode()
 
   return useMutation({
     mutationKey: ['deposit-cb', { endpoint: connection.rpcEndpoint, tokenAccountPubkey }],
@@ -47,30 +75,22 @@ export const useDepositCb = ({ tokenAccountPubkey }: { tokenAccountPubkey: Publi
           return mint.decimals
         })()
 
-        // Call the deposit-cb endpoint
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT}/deposit-cb`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            token_account_data: Buffer.from(ataAccountInfo.data).toString('base64'),
-            lamport_amount: lamportAmount,
-            mint_decimals: decimals,
-          }),
-        })
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`)
+        const requestBody = {
+          token_account_data: Buffer.from(ataAccountInfo.data).toString('base64'),
+          lamport_amount: lamportAmount,
+          mint_decimals: decimals,
+          latest_blockhash: (await connection.getLatestBlockhash()).blockhash,
         }
+        console.log('📤 Frontend request body:', JSON.stringify(requestBody, null, 2))
 
-        const data = await response.json()
+        // Call the deposit-cb endpoint
+        const data = await serverRequest(requestBody)
 
         // Deserialize the transaction from the response
         const serializedTransaction = Buffer.from(data.transaction, 'base64')
         const transaction = VersionedTransaction.deserialize(serializedTransaction)
 
-        // Get the latest blockhash for transaction confirmation
+        // Get the latest blockhash for the transaction
         const latestBlockhash = await connection.getLatestBlockhash()
 
         // Update the transaction's blockhash
@@ -91,6 +111,7 @@ export const useDepositCb = ({ tokenAccountPubkey }: { tokenAccountPubkey: Publi
         console.log('Deposit transaction signature:', signature)
         return {
           signature,
+          lamportAmount,
           ...data,
         }
       } catch (error) {
@@ -102,6 +123,18 @@ export const useDepositCb = ({ tokenAccountPubkey }: { tokenAccountPubkey: Publi
       if (data.signature) {
         toast.transaction(data.signature)
         toast.success('Deposit transaction successful')
+
+        log.push({
+          title: 'Deposit Operation - COMPLETE',
+          content: `Deposit transaction successful\n  Token account: ${tokenAccountPubkey}\n  Lamport amount: ${data.lamportAmount}\n  Signature: ${data.signature}`,
+          variant: 'success',
+        })
+
+        devMode.set(4, {
+          title: 'Deposit Operation - COMPLETE',
+          result: `Deposit transaction successful\n  Token account: ${tokenAccountPubkey}\n  Lamport amount: ${data.lamportAmount}\n  Signature: ${data.signature}`,
+          success: true,
+        })
       }
 
       // Log that we're going to invalidate the has-pending-balance query
@@ -140,6 +173,11 @@ export const useDepositCb = ({ tokenAccountPubkey }: { tokenAccountPubkey: Publi
     },
     onError: (error) => {
       toast.error(`Deposit failed! ${error}`)
+      log.push({
+        title: 'Deposit Operation - FAILED',
+        content: `Deposit transaction failed\n  Token account: ${tokenAccountPubkey}\n  Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: 'error',
+      })
     },
   })
 }

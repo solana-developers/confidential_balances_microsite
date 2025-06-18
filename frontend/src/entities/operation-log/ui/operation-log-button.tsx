@@ -1,7 +1,7 @@
 import { FC } from 'react'
-import { Button } from '@solana-foundation/ms-tools-ui'
+import { Button } from '@solana-foundation/ms-tools-ui/components/button'
 import { useAtom } from 'jotai'
-import * as Icons from 'lucide-react'
+import { TerminalSquare } from 'lucide-react'
 import { cn } from '@/shared/utils'
 import { operationLogOpenAtom } from '../model/operation-log-open'
 
@@ -19,7 +19,7 @@ export const OperationLogButton: FC = () => {
       variant="outline"
       onClick={() => setOperationLogOpen(true)}
     >
-      <Icons.TerminalSquare />
+      <TerminalSquare />
       Open operation log
     </Button>
   )

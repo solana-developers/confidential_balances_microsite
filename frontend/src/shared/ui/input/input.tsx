@@ -1,5 +1,5 @@
 import { ComponentProps, FC } from 'react'
-import { Input as UIInput } from '@solana-foundation/ms-tools-ui'
+import { Input as UIInput } from '@solana-foundation/ms-tools-ui/components/input'
 import { cva } from 'class-variance-authority'
 import { cn } from '@/shared/utils'
 import styles from './input.module.css'
@@ -36,7 +36,7 @@ export const Input: FC<ComponentProps<'input'> & { icon?: React.ReactNode }> = (
   icon,
   ...props
 }) => (
-  <div className="relative flex flex-col">
+  <div className="relative flex flex-col overflow-hidden">
     {icon && (
       <div className="absolute top-1/2 left-2 -translate-y-1/2 text-[var(--foreground)]/50">
         {icon}

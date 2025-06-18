@@ -1,5 +1,5 @@
 import { FC, type PropsWithChildren } from 'react'
-import * as Icons from 'lucide-react'
+import { X } from 'lucide-react'
 import { cn } from '@/shared/utils/cn'
 import styles from './panel.module.css'
 
@@ -23,7 +23,7 @@ export const Panel: FC<PanelProps> = ({ children, className, title, onClose }) =
       </h3>
       {onClose && (
         <button className="shrink-0 cursor-pointer" onClick={onClose}>
-          <Icons.X className="size-6 fill-[var(--foreground)]" />
+          <X className="size-6 fill-[var(--foreground)]" />
         </button>
       )}
     </header>

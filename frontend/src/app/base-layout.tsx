@@ -1,7 +1,8 @@
 'use client'
 
 import { ComponentProps, FC, PropsWithChildren, Suspense, useRef } from 'react'
-import { cn, Skeleton } from '@solana-foundation/ms-tools-ui'
+import { Skeleton } from '@solana-foundation/ms-tools-ui/components/skeleton'
+import { cn } from '@solana-foundation/ms-tools-ui/lib/utils'
 import { useAtomValue } from 'jotai'
 import { devModeOpenAtom, DevModePanel } from '@/entities/dev-mode'
 import {
@@ -32,13 +33,13 @@ export const BaseLayout: FC<LayoutProps> = ({ children, links }) => {
         })}
       >
         <Header navigation={links} />
-        <div className="mx-auto grid w-full max-w-7xl flex-grow grid-cols-12 gap-4 px-5 pb-5">
-          <div className={cn(devModeOpen ? 'col-span-8 hidden md:block' : 'col-span-12')}>
+        <div className="mx-auto grid w-full max-w-7xl flex-grow grid-cols-12 gap-4 px-5">
+          <div className={cn('pb-5', devModeOpen ? 'col-span-8 hidden md:block' : 'col-span-12')}>
             <WalletChecker>
               <Suspense
                 fallback={
                   <div className="my-32 text-center">
-                    <Skeleton className="m-auto h-6 w-[250px] text-(color:--surface)">
+                    <Skeleton className="m-auto h-6 w-[250px] px-4 text-(color:--surface)">
                       Loading..
                     </Skeleton>
                   </div>

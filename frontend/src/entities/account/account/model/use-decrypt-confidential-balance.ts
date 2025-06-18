@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { Account, getMint, Mint, TOKEN_2022_PROGRAM_ID, unpackAccount } from '@solana/spl-token'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
+import { useDevMode } from '@/entities/dev-mode'
+import { useOperationLog } from '@/entities/operation-log'
 import { AES_SEED_MESSAGE } from './aes-seed-message'
 import { generateSeedSignature } from './generate-seed-signature'
 
@@ -13,6 +15,9 @@ export const useDecryptConfidentialBalance = () => {
   const [isDecrypting, setIsDecrypting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confidentialBalance, setConfidentialBalance] = useState<string | null>(null)
+
+  const log = useOperationLog()
+  const devMode = useDevMode()
 
   const decryptBalance = async (tokenAccountPubkey: PublicKey) => {
     if (!wallet.signMessage || !wallet.publicKey) {
@@ -72,9 +77,28 @@ export const useDecryptConfidentialBalance = () => {
       const decryptedBalance = (parseInt(rawAmount) / Math.pow(10, decimals)).toString()
 
       setConfidentialBalance(decryptedBalance)
+
+      log.push({
+        title: 'Decrypt Operation - COMPLETE',
+        content: `Decrypted balance successfully\n  Balance: ${decryptedBalance}`,
+        variant: 'success',
+      })
+
+      devMode.set(6, {
+        title: 'Decrypt Operation - COMPLETE',
+        result: `Decrypted balance successfully\n  Balance: ${decryptedBalance}`,
+        success: true,
+      })
+
       return decryptedBalance
     } catch (error) {
       console.error('Decryption failed:', error)
+      log.push({
+        title: 'Decrypt Operation - FAILED',
+        content: `Failed to decrypt balance: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: 'error',
+      })
+
       setError(error instanceof Error ? error.message : 'Failed to decrypt balance')
       return null
     } finally {

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { Dialog, DialogPanel } from '@headlessui/react'
 import { cva } from 'class-variance-authority'
-import * as Icons from 'lucide-react'
+import { CircleX, ExternalLink, Menu } from 'lucide-react'
 import { WalletButton } from '@/app/providers/solana-provider'
 import { ClusterSelect } from '@/entities/cluster/cluster'
 import { DevModeButton } from '@/entities/dev-mode'
@@ -47,7 +47,7 @@ export function Header({ navigation }: { navigation: Link[] }) {
               className="-m-2.5 inline-flex cursor-pointer items-center justify-center rounded-md p-2.5 text-gray-700"
             >
               <span className="sr-only">Open main menu</span>
-              <Icons.Menu aria-hidden="true" className="size-6" />
+              <Menu aria-hidden="true" className="size-6" />
             </button>
           </div>
           <MainMenu className="hidden lg:flex lg:gap-x-2" navigation={navigation} />
@@ -69,7 +69,7 @@ export function Header({ navigation }: { navigation: Link[] }) {
                 className="-m-2.5 rounded-md p-2.5 text-gray-700"
               >
                 <span className="sr-only">Close menu</span>
-                <Icons.CircleX aria-hidden="true" className="size-6" />
+                <CircleX aria-hidden="true" className="size-6" />
               </button>
             </div>
             <div className="mt-6 flow-root">
@@ -123,10 +123,7 @@ function DialogMenu({ navigation }: { navigation: Link[] }) {
           >
             {item.label}{' '}
             {item.blank ? (
-              <Icons.ExternalLink
-                className="inline translate-x-[2px] translate-y-[-2px]"
-                size="14"
-              />
+              <ExternalLink className="inline translate-x-[2px] translate-y-[-2px]" size="14" />
             ) : (
               ''
             )}

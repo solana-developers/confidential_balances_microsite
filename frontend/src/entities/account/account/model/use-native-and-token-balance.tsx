@@ -1,6 +1,6 @@
 import { NATIVE_MINT } from '@solana/spl-token'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
-import * as web3 from '@solana/web3.js'
+import { PublicKey } from '@solana/web3.js'
 import { QueryObserverOptions, useQuery } from '@tanstack/react-query'
 import { nativeToUiAmount } from './native-to-ui-amount'
 
@@ -22,10 +22,27 @@ const empty: InfoTokenAmount = {
   uiAmountString: '0',
 }
 
+export const queryKey = (endpoint: string, address: PublicKey | null, token: PublicKey) => [
+  'use-token-balance-by-mint',
+  { endpoint, address, token },
+]
+
 export { empty as placeholderData }
 
+const isPublicKey = (address: string | PublicKey): address is PublicKey => {
+  if (address instanceof PublicKey) {
+    return true
+  }
+  try {
+    new PublicKey(address)
+    return true
+  } catch {
+    return false
+  }
+}
+
 export function useNativeAndTokenBalance(
-  address: web3.PublicKey | string | undefined,
+  address: PublicKey | string,
   opts?: Pick<
     QueryObserverOptions<InfoTokenAmount>,
     'refetchInterval' | 'refetchIntervalInBackground' | 'placeholderData'
@@ -43,21 +60,13 @@ export function useNativeAndTokenBalance(
     enabled: Boolean(address && publicKey),
     placeholderData: opts?.placeholderData,
     queryFn: async (): Promise<InfoTokenAmount> => {
-      // no token selected yet
-      if (!address) {
+      if (!address || !isPublicKey(address) || !publicKey) {
         return empty
       }
 
-      if (typeof address === 'string') {
-        address = new web3.PublicKey(address)
-      }
+      const pubKey = address instanceof PublicKey ? address : new PublicKey(address)
 
-      if (!publicKey) {
-        // no wallet connected yet on solana
-        return empty
-      }
-
-      if (NATIVE_MINT.equals(new web3.PublicKey(address))) {
+      if (NATIVE_MINT.equals(pubKey)) {
         const balance = await connection.getBalance(publicKey)
         const ui = nativeToUiAmount(balance)
 
@@ -67,25 +76,28 @@ export function useNativeAndTokenBalance(
           uiAmount: ui.uiAmount,
           uiAmountString: ui.uiAmountString,
         }
-      } else {
-        // Get the initial solana token balance
-        const results = await connection.getParsedTokenAccountsByOwner(publicKey, { mint: address })
+      }
 
-        for (const item of results.value) {
-          // FEAT: use schema to parse values
-          const tokenInfo = {
-            mint: item.account.data.parsed.info.mint as string,
-            tokenAmount: item.account.data.parsed.info.tokenAmount as InfoTokenAmount,
-          }
-          const mintAddress = tokenInfo.mint
-          if (mintAddress === address.toString()) {
-            return tokenInfo.tokenAmount
-          }
+      const results = await connection.getParsedTokenAccountsByOwner(publicKey, { mint: pubKey })
+
+      for (const item of results.value) {
+        const tokenInfo = {
+          mint: item.account.data.parsed.info.mint as string,
+          tokenAmount: item.account.data.parsed.info.tokenAmount as InfoTokenAmount,
+        }
+        const mintAddress = tokenInfo.mint
+        if (mintAddress === pubKey.toString()) {
+          return tokenInfo.tokenAmount
         }
       }
+
       return empty
     },
-    queryKey: ['use-token-balance-by-mint', String(address), String(publicKey)],
+    queryKey: queryKey(
+      connection.rpcEndpoint,
+      publicKey ?? null,
+      address instanceof PublicKey ? address : new PublicKey(address)
+    ),
     refetchInterval: opts?.refetchInterval ?? REFRESH_TIMEOUT,
     refetchIntervalInBackground: opts?.refetchIntervalInBackground,
     retry: NUMBER_OF_RETRIES,

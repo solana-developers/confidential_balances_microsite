@@ -1,10 +1,10 @@
-import { ComponentProps, FC, useCallback, useMemo, useState } from 'react'
+import { ComponentProps, FC, PropsWithChildren, useCallback, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Address } from '@solana-foundation/ms-tools-ui'
+import { Address } from '@solana-foundation/ms-tools-ui/components/address'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
 import { useQueryClient } from '@tanstack/react-query'
-import { Coins, PlusCircle, RefreshCw } from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
 import { useCreateAssociatedTokenAccountCB } from '@/entities/account/account/model/use-create-associated-token-account-cb'
 import {
   useCreateTestTokenCB,
@@ -12,13 +12,14 @@ import {
 } from '@/entities/account/account/model/use-create-test-token-cb'
 import { useGetTokenAccounts } from '@/entities/account/account/model/use-get-token-accounts'
 import { ModalInitATA } from '@/entities/account/account/ui/modal-init-ata'
-import { ModalMintToken } from '@/entities/account/account/ui/modal-mint-token'
 import { ExplorerLink } from '@/entities/cluster/cluster'
 import { DataTable } from '@/shared/ui/data-table'
+import { ModalCreateMint } from './modal-create-mint'
+import { ModalMintToken } from './modal-mint-token'
 
 type DataTableAction = NonNullable<ComponentProps<typeof DataTable>['actions']>[0]
 
-export function TokenAccounts() {
+export function TokenAccounts({ address }: { address?: string }) {
   const { connected, publicKey } = useWallet()
 
   return (
@@ -26,7 +27,7 @@ export function TokenAccounts() {
       {!connected || !publicKey ? (
         <DisconnectedWalletTokenAccounts />
       ) : (
-        <ConnectedWalletTokenAccounts address={publicKey} />
+        <ConnectedWalletTokenAccounts address={address ? new PublicKey(address) : publicKey} />
       )}
     </>
   )
@@ -52,11 +53,14 @@ function ConnectedWalletTokenAccounts({
   }, [query.data, showAll, limit])
 
   const [showInitializeModal, setShowInitializeModal] = useState(false)
+  const [showCreateMintModal, setShowCreateMintModal] = useState(false)
   const [showMintModal, setShowMintModal] = useState(false)
   const { mutate: initializeAccount, isPending: isInitializing } =
     useCreateAssociatedTokenAccountCB({ walletAddressPubkey: address })
 
-  const { mutate: createTestToken } = useCreateTestTokenCB({ walletAddressPubkey: address })
+  const { mutate: createTestToken, isPending: isCreatingMint } = useCreateTestTokenCB({
+    walletAddressPubkey: address,
+  })
   const { mutate: mintTestToken, isPending: isMinting } = useMintTestTokenCB({
     walletAddressPubkey: address,
   })
@@ -70,8 +74,8 @@ function ConnectedWalletTokenAccounts({
   }, [setShowMintModal])
 
   const onCreateTestToken = useCallback(() => {
-    createTestToken()
-  }, [createTestToken])
+    setShowCreateMintModal(true)
+  }, [setShowCreateMintModal])
 
   const emptyLabel = useMemo(() => {
     const noRecords = 'No token accounts found. Create new account to proceed'
@@ -84,7 +88,6 @@ function ConnectedWalletTokenAccounts({
   }, [query])
 
   const actions = useMemo(() => {
-    // NOTE: preserve original functionality by invalidating data
     const onInvalidateBalance = async () => {
       await query.refetch()
       await client.invalidateQueries({
@@ -96,19 +99,20 @@ function ConnectedWalletTokenAccounts({
       {
         action: 'createTestToken',
         title: 'Create test token',
+        icon: <IconNumber>1</IconNumber>,
         onClick: onCreateTestToken,
-        icon: <PlusCircle />,
       },
       {
         action: 'createCTA',
         title: 'Create account',
+        icon: <IconNumber>2</IconNumber>,
         onClick: onCreateCTA,
       },
       {
         action: 'mintTestToken',
         title: 'Mint token',
+        icon: <IconNumber>3</IconNumber>,
         onClick: onMintTestToken,
-        icon: <Coins />,
       },
       {
         action: 'refetch',
@@ -139,12 +143,26 @@ function ConnectedWalletTokenAccounts({
         initializeAccount={initializeAccount}
         isInitializing={isInitializing}
       />
+      <ModalCreateMint
+        key="createMint"
+        show={showCreateMintModal}
+        hide={() => setShowCreateMintModal(false)}
+        submitCallback={({ auditorAddress }) => {
+          createTestToken({
+            auditorElGamalPubkey: auditorAddress,
+          })
+        }}
+        isProcessing={isCreatingMint}
+      />
       <ModalMintToken
         key="mintTestToken"
         show={showMintModal}
         hide={() => setShowMintModal(false)}
-        initializeAccount={(a) => {
-          mintTestToken({ mintAddressPubkey: new PublicKey(a.mintAddress) })
+        initializeAccount={({ mintAmount, mintAddress }) => {
+          mintTestToken({
+            mintAddressPubkey: new PublicKey(mintAddress),
+            mintAmount,
+          })
         }}
         isInitializing={isMinting}
       />
@@ -173,3 +191,9 @@ function ConnectedWalletTokenAccounts({
     </>
   )
 }
+
+export const IconNumber: FC<PropsWithChildren> = ({ children }) => (
+  <div className="flex aspect-square size-3 items-center justify-center overflow-hidden rounded-full border border-[var(--muted)] text-[10px] text-[var(--muted)]">
+    {children}
+  </div>
+)

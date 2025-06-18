@@ -1,5 +1,8 @@
-'use client'
+import PageView from './page-view'
 
-import { Clusters } from '@/pages/clusters'
+export const metadata = {
+  title: 'Clusters | Solana Confidential Balances',
+  description: '',
+}
 
-export default Clusters
+export default PageView

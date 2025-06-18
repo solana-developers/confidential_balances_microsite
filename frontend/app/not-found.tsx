@@ -4,6 +4,11 @@ import Link from 'next/link'
 import { Home, Wallet } from 'lucide-react'
 import { SimpleLayout } from '@/app/simple-layout'
 
+export const metadata = {
+  title: '404 | Solana Confidential Balances',
+  description: '',
+}
+
 export default function NotFound() {
   return (
     <SimpleLayout className="min-h-[60vh] px-4">

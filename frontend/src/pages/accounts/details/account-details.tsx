@@ -11,12 +11,12 @@ import {
 } from '@/features/token-account'
 import { BackwardControl } from '@/shared/ui/backward-control'
 
-type DetailsProps = {
+type AccountDetailsProps = {
   address: string
   account: string
 }
 
-export const Details: FC<DetailsProps> = ({ address: param, account: ataParam }) => {
+export const AccountDetails: FC<AccountDetailsProps> = ({ address: param, account: ataParam }) => {
   const address = new PublicKey(param)
   const account = new PublicKey(ataParam)
 
@@ -30,7 +30,7 @@ export const Details: FC<DetailsProps> = ({ address: param, account: ataParam })
       ) : (
         <TokenAccountHeader
           label="Token account"
-          address={address}
+          account={address}
           secondaryLabel="Account balance"
         />
       )}

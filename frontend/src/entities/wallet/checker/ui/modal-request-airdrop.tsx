@@ -1,5 +1,5 @@
 import { FC } from 'react'
-import { Form, FormField } from '@solana-foundation/ms-tools-ui'
+import { Form, FormField } from '@solana-foundation/ms-tools-ui/components/form'
 import { PublicKey } from '@solana/web3.js'
 import { useForm } from 'react-hook-form'
 import { FormItemInput } from '@/shared/ui/form'
@@ -14,7 +14,7 @@ type ModalRequestAirdropProps = {
 }
 
 type FormValues = {
-  amount: number
+  amount: string
 }
 
 export const ModalRequestAirdrop: FC<ModalRequestAirdropProps> = ({ hide, show, address }) => {
@@ -23,7 +23,7 @@ export const ModalRequestAirdrop: FC<ModalRequestAirdropProps> = ({ hide, show, 
 
   const form = useForm<FormValues>({
     defaultValues: {
-      amount: 1,
+      amount: '1',
     },
     mode: 'onChange',
   })
@@ -33,13 +33,14 @@ export const ModalRequestAirdrop: FC<ModalRequestAirdropProps> = ({ hide, show, 
   } = form
 
   const handleSubmit = async (values: FormValues) => {
-    if (values.amount <= 0) {
+    const amount = Number(values.amount)
+    if (isNaN(amount) || amount <= 0) {
       toast.error('Please enter a valid amount')
       return
     }
 
     try {
-      await mutation.mutateAsync(values.amount)
+      await mutation.mutateAsync(amount)
       toast.success('Airdrop requested')
       hide()
     } catch (error) {
@@ -58,28 +59,29 @@ export const ModalRequestAirdrop: FC<ModalRequestAirdropProps> = ({ hide, show, 
       submit={form.handleSubmit(handleSubmit)}
     >
       <Form {...form}>
-        <p>Request airdrop to your account</p>
+        <form onSubmit={form.handleSubmit(handleSubmit)}>
+          <p>Request airdrop to your account</p>
 
-        <FormField
-          control={form.control}
-          name="amount"
-          rules={{
-            required: 'Amount is required',
-            min: {
-              value: 1,
-              message: 'Amount must be greater than 0',
-            },
-          }}
-          render={({ field }) => (
-            <FormItemInput
-              type="number"
-              label="Amount (tokens)"
-              disabled={isSubmitting}
-              {...field}
-              onChange={(e) => field.onChange(e.target.valueAsNumber)}
-            />
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="amount"
+            rules={{
+              required: 'Amount is required',
+              min: {
+                value: 1,
+                message: 'Amount must be greater than 0',
+              },
+            }}
+            render={({ field }) => (
+              <FormItemInput
+                type="number"
+                label="Amount (tokens)"
+                disabled={isSubmitting}
+                {...field}
+              />
+            )}
+          />
+        </form>
       </Form>
     </Modal>
   )

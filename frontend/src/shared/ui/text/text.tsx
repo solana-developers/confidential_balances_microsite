@@ -15,19 +15,20 @@ const textVariants = cva('', {
   },
 })
 
-type TextProps = PropsWithChildren<{
-  className?: string
-}> &
-  VariantProps<typeof textVariants>
-
 const elements: Record<NonNullable<VariantProps<typeof textVariants>['variant']>, ElementType> = {
   header1: 'h1',
   text: 'p',
   textSmall: 'p',
 }
 
-export const Text: FC<TextProps> = ({ children, className, variant = 'text' }) => {
-  const Element = elements[variant ?? 'text']
+type TextProps = PropsWithChildren<{
+  className?: string
+  as?: (typeof elements)[keyof typeof elements]
+}> &
+  VariantProps<typeof textVariants>
+
+export const Text: FC<TextProps> = ({ children, className, as, variant = 'text' }) => {
+  const Element = as ?? elements[variant ?? 'text']
 
   return <Element className={cn(textVariants({ variant }), className)}>{children}</Element>
 }

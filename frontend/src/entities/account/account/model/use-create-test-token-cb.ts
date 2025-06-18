@@ -8,39 +8,34 @@ import {
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { Keypair, PublicKey, Transaction, VersionedTransaction } from '@solana/web3.js'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useSetAtom } from 'jotai'
+import pluralize from 'pluralize'
+import { useDevMode } from '@/entities/dev-mode'
+import { useOperationLog } from '@/entities/operation-log'
 import { useToast } from '@/shared/ui/toast'
+import { latestMintAddressAtom } from './latest-mint-address'
 import { queryKey as getBalanceQK } from './use-get-balance'
 import { queryKey as getSignaturesQK } from './use-get-signatures'
 import { queryKey as getTokenAccountsQK } from './use-get-token-accounts'
 
-async function serverRequest({
-  account,
-  mint,
-  mintRent,
-  mintAmount,
-}: {
-  account: PublicKey
-  mint: PublicKey
-  mintRent: number
-  mintAmount: number
+async function serverRequest(request: {
+  account: string
+  mint: string
+  mint_rent: number
+  latest_blockhash: string
+  auditor_elgamal_pubkey?: string
 }) {
-  // Now proceed with the transaction
   const route = `${process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT}/create-test-token`
   const response = await fetch(route, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      account: account.toBase58(),
-      mint: mint.toBase58(),
-      mintRent,
-      mintAmount,
-    }),
+    body: JSON.stringify(request),
   })
 
   if (!response.ok) {
-    throw new Error(`HTTP error! Status: ${response.status}`)
+    throw new Error(`😵 HTTP error! Status: ${response.status}`)
   }
 
   const data = await response.json()
@@ -54,16 +49,20 @@ export const useCreateTestTokenCB = ({
   walletAddressPubkey: PublicKey
 }) => {
   const { connection } = useConnection()
-  const client = useQueryClient()
-  const toast = useToast()
   const wallet = useWallet()
+  const client = useQueryClient()
+
+  const toast = useToast()
+  const log = useOperationLog()
+  const devMode = useDevMode()
+  const setLatestMintAddress = useSetAtom(latestMintAddressAtom)
 
   return useMutation({
     mutationKey: [
       'create-token2022-test-mint',
       { endpoint: connection.rpcEndpoint, address: walletAddressPubkey },
     ],
-    mutationFn: async () => {
+    mutationFn: async ({ auditorElGamalPubkey }: { auditorElGamalPubkey?: string }) => {
       try {
         if (!wallet.publicKey) {
           throw new Error('Wallet not connected')
@@ -85,12 +84,15 @@ export const useCreateTestTokenCB = ({
         const mintRent = await connection.getMinimumBalanceForRentExemption(mintSpace)
         console.log('Mint account rent required:', mintRent, 'lamports')
 
-        const data = await serverRequest({
-          account: wallet.publicKey,
-          mint: mintKeypair.publicKey,
-          mintRent,
-          mintAmount: 1000,
-        })
+        const requestBody = {
+          account: wallet.publicKey.toBase58(),
+          auditor_elgamal_pubkey: auditorElGamalPubkey ? auditorElGamalPubkey : undefined,
+          mint: mintKeypair.publicKey.toBase58(),
+          mint_rent: mintRent,
+          latest_blockhash: (await connection.getLatestBlockhash()).blockhash,
+        }
+
+        const data = await serverRequest(requestBody)
 
         // Deserialize the transaction from the response
         const serializedTransaction = Buffer.from(data.transaction, 'base64')
@@ -132,7 +134,18 @@ export const useCreateTestTokenCB = ({
     onSuccess: (data) => {
       if (data.signature) {
         toast.transaction(data.signature)
+        setLatestMintAddress(data.mintAddress)
         toast.address('Token-2022 mint created!', data.mintAddress)
+        log.push({
+          title: 'Create test token Operation - COMPLETE',
+          content: `Token-2022 mint created\n  Wallet: ${walletAddressPubkey}\n  Mint address: ${data.mintAddress}\n  Signature: ${data.signature}`,
+          variant: 'success',
+        })
+        devMode.set(1, {
+          title: 'Create test token Operation - COMPLETE',
+          result: `Token-2022 mint created\n  Wallet: ${walletAddressPubkey}\n  Mint address: ${data.mintAddress}\n  Signature: ${data.signature}`,
+          success: true,
+        })
       }
 
       // Invalidate relevant queries to refresh data
@@ -150,34 +163,48 @@ export const useCreateTestTokenCB = ({
     },
     onError: (error) => {
       toast.error(`Token mint creation failed! ${error}`)
+      log.push({
+        title: 'Create test token Operation - FAILED',
+        content: `Token mint creation failed\n  Wallet: ${walletAddressPubkey}\n  Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: 'error',
+      })
     },
   })
 }
 
 export const useMintTestTokenCB = ({
   walletAddressPubkey,
-  amount = 1000,
+  amount: defaultAmount = 1000,
 }: {
   walletAddressPubkey: PublicKey
   amount?: number
 }) => {
   const { connection } = useConnection()
-  const client = useQueryClient()
-  const toast = useToast()
   const wallet = useWallet()
+  const client = useQueryClient()
+
+  const toast = useToast()
+  const log = useOperationLog()
+  const devMode = useDevMode()
 
   return useMutation({
     mutationKey: [
       'mint-token2022-test-mint',
       { endpoint: connection.rpcEndpoint, address: walletAddressPubkey },
     ],
-    mutationFn: async ({ mintAddressPubkey }: { mintAddressPubkey: PublicKey }) => {
+    mutationFn: async ({
+      mintAddressPubkey,
+      mintAmount = defaultAmount,
+    }: {
+      mintAddressPubkey: PublicKey
+      mintAmount?: number
+    }) => {
       try {
         if (!wallet.publicKey) {
           throw new Error('Wallet not connected')
         }
 
-        const tokenAmount = amount * Math.pow(10, 9)
+        const tokenAmount = mintAmount * Math.pow(10, 9)
 
         const destination = await getAssociatedTokenAddress(
           mintAddressPubkey,
@@ -235,7 +262,7 @@ export const useMintTestTokenCB = ({
         return {
           signature,
           mintAddress: mintAddressPubkey.toBase58(),
-          amount,
+          amount: mintAmount,
           amountLamports: tokenAmount,
         }
       } catch (error) {
@@ -247,6 +274,18 @@ export const useMintTestTokenCB = ({
       if (data.signature) {
         toast.transaction(data.signature)
         toast.address(`Token-2022 minted (${data.amount})!`, data.mintAddress)
+
+        log.push({
+          title: 'Mint token Operation - COMPLETE',
+          content: `Token-2022 minted\n  Wallet: ${walletAddressPubkey}\n  Mint address: ${data.mintAddress}\n  Amount: ${pluralize('token', data.amount, true)}\n  Signature: ${data.signature}`,
+          variant: 'success',
+        })
+
+        devMode.set(3, {
+          title: 'Mint token Operation - COMPLETE',
+          result: `Token-2022 minted\n  Wallet: ${walletAddressPubkey}\n  Mint address: ${data.mintAddress}\n  Amount: ${pluralize('token', data.amount, true)}\n  Signature: ${data.signature}`,
+          success: true,
+        })
       }
 
       // Invalidate relevant queries to refresh data
@@ -264,6 +303,11 @@ export const useMintTestTokenCB = ({
     },
     onError: (error) => {
       toast.error(`Token minting failed! ${error}`)
+      log.push({
+        title: 'Mint token Operation - FAILED',
+        content: `Token minting failed\n  Wallet: ${walletAddressPubkey}\n  Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: 'error',
+      })
     },
   })
 }

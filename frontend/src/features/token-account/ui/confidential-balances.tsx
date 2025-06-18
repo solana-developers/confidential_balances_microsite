@@ -1,5 +1,5 @@
 import { ComponentProps, FC, useCallback, useLayoutEffect, useMemo, useState } from 'react'
-import { Button } from '@solana-foundation/ms-tools-ui'
+import { Button } from '@solana-foundation/ms-tools-ui/components/button'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
 import { ArrowDown, ArrowUp, Loader, Lock, Send, Unlock } from 'lucide-react'
@@ -56,6 +56,8 @@ function ConnectedWalletConfidentialBalances({
     const result = await decryptBalance(account)
     if (result) {
       showBalance()
+    } else if (result === null && decryptError) {
+      toast.error(decryptError)
     }
   }
 
@@ -154,7 +156,7 @@ function ConnectedWalletConfidentialBalances({
       <DataTable
         title="Confidential Balances"
         emptyComp={
-          <div className="flex justify-between">
+          <div className="flex flex-col justify-between gap-2 sm:flex-row">
             Balance is encrypted. Decrypt with wallet to see the balance.
             <Button disabled={isDecrypting} size="sm" variant="outline" onClick={onDecryptBalance}>
               {isDecrypting ? <Loader /> : <Unlock />} Decrypt available balance
@@ -166,7 +168,7 @@ function ConnectedWalletConfidentialBalances({
           confidentialBalance && isVisible
             ? [
                 [
-                  <div key="confidential-balance">
+                  <div key="confidential-balance" className="font-medium text-(color:--accent)">
                     {confidentialBalance} {pluralize('Token', Number(confidentialBalance))}
                   </div>,
                 ],

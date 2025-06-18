@@ -11,12 +11,14 @@ export const queryKey = (endpoint: string, address: PublicKey) => [
 ]
 
 // New hook for getting token balance
-export const useGetTokenBalance = ({ tokenAccountPubkey }: { tokenAccountPubkey: PublicKey }) => {
+export const useGetTokenBalance = ({ tokenAccountPubkey }: { tokenAccountPubkey?: PublicKey }) => {
   const { connection } = useConnection()
 
   return useQuery({
-    queryKey: queryKey(connection.rpcEndpoint, tokenAccountPubkey),
+    queryKey: queryKey(connection.rpcEndpoint, tokenAccountPubkey ?? PublicKey.default),
     queryFn: async () => {
+      if (!tokenAccountPubkey) return '0'
+
       try {
         const response = await connection.getTokenAccountBalance(tokenAccountPubkey)
         return response?.value?.uiAmountString || '0'

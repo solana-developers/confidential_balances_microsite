@@ -1,6 +1,7 @@
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import pluralize from 'pluralize'
 import {
   AES_SEED_MESSAGE,
   ELGAMAL_SEED_MESSAGE,
@@ -9,8 +10,10 @@ import {
 } from '@/entities/account/account'
 import { queryKey as confidentialVisibilityQK } from '@/entities/account/account/model/use-confidential-visibility'
 import { queryKey as getBalanceQK } from '@/entities/account/account/model/use-get-balance'
-import { queryKey as getSignaturesQK } from '@/entities/account/account/model/use-get-signatures'
+import { queryKey as getSignaturesWithTxQK } from '@/entities/account/account/model/use-get-signatures-with-tx-data'
 import { queryKey as getTokenAccountsQK } from '@/entities/account/account/model/use-get-token-accounts'
+import { useDevMode } from '@/entities/dev-mode'
+import { useOperationLog } from '@/entities/operation-log'
 import { useToast } from '@/shared/ui/toast'
 
 export const useTransferCB = ({
@@ -19,9 +22,12 @@ export const useTransferCB = ({
   senderTokenAccountPubkey: PublicKey
 }) => {
   const { connection } = useConnection()
-  const client = useQueryClient()
-  const toast = useToast()
   const wallet = useWallet()
+  const client = useQueryClient()
+
+  const toast = useToast()
+  const log = useOperationLog()
+  const devMode = useDevMode()
 
   return useMutation({
     mutationKey: ['transfer-cb', { endpoint: connection.rpcEndpoint, senderTokenAccountPubkey }],
@@ -145,7 +151,7 @@ export const useTransferCB = ({
         )
 
         if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`)
+          throw new Error(`😵 HTTP error! Status: ${response.status}`)
         }
 
         const data = await response.json()
@@ -160,6 +166,7 @@ export const useTransferCB = ({
 
         return {
           signatures,
+          amount,
           ...data,
         }
       } catch (error) {
@@ -174,6 +181,18 @@ export const useTransferCB = ({
           toast.transaction(signature)
         })
         toast.success('Transfer transaction successful')
+
+        log.push({
+          title: 'Transfer Operation - COMPLETE',
+          content: `Transfer transaction successful\n  Token account: ${senderTokenAccountPubkey}\n  Amount: ${pluralize('token unit', data.amount, true)}${data.signatures.map((signature: string, index: number) => `\n  Signature${data.signatures.length > 1 ? ` #${index + 1}` : ''}: ${signature}`).join('')}`,
+          variant: 'success',
+        })
+
+        devMode.set(7, {
+          title: 'Transfer Operation - COMPLETE',
+          result: `Transfer transaction successful\n  Token account: ${senderTokenAccountPubkey}\n  Amount: ${pluralize('token unit', data.amount, true)}${data.signatures.map((signature: string, index: number) => `\n  Signature${data.signatures.length > 1 ? ` #${index + 1}` : ''}: ${signature}`).join('')}`,
+          success: true,
+        })
       }
 
       // Hide confidential balance using query cache
@@ -188,7 +207,8 @@ export const useTransferCB = ({
           queryKey: getBalanceQK(connection.rpcEndpoint, senderTokenAccountPubkey),
         }),
         client.invalidateQueries({
-          queryKey: getSignaturesQK(connection.rpcEndpoint, senderTokenAccountPubkey),
+          // cast type for publicKey as it won't be undefiend on success
+          queryKey: getSignaturesWithTxQK(connection.rpcEndpoint, wallet.publicKey as PublicKey),
         }),
         client.invalidateQueries({
           queryKey: getTokenAccountsQK(connection.rpcEndpoint, senderTokenAccountPubkey),
@@ -197,6 +217,11 @@ export const useTransferCB = ({
     },
     onError: (error) => {
       toast.error(`Transfer failed! ${error}`)
+      log.push({
+        title: 'Transfer Operation - FAILED',
+        content: `Transfer transaction failed\n  Token account: ${senderTokenAccountPubkey}\n  Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: 'error',
+      })
     },
   })
 }

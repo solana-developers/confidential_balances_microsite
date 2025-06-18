@@ -5,6 +5,6 @@ export { clustersAtom } from './model/clusters'
 export { defaultClusters } from './model/default-clusters'
 
 export { ClusterSelect } from './ui/cluster-select'
-export { ClusterModal } from './ui/cluster-modal'
+export { ModalCluster } from './ui/cluster-modal'
 export { ClusterTable } from './ui/cluster-table'
 export { ExplorerLink } from './ui/explorer-link'

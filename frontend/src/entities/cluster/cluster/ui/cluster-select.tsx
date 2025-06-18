@@ -1,7 +1,8 @@
 import { FC } from 'react'
 import { Combobox, ComboboxButton, ComboboxOption, ComboboxOptions } from '@headlessui/react'
-import { Badge, Button } from '@solana-foundation/ms-tools-ui'
-import { NetworkIcon } from 'lucide-react'
+import { Badge } from '@solana-foundation/ms-tools-ui/components/badge'
+import { Button } from '@solana-foundation/ms-tools-ui/components/button'
+import { ChevronDown, NetworkIcon } from 'lucide-react'
 import { useCluster } from '@/shared/solana'
 
 export const ClusterSelect: FC = () => {
@@ -16,11 +17,11 @@ export const ClusterSelect: FC = () => {
               <NetworkIcon className="h-4 w-4" />
               <span>{cluster.name}</span>
             </div>
-            {/* <ChevronDown className="h-4 w-4" /> */}
+            <ChevronDown className="h-4 w-4" />
           </Button>
         </ComboboxButton>
 
-        <ComboboxOptions className="ring-opacity-5 absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-[#2c2d30] py-1 text-base shadow-lg ring-1 ring-black focus:outline-none">
+        <ComboboxOptions className="ring-opacity-5 absolute z-10 mt-1 max-h-60 w-auto overflow-auto rounded-md bg-[#2c2d30] py-1 text-base shadow-lg ring-1 ring-black focus:outline-none">
           {clusters.map((item) => (
             <ComboboxOption
               key={item.name}

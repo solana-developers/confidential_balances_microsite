@@ -1,8 +1,8 @@
 'use client'
 
 import { FC, useEffect, useState } from 'react'
-import { Button } from '@solana-foundation/ms-tools-ui'
-import * as Icons from 'lucide-react'
+import { Button } from '@solana-foundation/ms-tools-ui/components/button'
+import { ArrowDownToLine, Eraser, X } from 'lucide-react'
 import { Drawer } from 'vaul'
 import { LogItem, LogItemResult } from '@/shared/ui/log'
 import { cn } from '@/shared/utils'
@@ -44,6 +44,11 @@ export const OperationLogDrawer: FC<OperationLogDrawerProps> = ({
   const [isFollowing, setIsFollowing] = useState<boolean>(true)
   useKeepScrollBottom(isFollowing, scrollableRef)
 
+  useEffect(() => {
+    // Move focus inside drawer when it's opened to prevent warnings about focusable elements
+    if (open) scrollableRef?.focus()
+  }, [open, scrollableRef])
+
   return (
     <Drawer.Root
       open={open}
@@ -58,6 +63,7 @@ export const OperationLogDrawer: FC<OperationLogDrawerProps> = ({
         <Drawer.Content
           data-slot="drawer-content"
           className="border-b-none fixed right-0 bottom-0 left-0 mx-[-1px] flex h-full max-h-[100%] flex-col border border-[var(--border)] bg-[var(--table-background)]"
+          aria-describedby={undefined}
         >
           <div className="relative flex flex-nowrap items-center gap-4 border-b px-6 py-3">
             <Drawer.Title className="flex-1 overflow-hidden leading-none font-medium tracking-[-0.01875rem] text-ellipsis whitespace-nowrap text-[var(--foreground)]">
@@ -67,18 +73,18 @@ export const OperationLogDrawer: FC<OperationLogDrawerProps> = ({
               <div className="flex flex-nowrap gap-2">
                 {!isFollowing && (
                   <Button variant="outline" size="sm" onClick={() => setIsFollowing(true)}>
-                    <Icons.ArrowDownToLine />
+                    <ArrowDownToLine />
                     Follow
                   </Button>
                 )}
                 <Button variant="outline" size="sm" onClick={onClear}>
-                  <Icons.Eraser />
+                  <Eraser />
                   Clear log
                 </Button>
               </div>
               <Drawer.Close asChild>
                 <button className="shrink-0 cursor-pointer">
-                  <Icons.X className="size-6 fill-[var(--foreground)]" />
+                  <X className="size-6 fill-[var(--foreground)]" />
                 </button>
               </Drawer.Close>
             </div>
@@ -88,7 +94,7 @@ export const OperationLogDrawer: FC<OperationLogDrawerProps> = ({
           <div
             ref={setScrollableRef}
             className={cn(
-              'flex-1 snap-y overflow-x-hidden overflow-y-auto scroll-smooth p-0',
+              'flex-1 snap-y overflow-x-hidden overflow-y-auto scroll-smooth px-0 pt-0 pb-8',
               snap === 1
                 ? 'max-h-[calc(100vh-50px)]'
                 : snap === 0.7

@@ -1,42 +1,49 @@
 import { FC, useCallback } from 'react'
-import { Form, FormField } from '@solana-foundation/ms-tools-ui'
+import { Button } from '@solana-foundation/ms-tools-ui/components/button'
+import { Form, FormField } from '@solana-foundation/ms-tools-ui/components/form'
 import { PublicKey } from '@solana/web3.js'
+import { useAtomValue } from 'jotai'
 import { useForm } from 'react-hook-form'
-import { FormItemInput } from '@/shared/ui/form'
+import { latestMintAddressAtom } from '@/entities/account/account/model/latest-mint-address'
+import { FormItemInput, FormItemTextarea } from '@/shared/ui/form'
 import { Modal } from '@/shared/ui/modal'
 import { useToast } from '@/shared/ui/toast'
 
-type ModalInitATAProps = {
+type ModalMintTokenProps = {
   show: boolean
   hide: () => void
-  initializeAccount: (_params: { mintAddress: string }) => void
+  initializeAccount: (_params: { mintAddress: string; mintAmount: number }) => void
   isInitializing: boolean
+  label?: string
   onSuccess?: () => void
   onError?: () => void
 }
 
 type FormData = {
   mintAddress: string
+  mintAmount: string
 }
 
-export const ModalMintToken: FC<ModalInitATAProps> = ({
+export const ModalMintToken: FC<ModalMintTokenProps> = ({
   show,
   hide,
   initializeAccount,
   isInitializing,
+  label,
   onSuccess,
   onError,
 }) => {
   const toast = useToast()
+  const latestMintAddress = useAtomValue(latestMintAddressAtom)
 
   const form = useForm<FormData>({
     defaultValues: {
-      mintAddress: undefined,
+      mintAddress: '',
+      mintAmount: '0',
     },
     mode: 'onChange',
   })
 
-  // const mintAddress = form.watch('mintAddress')
   const {
     formState: { isValid },
   } = form
@@ -58,6 +65,18 @@ export const ModalMintToken: FC<ModalInitATAProps> = ({
     }
   }
 
+  const validateMintAmount = (value: number | string) => {
+    let amount = Number(value)
+
+    if (isNaN(amount)) return 'Invalid format'
+
+    if (!amount || amount <= 0) {
+      return 'Mint amount required'
+    }
+
+    return true
+  }
+
   const handleSubmit = useCallback(() => {
     const formValues = form.getValues()
 
@@ -66,12 +85,15 @@ export const ModalMintToken: FC<ModalInitATAProps> = ({
       return
     }
 
-    // NOTE: consider moving toast interactions out of modal component to make it less "dirty"
+    // NOTE: consider moving toast interactions out of modal component to make them less "dirty"
     try {
-      initializeAccount({ mintAddress: formValues.mintAddress })
+      initializeAccount({
+        mintAddress: formValues.mintAddress,
+        mintAmount: Number(formValues.mintAmount),
+      })
       hide()
       form.reset()
-      toast.success('Mint token transaction submitted')
+      toast.info('Mint token transaction submitted')
       onSuccess?.()
     } catch (error) {
       console.error('Mint token failed:', error)
@@ -85,13 +107,26 @@ export const ModalMintToken: FC<ModalInitATAProps> = ({
       hide={hide}
       show={show}
       title="Mint token"
+      footerAdditional={
+        latestMintAddress ? (
+          <Button
+            variant="outline"
+            onClick={() => {
+              form.setValue('mintAddress', latestMintAddress)
+              form.trigger('mintAddress')
+            }}
+          >
+            Use last created mint
+          </Button>
+        ) : undefined
+      }
       submitDisabled={!isValid || isInitializing}
-      submitLabel={isInitializing ? 'Processing...' : 'Initialize'}
+      submitLabel={isInitializing ? 'Processing...' : (label ?? 'Mint Token')}
       submit={handleSubmit}
     >
       <Form {...form}>
-        <form>
-          <div className="form-control">
+        <form onSubmit={form.handleSubmit(handleSubmit)}>
+          <div className="flex flex-col gap-4">
             <FormField
               control={form.control}
               name="mintAddress"
@@ -99,9 +134,28 @@ export const ModalMintToken: FC<ModalInitATAProps> = ({
                 validate: validateMintAddress,
               }}
               render={({ field }: { field: any }) => (
-                <FormItemInput
+                <FormItemTextarea
                   label="Mint Address"
                   placeholder="Enter mint address"
+                  className="overflow-hidden text-ellipsis"
+                  disabled={isInitializing}
+                  {...field}
+                />
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="mintAmount"
+              rules={{
+                validate: validateMintAmount,
+              }}
+              render={({ field }: { field: any }) => (
+                <FormItemInput
+                  type="number"
+                  label="Mint Amount"
+                  min={0}
+                  step={1}
+                  placeholder="Enter amount"
                   className="overflow-hidden text-ellipsis"
                   disabled={isInitializing}
                   {...field}

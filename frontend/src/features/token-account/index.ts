@@ -1,4 +1,4 @@
-export { ConfidentialBalances } from './confidential-balances'
-export { PendingOperations } from './pending-operations'
-export { TransactionHistory } from './transaction-history'
-export { TokenAccounts } from './token-accounts'
+export { ConfidentialBalances } from './ui/confidential-balances'
+export { PendingOperations } from './ui/pending-operations'
+export { TransactionHistory } from './ui/transaction-history'
+export { TokenAccounts } from './ui/token-accounts'

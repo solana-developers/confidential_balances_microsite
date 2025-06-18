@@ -1,5 +1,5 @@
 import { ComponentProps } from 'react'
-import { Form, FormField } from '@solana-foundation/ms-tools-ui'
+import { Form, FormField } from '@solana-foundation/ms-tools-ui/components/form'
 import type { Meta, StoryObj } from '@storybook/react'
 import { useForm } from 'react-hook-form'
 import { FormItemInput } from './form-item-input'

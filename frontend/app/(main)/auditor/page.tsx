@@ -1,5 +1,8 @@
-'use client'
+import PageView from './page-view'
 
-import { Auditor } from '@/pages/auditor'
+export const metadata = {
+  title: 'Auditor | Solana Confidential Balances',
+  description: 'Audit Transaction with Coinfidential Balance',
+}
 
-export default Auditor
+export default PageView

@@ -33,7 +33,7 @@ export const metadata = {
 const RootLayout: FC<PropsWithChildren> = ({ children }) => (
   <html
     lang="en"
-    className={`${rubikFont.className} ${interFont.variable} ${geistMonoFont.variable}`}
+    className={`dark ${rubikFont.className} ${interFont.variable} ${geistMonoFont.variable}`}
   >
     <head>
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />

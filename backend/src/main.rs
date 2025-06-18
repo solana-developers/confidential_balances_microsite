@@ -17,8 +17,9 @@ mod routes;
 
 // Use our route handlers
 use routes::{
-    apply_cb, create_cb_ata, create_memo_transaction, create_test_token, decrypt_cb, deposit_cb,
-    health_check, hello_world, transfer_cb, transfer_cb_space, withdraw_cb, withdraw_cb_space,
+    apply_cb, audit_transaction_cb, create_cb_ata, create_memo_transaction, create_test_token_cb,
+    decrypt_cb, deposit_cb, health_check, reveal_elgamal_pubkey_cb, transfer_cb, transfer_cb_space,
+    version_check, withdraw_cb, withdraw_cb_space,
 };
 
 #[tokio::main]
@@ -48,7 +49,8 @@ async fn main() {
 
     // Build our application with routes
     let app = Router::new()
-        .route("/", get(hello_world))
+        .route("/", get(version_check))
+        .route("/version", get(version_check))
         .route("/health", get(health_check))
         .route("/txn", post(create_memo_transaction))
         .route("/create-cb-ata", post(create_cb_ata))
@@ -59,7 +61,9 @@ async fn main() {
         .route("/transfer-cb", get(transfer_cb_space))
         .route("/withdraw-cb", get(withdraw_cb_space))
         .route("/decrypt-cb", post(decrypt_cb))
-        .route("/create-test-token", post(create_test_token))
+        .route("/create-test-token", post(create_test_token_cb))
+        .route("/audit-transaction", post(audit_transaction_cb))
+        .route("/reveal-elgamal-pubkey", post(reveal_elgamal_pubkey_cb))
         .layer(cors)
         .layer(TraceLayer::new_for_http());
 

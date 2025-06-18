@@ -1,5 +1,5 @@
 import { ComponentProps, useState } from 'react'
-import { Button } from '@solana-foundation/ms-tools-ui'
+import { Button } from '@solana-foundation/ms-tools-ui/components/button'
 import type { Meta, StoryObj } from '@storybook/react'
 import { fn } from '@storybook/test'
 import { DevModeButton } from './dev-mode-button'

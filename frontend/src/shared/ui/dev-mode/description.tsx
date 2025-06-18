@@ -12,7 +12,11 @@ export const Description: FC = () => (
       </p>
       <p>
         Need mode? Check the{' '}
-        <a href="#" className="text-[var(--accent-secondary)] hover:underline">
+        <a
+          href="https://www.solana-program.com/docs/confidential-balances"
+          className="text-[var(--accent-secondary)] hover:underline"
+          target="_blank"
+        >
           documentation
         </a>
         .

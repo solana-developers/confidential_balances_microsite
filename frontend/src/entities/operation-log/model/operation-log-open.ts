@@ -1,3 +1,3 @@
-import { atom } from 'jotai'
+import { atomWithStorage } from 'jotai/utils'
 
-export const operationLogOpenAtom = atom<boolean>(false)
+export const operationLogOpenAtom = atomWithStorage<boolean>('operation-log-open', false)

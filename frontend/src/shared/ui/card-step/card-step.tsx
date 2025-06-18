@@ -1,5 +1,10 @@
 import { FC } from 'react'
-import { Card, CardDescription, CardHeader, CardTitle } from '@solana-foundation/ms-tools-ui'
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@solana-foundation/ms-tools-ui/components/card'
 import { StepNumber } from './step-number'
 
 type CardStepProps = {

@@ -1,10 +1,10 @@
-import { FC } from 'react'
+import { ComponentProps, FC } from 'react'
 import { useCluster } from '@/shared/solana/cluster'
+import { cn } from '@/shared/utils'
 
-type ExplorerLinkProps = {
+type ExplorerLinkProps = Pick<ComponentProps<'div'>, 'className'> & {
   path: string
   label: string
-  className?: string
 }
 
 export const ExplorerLink: FC<ExplorerLinkProps> = ({ path, label, className }) => {
@@ -14,7 +14,7 @@ export const ExplorerLink: FC<ExplorerLinkProps> = ({ path, label, className }) 
       href={getExplorerUrl(path)}
       target="_blank"
       rel="noopener noreferrer"
-      className={className ? className : `link font-mono`}
+      className={cn('font-mono', className)}
     >
       {label}
     </a>

@@ -1,16 +1,16 @@
-import { FC, useCallback, useState } from 'react'
-import { Form, FormField } from '@solana-foundation/ms-tools-ui'
+import { FC, useCallback, useEffect, useState } from 'react'
+import { Form, FormField } from '@solana-foundation/ms-tools-ui/components/form'
 import { AccountLayout, getAssociatedTokenAddress, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token'
 import { useConnection } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
 import { useAtomValue } from 'jotai'
-import * as Icons from 'lucide-react'
+import { Check, Coins, Send, Wallet } from 'lucide-react'
 import pluralize from 'pluralize'
 import { useForm } from 'react-hook-form'
-import { useMint } from '@/entities/account/account'
+import { useCurrentBalance, useMint } from '@/entities/account/account'
 import { devModeOpenAtom } from '@/entities/dev-mode'
 import { Content } from '@/shared/ui/content'
-import { FormItemInput } from '@/shared/ui/form'
+import { FormItemInput, FormItemTextarea } from '@/shared/ui/form'
 import { Modal } from '@/shared/ui/modal'
 import { Selector, SelectorItem } from '@/shared/ui/selector'
 import { useToast } from '@/shared/ui/toast'
@@ -23,7 +23,7 @@ type ModalTransferProps = {
 }
 
 type FormValues = {
-  amount: number
+  amount: string
   recipientAddress: string
   addressType: 'system' | 'token'
 }
@@ -34,11 +34,12 @@ export const ModalTransfer: FC<ModalTransferProps> = ({ show, hide, tokenAccount
   const devMode = useAtomValue(devModeOpenAtom)
   const transferMutation = useTransferCB({ senderTokenAccountPubkey: tokenAccountPubkey })
 
+  const { balance, loading } = useCurrentBalance()
   const [resolvedTokenAccount, setResolvedTokenAccount] = useState<PublicKey | null>(null)
 
   const form = useForm<FormValues>({
     defaultValues: {
-      amount: 0,
+      amount: '0',
       recipientAddress: '',
       addressType: 'system',
     },
@@ -107,8 +108,11 @@ export const ModalTransfer: FC<ModalTransferProps> = ({ show, hide, tokenAccount
     [mintPublicKey, connection, setResolvedTokenAccount]
   )
 
+  const decimals = mintInfo?.decimals ?? 9 // Default to 9 decimals until we load the actual value
+
   const handleSubmit = async (values: FormValues) => {
-    if (values.amount <= 0) {
+    const amount = Number(values.amount)
+    if (isNaN(amount) || amount <= 0) {
       toast.error('Please enter a valid amount')
       return
     }
@@ -124,7 +128,7 @@ export const ModalTransfer: FC<ModalTransferProps> = ({ show, hide, tokenAccount
     }
 
     try {
-      const tokenAmount = values.amount * Math.pow(10, decimals)
+      const tokenAmount = amount * Math.pow(10, decimals)
       await transferMutation.mutateAsync({
         amount: tokenAmount,
         recipientAddress: resolvedTokenAccount.toBase58(),
@@ -141,96 +145,123 @@ export const ModalTransfer: FC<ModalTransferProps> = ({ show, hide, tokenAccount
     }
   }
 
-  const amount = form.watch('amount')
-  const decimals = mintInfo?.decimals ?? 9 // Default to 9 decimals until we load the actual value
-  const tokenType = mintInfo ? (mintInfo.isToken2022 ? 'Token-2022' : 'Standard Token') : '' // Token type from the mint info
-  const tokenUnits = amount ? pluralize('token unit', amount * Math.pow(10, decimals), true) : '' // Token units based on the input amount
+  const recipientAddress = form.watch('recipientAddress')
+  const addressType = form.watch('addressType')
+
+  useEffect(() => setResolvedTokenAccount(null), [recipientAddress])
+
+  // Clear recipient field error when switching address type
+  useEffect(() => {
+    form.clearErrors('recipientAddress')
+  }, [addressType, form])
 
   return (
     <Modal
       hide={hide}
       show={show}
       title="Transfer Confidential Balance"
+      icon={<Send />}
       submitDisabled={!isValid || isSubmitting || isLoading}
       submitLabel={isSubmitting ? 'Processing...' : 'Confirm Transfer'}
       submit={form.handleSubmit(handleSubmit)}
     >
       <Form {...form}>
-        <Content
-          isLoading={isLoading}
-          error={error}
-          loadingMessage="Loading token information..."
-          errorMessage="Error loading token information:"
-        >
-          <p>
-            Transfer tokens from your account to a wallet account with confidential balance set up
-          </p>
+        <form className="flex flex-col gap-4" onSubmit={form.handleSubmit(handleSubmit)}>
+          <Content
+            isLoading={isLoading}
+            error={error}
+            loadingMessage="Loading token information..."
+            errorMessage="Error loading token information:"
+          >
+            <p>
+              Transfer tokens from your account to a wallet account with confidential balance set up
+            </p>
 
-          {devMode && (
+            {devMode && (
+              <FormField
+                control={form.control}
+                name="addressType"
+                render={({ field }) => (
+                  <Selector value={field.value} onValueChange={(value) => field.onChange(value)}>
+                    <SelectorItem value="system">
+                      <Wallet />
+                      Wallet
+                    </SelectorItem>
+                    <SelectorItem value="token">
+                      <Coins />
+                      Token Account
+                    </SelectorItem>
+                  </Selector>
+                )}
+              />
+            )}
+
             <FormField
               control={form.control}
-              name="addressType"
+              name="recipientAddress"
+              rules={{
+                required: 'Address is required',
+                validate: validateRecipient,
+              }}
               render={({ field }) => (
-                <Selector value={field.value} onValueChange={(value) => field.onChange(value)}>
-                  <SelectorItem value="system">
-                    <Icons.Wallet />
-                    Wallet
-                  </SelectorItem>
-                  <SelectorItem value="token">
-                    <Icons.Coins />
-                    Token Account
-                  </SelectorItem>
-                </Selector>
+                <FormItemTextarea
+                  label={
+                    form.watch('addressType') === 'system'
+                      ? 'Wallet address'
+                      : 'Token account address'
+                  }
+                  disabled={isSubmitting}
+                  description={
+                    !!resolvedTokenAccount ? (
+                      <span className="flex flex-row flex-nowrap items-center gap-2 text-[var(--accent)]">
+                        <Check className="size-4" />
+                        <span>
+                          {form.watch('addressType') === 'system' ? (
+                            <>Valid wallet with initialized confidential balance</>
+                          ) : (
+                            <>Valid token account with initialized confidential balance</>
+                          )}
+                        </span>
+                      </span>
+                    ) : undefined
+                  }
+                  {...field}
+                />
               )}
             />
-          )}
 
-          <FormField
-            control={form.control}
-            name="recipientAddress"
-            rules={{
-              required: 'Address is required',
-              validate: validateRecipient,
-            }}
-            render={({ field }) => (
-              <FormItemInput
-                label={
-                  form.watch('addressType') === 'system'
-                    ? 'Wallet address'
-                    : 'Token account address'
-                }
-                disabled={isSubmitting}
-                {...field}
-              />
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="amount"
-            rules={{
-              required: 'Amount is required',
-              min: {
-                value: 1,
-                message: 'Amount must be greater than 0',
-              },
-            }}
-            render={({ field }) => (
-              <FormItemInput
-                type="number"
-                label="Amount (tokens)"
-                description={tokenUnits}
-                hint={[tokenType, pluralize('decimal', decimals, true)]
-                  .filter((x) => !!x)
-                  .join(', ')}
-                disabled={isSubmitting}
-                step={1 / Math.pow(10, decimals)}
-                {...field}
-                onChange={(e) => field.onChange(e.target.valueAsNumber)}
-              />
-            )}
-          />
-        </Content>
+            <FormField
+              control={form.control}
+              name="amount"
+              rules={{
+                required: 'Amount is required',
+                min: {
+                  value: 0.0000000001,
+                  message: 'Amount must be greater than 0',
+                },
+                max:
+                  balance && !loading
+                    ? {
+                        value: balance,
+                        message: 'Amount must be less than or equal to the current balance',
+                      }
+                    : undefined,
+              }}
+              render={({ field }) => (
+                <FormItemInput
+                  type="number"
+                  label="Amount (tokens)"
+                  hint={balance && !loading ? `Max: ${pluralize('token', balance, true)}` : ''}
+                  disabled={isSubmitting}
+                  step={0.01}
+                  min={0}
+                  max={balance && !loading ? balance : undefined}
+                  {...field}
+                />
+              )}
+            />
+          </Content>
+        </form>
       </Form>
     </Modal>
   )

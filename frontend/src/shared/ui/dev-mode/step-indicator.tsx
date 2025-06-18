@@ -1,5 +1,5 @@
 import { FC } from 'react'
-import * as Icons from 'lucide-react'
+import { Check } from 'lucide-react'
 import { cn } from '@/shared/utils'
 
 type StepIndicatorProps = {
@@ -15,6 +15,6 @@ export const StepIndicator: FC<StepIndicatorProps> = ({ className, value }) => (
       className
     )}
   >
-    {value && <Icons.Check className="size-1 stroke-[var(--border)] stroke-8" />}
+    {value && <Check className="size-1 stroke-[var(--border)] stroke-8" />}
   </div>
 )

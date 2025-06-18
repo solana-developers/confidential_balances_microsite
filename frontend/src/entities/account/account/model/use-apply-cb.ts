@@ -2,6 +2,8 @@ import { getAccount, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { PublicKey, VersionedTransaction } from '@solana/web3.js'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useDevMode } from '@/entities/dev-mode'
+import { useOperationLog } from '@/entities/operation-log'
 import { useToast } from '@/shared/ui/toast'
 import { AES_SEED_MESSAGE } from './aes-seed-message'
 import { ELGAMAL_SEED_MESSAGE } from './elgamal-seed-message'
@@ -11,11 +13,39 @@ import { queryKey as getBalanceQK } from './use-get-balance'
 import { queryKey as getSignaturesQK } from './use-get-signatures'
 import { queryKey as getTokenAccountsQK } from './use-get-token-accounts'
 
+async function serverRequest(request: {
+  ata_authority: string
+  elgamal_signature: string
+  aes_signature: string
+  token_account_data: string
+  latest_blockhash: string
+}) {
+  const route = `${process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT}/apply-cb`
+  const response = await fetch(route, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  })
+
+  if (!response.ok) {
+    throw new Error(`😵 HTTP error! Status: ${response.status}`)
+  }
+
+  const data = await response.json()
+
+  return data
+}
+
 export const useApplyCB = ({ address }: { address: PublicKey }) => {
   const { connection } = useConnection()
-  const client = useQueryClient()
-  const toast = useToast()
   const wallet = useWallet()
+  const client = useQueryClient()
+
+  const toast = useToast()
+  const log = useOperationLog()
+  const devMode = useDevMode()
 
   return useMutation({
     mutationKey: ['apply-pending-balance', { endpoint: connection.rpcEndpoint, address }],
@@ -54,28 +84,16 @@ export const useApplyCB = ({ address }: { address: PublicKey }) => {
           await getAccount(connection, address, 'confirmed', TOKEN_2022_PROGRAM_ID)
         ).owner.toBase58()
 
-        const request = {
+        const requestBody = {
           ata_authority: Buffer.from(ataAuthorityBase58).toString('base64'),
           elgamal_signature: elGamalSignatureBase64,
           aes_signature: aesSignatureBase64,
           token_account_data: Buffer.from(accountInfo.data).toString('base64'),
+          latest_blockhash: (await connection.getLatestBlockhash()).blockhash,
         }
 
         // Send the request to the backend
-        const route = `${process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT}/apply-cb`
-        const response = await fetch(route, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(request),
-        })
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`)
-        }
-
-        const data = await response.json()
+        const data = await serverRequest(requestBody)
 
         // Deserialize the transaction from the response
         const serializedTransaction = Buffer.from(data.transaction, 'base64')
@@ -118,6 +136,17 @@ export const useApplyCB = ({ address }: { address: PublicKey }) => {
       if (data.signature) {
         toast.transaction(data.signature)
         toast.success('Pending balance applied successfully')
+        log.push({
+          title: 'Apply Operation - COMPLETE',
+          content: `Pending balance applied successfully\n  Signature: ${data.signature}`,
+          variant: 'success',
+        })
+
+        devMode.set(5, {
+          title: 'Apply Operation - COMPLETE',
+          result: `Pending balance applied successfully\n  Signature: ${data.signature}`,
+          success: true,
+        })
       }
 
       // Hide confidential balance using query cache
@@ -161,8 +190,18 @@ export const useApplyCB = ({ address }: { address: PublicKey }) => {
     onError: (error) => {
       if (error instanceof Error && error.message.includes('message signing')) {
         toast.error(`Message signing failed: ${error.message}`)
+        log.push({
+          title: 'Apply Operation - FAILED',
+          content: `Message signing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          variant: 'error',
+        })
       } else {
         toast.error(`Failed to apply pending balance: ${error}`)
+        log.push({
+          title: 'Apply Operation - FAILED',
+          content: `Failed to apply pending balance: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          variant: 'error',
+        })
       }
     },
   })

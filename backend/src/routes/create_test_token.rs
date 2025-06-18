@@ -1,25 +1,29 @@
-use axum::extract::Json;
-use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
-use bincode;
-use bs58;
-use solana_sdk::{
-    hash::Hash,
-    message::{v0, VersionedMessage},
-    pubkey::Pubkey,
-    system_instruction,
-    transaction::VersionedTransaction,
-};
-use spl_token_2022::{
-    extension::{
-        confidential_transfer::instruction::initialize_mint as initialize_confidential_transfer_mint,
-        ExtensionType,
+use {
+    crate::{
+        errors::AppError,
+        models::{CreateTestTokenTransactionRequest, TransactionResponse},
+        routes::util::parse_latest_blockhash,
     },
-    instruction::{initialize_mint, initialize_mint_close_authority},
-    state::Mint,
+    axum::extract::Json,
+    base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _},
+    bincode, bs58,
+    solana_sdk::{
+        message::{v0, VersionedMessage},
+        pubkey::Pubkey,
+        system_instruction,
+        transaction::VersionedTransaction,
+    },
+    solana_zk_sdk::encryption::pod::elgamal::PodElGamalPubkey,
+    spl_token_2022::{
+        extension::{
+            confidential_transfer::instruction::initialize_mint as initialize_confidential_transfer_mint,
+            ExtensionType,
+        },
+        instruction::{initialize_mint, initialize_mint_close_authority},
+        state::Mint,
+    },
+    std::str::FromStr,
 };
-
-use crate::errors::AppError;
-use crate::models::{CreateTestTokenTransactionRequest, TransactionResponse};
 
 // Helper function to parse a base58 address string into a Pubkey
 fn parse_base58_pubkey(address: &str) -> Result<Pubkey, AppError> {
@@ -34,21 +38,8 @@ fn parse_base58_pubkey(address: &str) -> Result<Pubkey, AppError> {
     }
 }
 
-// Helper function to parse blockhash from base58 string
-fn parse_blockhash(blockhash_str: &str) -> Result<Hash, AppError> {
-    match bs58::decode(blockhash_str).into_vec() {
-        Ok(bytes) => {
-            if bytes.len() != 32 {
-                return Err(AppError::InvalidAddress);
-            }
-            Ok(Hash::new_from_array(bytes.try_into().unwrap()))
-        }
-        Err(_) => Err(AppError::InvalidAddress),
-    }
-}
-
-// Handler for creating a test token mint with confidential transfers and close mint support
-pub async fn create_test_token(
+/// Handler for creating a test token mint with confidential transfers and close mint support
+pub async fn create_test_token_cb(
     Json(request): Json<CreateTestTokenTransactionRequest>,
 ) -> Result<Json<TransactionResponse>, AppError> {
     // Parse the account address from base58 to use as mint authority and freeze authority
@@ -56,14 +47,9 @@ pub async fn create_test_token(
     // Parse the mint address to allow creating instructions for mint initialization with basic supply
     let mint_address = parse_base58_pubkey(&request.mint)?;
 
-    let mint_amount = match request.mint_amount {
-        Some(amount) => amount,
-        None => 1_000,
-    };
-
     println!(
-        "✅ Request data is correct: account={}, mint={}, amount={}",
-        request.account, request.mint, mint_amount,
+        "✅ Request data is correct: account={}, mint={}",
+        request.account, request.mint,
     );
 
     // Validate that mint address is different from authority
@@ -114,13 +100,40 @@ pub async fn create_test_token(
         &spl_token_2022::id(), // Owner program (Token-2022)
     );
 
+    let auditor_elgamal_pk = match request.auditor_elgamal_pubkey {
+        Some(elgamal_string) => {
+            println!(
+                "🔍 Attempting to parse base64 elGamal encoded signature: {}",
+                elgamal_string
+            );
+            let decoded_elgamal_signature = BASE64_STANDARD
+                .decode(&elgamal_string)
+                .map_err(|_| AppError::SerializationError)?;
+
+            println!(
+                "✅ Base64 decoding successful, got {} bytes",
+                decoded_elgamal_signature.len()
+            );
+
+            let elgamal_pubkey = PodElGamalPubkey::from_str(&elgamal_string)
+                .map_err(|_| AppError::SerializationError)?;
+
+            println!(
+                "✅ ElGamal pubkey recovered from string successfully: pubkey={}",
+                elgamal_pubkey.to_string()
+            );
+            Some(elgamal_pubkey)
+        }
+        None => None,
+    };
+
     // Initialize ConfidentialTransferMint extension
     let initialize_confidential_transfer_mint_instruction = initialize_confidential_transfer_mint(
         &spl_token_2022::id(),  // Program ID
         &mint_address,          // Mint account
         Some(authority_pubkey), // Authority that can modify confidential transfer settings
         true,                   // Auto approve new accounts
-        None,                   // No auditor ElGamal pubkey
+        auditor_elgamal_pk,     // Optional auditor elGamal key
     )
     .map_err(|_| AppError::SerializationError)?;
 
@@ -151,18 +164,12 @@ pub async fn create_test_token(
     ];
 
     // Use blockhash from client or generate a placeholder
-    let dummy_blockhash = Hash::new_from_array([1; 32]);
-    let blockhash = match &request.recent_blockhash {
-        Some(blockhash_str) => parse_blockhash(blockhash_str)?,
-        None => {
-            println!("⚠️  Warning: Using placeholder blockhash. Frontend should provide recent blockhash for simulation.");
-            dummy_blockhash
-        }
-    };
+    let client_blockhash = parse_latest_blockhash(&request.latest_blockhash)?;
 
     println!("📝 Creating V0 message");
-    let v0_message = v0::Message::try_compile(&authority_pubkey, &instructions, &[], blockhash)
-        .map_err(|_| AppError::SerializationError)?;
+    let v0_message =
+        v0::Message::try_compile(&authority_pubkey, &instructions, &[], client_blockhash)
+            .map_err(|_| AppError::SerializationError)?;
     println!("✅ V0 message created successfully");
 
     // Get the number of required signatures

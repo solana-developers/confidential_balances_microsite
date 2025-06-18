@@ -1,16 +1,20 @@
 import { FC, useCallback } from 'react'
-import { Form, FormField } from '@solana-foundation/ms-tools-ui'
+import { Button } from '@solana-foundation/ms-tools-ui/components/button'
+import { Form, FormField } from '@solana-foundation/ms-tools-ui/components/form'
 import { PublicKey } from '@solana/web3.js'
+import { useAtomValue } from 'jotai'
 import { useForm } from 'react-hook-form'
-import { FormItemInput } from '@/shared/ui/form'
+import { FormItemTextarea } from '@/shared/ui/form'
 import { Modal } from '@/shared/ui/modal'
 import { useToast } from '@/shared/ui/toast'
+import { latestMintAddressAtom } from '../model/latest-mint-address'
 
 type ModalInitATAProps = {
   show: boolean
   hide: () => void
   initializeAccount: (_params: { mintAddress: string }) => void
   isInitializing: boolean
+  label?: string
   onSuccess?: () => void
   onError?: () => void
 }
@@ -24,19 +28,20 @@ export const ModalInitATA: FC<ModalInitATAProps> = ({
   hide,
   initializeAccount,
   isInitializing,
+  label,
   onSuccess,
   onError,
 }) => {
   const toast = useToast()
+  const latestMintAddress = useAtomValue(latestMintAddressAtom)
 
   const form = useForm<FormData>({
     defaultValues: {
-      mintAddress: undefined,
+      mintAddress: '',
     },
     mode: 'onChange',
   })
 
-  // const mintAddress = form.watch('mintAddress')
   const {
     formState: { isValid },
   } = form
@@ -66,7 +71,6 @@ export const ModalInitATA: FC<ModalInitATAProps> = ({
       return
     }
 
-    // NOTE: consider moving toast interactions out of modal component to make it less "dirty"
     try {
       initializeAccount({ mintAddress: formValues.mintAddress })
       hide()
@@ -87,12 +91,25 @@ export const ModalInitATA: FC<ModalInitATAProps> = ({
       hide={hide}
       show={show}
       title="Initialize Associated Token Account"
+      footerAdditional={
+        latestMintAddress ? (
+          <Button
+            variant="outline"
+            onClick={() => {
+              form.setValue('mintAddress', latestMintAddress)
+              form.trigger('mintAddress')
+            }}
+          >
+            Use last created mint
+          </Button>
+        ) : undefined
+      }
       submitDisabled={!isValid || isInitializing}
-      submitLabel={isInitializing ? 'Processing...' : 'Initialize'}
+      submitLabel={isInitializing ? 'Processing...' : (label ?? 'Initialize')}
       submit={handleSubmit}
     >
       <Form {...form}>
-        <form>
+        <form onSubmit={form.handleSubmit(handleSubmit)}>
           <div className="form-control">
             <FormField
               control={form.control}
@@ -101,7 +118,7 @@ export const ModalInitATA: FC<ModalInitATAProps> = ({
                 validate: validateMintAddress,
               }}
               render={({ field }) => (
-                <FormItemInput
+                <FormItemTextarea
                   label="Mint Address"
                   placeholder="Enter mint address"
                   className="overflow-hidden text-ellipsis"

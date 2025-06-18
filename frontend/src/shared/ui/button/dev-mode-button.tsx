@@ -1,6 +1,6 @@
 import { ComponentProps, FC } from 'react'
-import { Button } from '@solana-foundation/ms-tools-ui'
-import * as Icons from 'lucide-react'
+import { Button } from '@solana-foundation/ms-tools-ui/components/button'
+import { Code2 } from 'lucide-react'
 import { cn } from '@/shared/utils'
 
 type DevModeButton = ComponentProps<typeof Button> & {
@@ -15,7 +15,7 @@ export const DevModeButton: FC<DevModeButton> = ({ state, ...props }) => (
     variant="outline"
     {...props}
   >
-    <Icons.Code2 />
+    <Code2 />
     Dev mode
   </Button>
 )

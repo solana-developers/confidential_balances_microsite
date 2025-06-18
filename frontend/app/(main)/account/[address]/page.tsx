@@ -14,7 +14,6 @@ interface AccountPageParams {
   [key: string]: string | string[] | undefined
 }
 
-// NOTE: control what account to render inside page component
 function PageView({ address }: { address: string }) {
   const {
     data: { tokenAccount, error, reason },
@@ -33,7 +32,7 @@ function PageView({ address }: { address: string }) {
     return <AccountDetails address={address} account={tokenAccount.address.toBase58()} />
   }
 
-  // handle accounts like wallet
+  // handle accounts like a wallet-accounts
   if (isOtherAccount) {
     return <WalletDetails address={address} />
   }

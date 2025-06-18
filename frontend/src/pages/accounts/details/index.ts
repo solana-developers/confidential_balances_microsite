@@ -1,2 +1,2 @@
-export { Details as AccountDetails } from './details'
+export { AccountDetails } from './account-details'
 export { WalletDetails } from './wallet-details'

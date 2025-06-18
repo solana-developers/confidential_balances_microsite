@@ -1,10 +1,13 @@
 import { ComponentProps, FC, useMemo, useState } from 'react'
-import { Address, Badge } from '@solana-foundation/ms-tools-ui'
+import Link from 'next/link'
+import { Address } from '@solana-foundation/ms-tools-ui/components/address'
+import { Badge } from '@solana-foundation/ms-tools-ui/components/badge'
+import { Button } from '@solana-foundation/ms-tools-ui/components/button'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
 import { useQueryClient } from '@tanstack/react-query'
-import { Loader, RefreshCw } from 'lucide-react'
-import { useGetSignatures } from '@/entities/account/account/model/use-get-signatures'
+import { ExternalLink, Loader, RefreshCw } from 'lucide-react'
+import { useGetSignaturesWithTxData } from '@/entities/account/account/model/use-get-signatures-with-tx-data'
 import { ExplorerLink } from '@/entities/cluster/cluster'
 import { DataTable } from '@/shared/ui/data-table'
 import { ellipsify } from '@/shared/utils'
@@ -38,7 +41,7 @@ function ConnectedWalletTransactionHistory({
 }: Required<{ address: PublicKey }> & { limit?: number }) {
   const [showAll, setShowAll] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
-  const query = useGetSignatures({ address })
+  const query = useGetSignaturesWithTxData({ address })
   const client = useQueryClient()
 
   const items = useMemo(() => {
@@ -57,7 +60,6 @@ function ConnectedWalletTransactionHistory({
   }, [query])
 
   const actions = useMemo(() => {
-    // NOTE: preserve original functionality by invalidating data
     const onRefreshSignatures = async () => {
       setIsRefreshing(true)
       await query.refetch()
@@ -93,7 +95,7 @@ function ConnectedWalletTransactionHistory({
       title="Transaction History"
       labels={{ empty: emptyLabel }}
       actions={actions}
-      headers={['Signature', 'Slot', 'Block Time', 'Status']}
+      headers={['Signature', 'Slot', 'Block Time', 'Status', '']}
       rows={items?.map((item, i) => [
         <Address key={`tx-sig-${i}`} address={item.signature} asChild>
           <ExplorerLink
@@ -120,6 +122,13 @@ function ConnectedWalletTransactionHistory({
             Success
           </Badge>
         ),
+        item.hasConfidentialTransfer ? (
+          <Button key={`tx-action-${i}`} variant="outline" size="sm" asChild>
+            <Link target="blank" href={`/auditor/?tx=${item.signature}`}>
+              Audit <ExternalLink />
+            </Link>
+          </Button>
+        ) : undefined,
       ])}
     />
   )
