@@ -1,11 +1,21 @@
-import { LAMPORTS_PER_SOL } from '@solana/web3.js'
+import { LAMPORTS_PER_SOL, TokenAmount } from '@solana/web3.js'
 
-export function nativeToUiAmount(balance: number) {
+const decimals = Math.log10(LAMPORTS_PER_SOL)
+
+export function nativeToUiAmount(balance: number): TokenAmount {
   const amount = balance / LAMPORTS_PER_SOL
-  const decimals = Math.round(Math.log(LAMPORTS_PER_SOL) / Math.log(10))
 
   return {
+    amount: String(amount),
+    decimals,
     uiAmount: amount,
     uiAmountString: amount.toFixed(decimals),
   }
 }
+
+export const emptyNativeBalance = (defaultAmount: number = 0): TokenAmount => ({
+  amount: String(defaultAmount),
+  decimals,
+  uiAmount: defaultAmount,
+  uiAmountString: String(defaultAmount),
+})

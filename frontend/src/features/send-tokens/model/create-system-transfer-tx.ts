@@ -7,7 +7,7 @@ import {
   VersionedTransaction,
 } from '@solana/web3.js'
 
-export const createTransaction = async ({
+export const createSystemTransferTx = async ({
   publicKey,
   destination,
   amount,

@@ -32,6 +32,7 @@ export const AccountDetails: FC<AccountDetailsProps> = ({ address: param, accoun
           label="Token account"
           account={address}
           secondaryLabel="Account balance"
+          className="mt-4 mb-5"
         />
       )}
       <div className="flex flex-col gap-5">

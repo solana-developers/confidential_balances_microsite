@@ -5,9 +5,10 @@ import {
   CardHeader,
   CardTitle,
 } from '@solana-foundation/ms-tools-ui/components/card'
+import { TokenAmount } from '@solana/web3.js'
 
 type CardBalanceProps = {
-  balance: string | number | undefined
+  balance: TokenAmount['uiAmount']
   symbol?: string
   title: string
 } & ComponentProps<'div'>
@@ -18,7 +19,7 @@ export const CardBalance: FC<CardBalanceProps> = ({ className, title, balance, s
       <CardTitle>{title}</CardTitle>
     </CardHeader>
     <CardContent>
-      {balance !== undefined ? (
+      {balance !== null ? (
         <span className="font-semibold">
           {balance} {symbol}
         </span>

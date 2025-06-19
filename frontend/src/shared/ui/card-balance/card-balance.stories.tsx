@@ -13,7 +13,7 @@ export default {
   },
   args: {
     title: 'Wallet balance',
-    balance: '20',
+    balance: 20,
     symbol: 'SOL',
   },
 } satisfies Meta<Props>

@@ -4,6 +4,7 @@ import { PublicKey, VersionedTransaction } from '@solana/web3.js'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useDevMode } from '@/entities/dev-mode'
 import { useOperationLog } from '@/entities/operation-log'
+import { serverRequest } from '@/shared/api'
 import { useToast } from '@/shared/ui/toast'
 import { AES_SEED_MESSAGE } from './aes-seed-message'
 import { ELGAMAL_SEED_MESSAGE } from './elgamal-seed-message'
@@ -12,31 +13,6 @@ import { queryKey as confidentialVisibilityQK } from './use-confidential-visibil
 import { queryKey as getBalanceQK } from './use-get-balance'
 import { queryKey as getSignaturesQK } from './use-get-signatures'
 import { queryKey as getTokenAccountsQK } from './use-get-token-accounts'
-
-async function serverRequest(request: {
-  ata_authority: string
-  elgamal_signature: string
-  aes_signature: string
-  token_account_data: string
-  latest_blockhash: string
-}) {
-  const route = `${process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT}/apply-cb`
-  const response = await fetch(route, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(request),
-  })
-
-  if (!response.ok) {
-    throw new Error(`😵 HTTP error! Status: ${response.status}`)
-  }
-
-  const data = await response.json()
-
-  return data
-}
 
 export const useApplyCB = ({ address }: { address: PublicKey }) => {
   const { connection } = useConnection()
@@ -93,7 +69,13 @@ export const useApplyCB = ({ address }: { address: PublicKey }) => {
         }
 
         // Send the request to the backend
-        const data = await serverRequest(requestBody)
+        const data = await serverRequest<{
+          ata_authority: string
+          elgamal_signature: string
+          aes_signature: string
+          token_account_data: string
+          latest_blockhash: string
+        }>('/apply-cb', requestBody)
 
         // Deserialize the transaction from the response
         const serializedTransaction = Buffer.from(data.transaction, 'base64')

@@ -21,8 +21,8 @@ export const WalletDetails: FC<WalletDetailsProps> = ({ address }) => {
       {!address ? (
         <div>Loading..</div>
       ) : (
-        <div className="mt-4">
-          <WalletAccountHeader wallet={address} mint={NATIVE_MINT} />
+        <div className="mt-4 mb-5">
+          <WalletAccountHeader wallet={address} mint={NATIVE_MINT} className="h-[62px]" />
         </div>
       )}
       <Text variant="text" className="my-2">

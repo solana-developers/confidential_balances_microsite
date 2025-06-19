@@ -7,11 +7,21 @@ export const queryKey = (endpoint: string, address: PublicKey) => [
   { endpoint, address },
 ]
 
-export const useGetBalance = ({ address }: { address: PublicKey }) => {
+/**
+ *
+ * @param param.address - The public key address to fetch balance for
+ * @param opts
+ * @param opts.enabled - Controls whether the query should run. If false or absent when address is not provided,
+ *  the query won't fetch any balance.
+ */
+export const useGetBalance = ({ address }: { address: PublicKey | null }, opts?: any) => {
   const { connection } = useConnection()
 
+  const notEnabled = () => Boolean(address)
+
   return useQuery({
-    queryKey: queryKey(connection.rpcEndpoint, address),
-    queryFn: () => connection.getBalance(address),
+    enabled: opts?.enabled ?? notEnabled,
+    queryKey: queryKey(connection.rpcEndpoint, address ?? PublicKey.default),
+    queryFn: () => connection.getBalance(address ?? PublicKey.default),
   })
 }

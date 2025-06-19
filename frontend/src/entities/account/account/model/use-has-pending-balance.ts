@@ -1,6 +1,7 @@
 import { useConnection } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
 import { useQuery } from '@tanstack/react-query'
+import { RPC_NUMBER_OF_RETRIES, RPC_REFRESH_TIMEOUT, RPC_STALE_TIME } from '@/shared/solana'
 
 // Hook to check if token account has pending balance
 export const useHasPendingBalance = ({ tokenAccountPubkey }: { tokenAccountPubkey: PublicKey }) => {
@@ -39,9 +40,6 @@ export const useHasPendingBalance = ({ tokenAccountPubkey }: { tokenAccountPubke
             // Check if pendingBalanceCreditCounter is greater than 0
             const pendingCounter = ctExtension.state.pendingBalanceCreditCounter
 
-            // Log the pending counter value for debugging
-            console.log('Pending balance credit counter:', pendingCounter)
-
             if (typeof pendingCounter === 'number' && pendingCounter > 0) {
               console.log('Detected pending balance for account:', tokenAccountPubkey.toString())
               return true
@@ -60,10 +58,10 @@ export const useHasPendingBalance = ({ tokenAccountPubkey }: { tokenAccountPubke
       }
     },
     // Refetch regularly to check for changes
-    refetchInterval: 10000, // Check every 10 seconds
+    refetchInterval: RPC_REFRESH_TIMEOUT,
     // Stale time to reduce unnecessary fetches
-    staleTime: 5000, // Consider data fresh for 5 seconds
+    staleTime: RPC_STALE_TIME,
     // Retry on error
-    retry: 3,
+    retry: RPC_NUMBER_OF_RETRIES,
   })
 }

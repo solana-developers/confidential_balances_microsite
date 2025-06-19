@@ -6,6 +6,8 @@ import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
 import { useDevMode } from '@/entities/dev-mode'
 import { useOperationLog } from '@/entities/operation-log'
+import { serverRequest } from '@/shared/api'
+import { calculateUiAmount } from '@/shared/solana'
 import { AES_SEED_MESSAGE } from './aes-seed-message'
 import { generateSeedSignature } from './generate-seed-signature'
 
@@ -41,20 +43,15 @@ export const useDecryptConfidentialBalance = () => {
       }
 
       // Call the decrypt-cb endpoint
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT}/decrypt-cb`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          aes_signature: aesSignatureBase64,
-          token_account_data: Buffer.from(accountInfo.data).toString('base64'),
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error(`Server responded with ${response.status}: ${await response.text()}`)
+      const requestBody = {
+        aes_signature: aesSignatureBase64,
+        token_account_data: Buffer.from(accountInfo.data).toString('base64'),
       }
+
+      const data = await serverRequest<{
+        aes_signature: string
+        token_account_data: string
+      }>('/decrypt-cb', requestBody)
 
       const tokenAccountData: Account = unpackAccount(
         tokenAccountPubkey,
@@ -68,13 +65,8 @@ export const useDecryptConfidentialBalance = () => {
         TOKEN_2022_PROGRAM_ID
       )
 
-      const data = await response.json()
-
       // Convert lamports to UI amount using mint decimals
-      // HACK: Use uiAmount from spl-token instead.
-      const rawAmount = data.amount
-      const decimals = mintAccountData.decimals
-      const decryptedBalance = (parseInt(rawAmount) / Math.pow(10, decimals)).toString()
+      const decryptedBalance = calculateUiAmount(data.amount, mintAccountData.decimals)
 
       setConfidentialBalance(decryptedBalance)
 

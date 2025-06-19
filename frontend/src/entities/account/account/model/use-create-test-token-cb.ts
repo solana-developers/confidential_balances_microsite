@@ -12,36 +12,12 @@ import { useSetAtom } from 'jotai'
 import pluralize from 'pluralize'
 import { useDevMode } from '@/entities/dev-mode'
 import { useOperationLog } from '@/entities/operation-log'
+import { serverRequest } from '@/shared/api'
 import { useToast } from '@/shared/ui/toast'
 import { latestMintAddressAtom } from './latest-mint-address'
 import { queryKey as getBalanceQK } from './use-get-balance'
 import { queryKey as getSignaturesQK } from './use-get-signatures'
 import { queryKey as getTokenAccountsQK } from './use-get-token-accounts'
-
-async function serverRequest(request: {
-  account: string
-  mint: string
-  mint_rent: number
-  latest_blockhash: string
-  auditor_elgamal_pubkey?: string
-}) {
-  const route = `${process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT}/create-test-token`
-  const response = await fetch(route, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(request),
-  })
-
-  if (!response.ok) {
-    throw new Error(`😵 HTTP error! Status: ${response.status}`)
-  }
-
-  const data = await response.json()
-
-  return data
-}
 
 export const useCreateTestTokenCB = ({
   walletAddressPubkey,
@@ -92,7 +68,13 @@ export const useCreateTestTokenCB = ({
           latest_blockhash: (await connection.getLatestBlockhash()).blockhash,
         }
 
-        const data = await serverRequest(requestBody)
+        const data = await serverRequest<{
+          account: string
+          mint: string
+          mint_rent: number
+          latest_blockhash: string
+          auditor_elgamal_pubkey?: string
+        }>('/create-test-token', requestBody)
 
         // Deserialize the transaction from the response
         const serializedTransaction = Buffer.from(data.transaction, 'base64')

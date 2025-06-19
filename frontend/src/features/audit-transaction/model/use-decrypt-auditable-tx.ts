@@ -1,12 +1,25 @@
 'use client'
 
 import { useState } from 'react'
+import { getMint, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
-import { VersionedTransaction } from '@solana/web3.js'
+import { Connection, PublicKey, VersionedTransaction } from '@solana/web3.js'
 import bs58 from 'bs58'
 import { ELGAMAL_SEED_MESSAGE, generateSeedSignature } from '@/entities/account/account'
 import { useOperationLog } from '@/entities/operation-log'
+import { serverRequest } from '@/shared/api'
+import { calculateUiAmount } from '@/shared/solana'
 import { useToast } from '@/shared/ui/toast'
+
+// Types for mint information
+interface MintInfo {
+  address: PublicKey
+  decimals: number
+  supply: bigint
+  mintAuthority: PublicKey | null
+  freezeAuthority: PublicKey | null
+  isInitialized: boolean
+}
 
 export const useDecryptAuditableTx = () => {
   const { connection } = useConnection()
@@ -58,23 +71,23 @@ export const useDecryptAuditableTx = () => {
         elgamal_signature: elGamalSignatureBase64,
       }
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT}/audit-transaction`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestBody),
-        }
-      )
+      const { amount, mint } = await serverRequest<
+        typeof requestBody,
+        { amount: string; mint: string }
+      >('/audit-transaction', requestBody)
 
-      if (!response.ok) {
-        throw new Error(`Server responded with ${response.status}: ${await response.text()}`)
+      const mintInfo = await extractMintInfoByAddress(connection, mint)
+
+      // Calculate UI amount from lamports using mint decimals
+      const uiAmount = calculateUiAmount(amount, mintInfo.decimals)
+
+      const auditResult = {
+        mint,
+        amount,
+        uiAmount,
       }
 
-      const data = await response.json()
-      setAuditResult(data)
+      setAuditResult(auditResult)
 
       log.push({
         title: 'Audit Operation - COMPLETE',
@@ -82,7 +95,7 @@ export const useDecryptAuditableTx = () => {
         variant: 'success',
       })
 
-      return data
+      return auditResult
     } catch (error) {
       console.error('Audit failed:', error)
       log.push({
@@ -111,5 +124,32 @@ export const useDecryptAuditableTx = () => {
       setAuditResult(null)
       setError(null)
     },
+  }
+}
+
+async function extractMintInfoByAddress(
+  connection: Connection,
+  mintAddress: string
+): Promise<MintInfo> {
+  try {
+    // Convert string address to PublicKey
+    const mintPublicKey = new PublicKey(mintAddress)
+
+    // Fetch as Token-2022 mint since we're dealing with confidential transfers
+    const mintInfo = await getMint(connection, mintPublicKey, 'confirmed', TOKEN_2022_PROGRAM_ID)
+
+    return {
+      address: mintPublicKey,
+      decimals: mintInfo.decimals,
+      supply: mintInfo.supply,
+      mintAuthority: mintInfo.mintAuthority,
+      freezeAuthority: mintInfo.freezeAuthority,
+      isInitialized: mintInfo.isInitialized,
+    }
+  } catch (error) {
+    console.error('Failed to fetch mint info:', error)
+    throw new Error(
+      `Failed to fetch mint information for address ${mintAddress}: ${error instanceof Error ? error.message : 'Unknown error'}`
+    )
   }
 }

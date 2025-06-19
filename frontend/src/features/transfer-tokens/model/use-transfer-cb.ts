@@ -14,6 +14,7 @@ import { queryKey as getSignaturesWithTxQK } from '@/entities/account/account/mo
 import { queryKey as getTokenAccountsQK } from '@/entities/account/account/model/use-get-token-accounts'
 import { useDevMode } from '@/entities/dev-mode'
 import { useOperationLog } from '@/entities/operation-log'
+import { serverRequest } from '@/shared/api'
 import { useToast } from '@/shared/ui/toast'
 
 export const useTransferCB = ({
@@ -94,18 +95,7 @@ export const useTransferCB = ({
 
         // Step 1: Get the space requirements for each proof account
         console.log('Fetching proof space requirements...')
-        const spaceResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT}/transfer-cb`,
-          {
-            method: 'GET',
-          }
-        )
-
-        if (!spaceResponse.ok) {
-          throw new Error(`HTTP error getting space requirements! Status: ${spaceResponse.status}`)
-        }
-
-        const spaceData = await spaceResponse.json()
+        const spaceData = await serverRequest('/transfer-cb', undefined, 'GET')
         console.log('Space requirements:', spaceData)
 
         // Step 2: Calculate rent for each proof account
@@ -127,34 +117,21 @@ export const useTransferCB = ({
 
         // Step 3: Call the transfer-cb endpoint with rent information
         console.log('Submitting transfer request...')
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT}/transfer-cb`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              elgamal_signature: elGamalSignatureBase64,
-              aes_signature: aesSignatureBase64,
-              sender_token_account: Buffer.from(senderATAInfo.data).toString('base64'),
-              recipient_token_account: Buffer.from(recipientATAInfo.data).toString('base64'),
-              mint_token_account: Buffer.from(mintAccountInfo.data).toString('base64'),
-              amount: amount.toString(), // Convert to string to avoid precision issues with large numbers
-              priority_fee: '100000000', // Add 0.1 SOL (10,000,000 lamports) priority fee as string
-              latest_blockhash: latestBlockhash.blockhash,
-              equality_proof_rent: equalityProofRent.toString(),
-              ciphertext_validity_proof_rent: ciphertextValidityProofRent.toString(),
-              range_proof_rent: rangeProofRent.toString(),
-            }),
-          }
-        )
-
-        if (!response.ok) {
-          throw new Error(`😵 HTTP error! Status: ${response.status}`)
+        const requestBody = {
+          elgamal_signature: elGamalSignatureBase64,
+          aes_signature: aesSignatureBase64,
+          sender_token_account: Buffer.from(senderATAInfo.data).toString('base64'),
+          recipient_token_account: Buffer.from(recipientATAInfo.data).toString('base64'),
+          mint_token_account: Buffer.from(mintAccountInfo.data).toString('base64'),
+          amount: amount.toString(), // Convert to string to avoid precision issues with large numbers
+          priority_fee: '100000000', // Add 0.1 SOL (10,000,000 lamports) priority fee as string
+          latest_blockhash: latestBlockhash.blockhash,
+          equality_proof_rent: equalityProofRent.toString(),
+          ciphertext_validity_proof_rent: ciphertextValidityProofRent.toString(),
+          range_proof_rent: rangeProofRent.toString(),
         }
 
-        const data = await response.json()
+        const data = await serverRequest('/transfer-cb', requestBody)
 
         const { signatures } = await processMultiTransaction(
           data.transactions,
@@ -216,7 +193,7 @@ export const useTransferCB = ({
       ])
     },
     onError: (error) => {
-      toast.error(`Transfer failed! ${error}`)
+      toast.error(`Transfer failed! ${error.message}`)
       log.push({
         title: 'Transfer Operation - FAILED',
         content: `Transfer transaction failed\n  Token account: ${senderTokenAccountPubkey}\n  Error: ${error instanceof Error ? error.message : 'Unknown error'}`,

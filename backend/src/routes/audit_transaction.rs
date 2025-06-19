@@ -97,6 +97,7 @@ pub async fn audit_transaction_cb(
     println!("✅ Successfully audited transaction");
     Ok(Json(AuditTransactionResponse {
         amount: full_value.to_string(),
+        mint,
         sender,
         receiver: recipient,
         message: "Transaction successfully audited".to_string(),
@@ -166,8 +167,8 @@ fn extract_confidential_transfer(
 
     // Extract accounts
     let sender = message.account_keys[transfer_ix.accounts[0] as usize].to_string();
-    let recipient = message.account_keys[transfer_ix.accounts[1] as usize].to_string();
-    let mint = message.account_keys[transfer_ix.accounts[2] as usize].to_string();
+    let mint = message.account_keys[transfer_ix.accounts[1] as usize].to_string();
+    let recipient = message.account_keys[transfer_ix.accounts[2] as usize].to_string();
 
     let data = &transfer_ix.data;
 

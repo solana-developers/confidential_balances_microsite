@@ -8,30 +8,8 @@ import { queryKey as getTokenAccountsQK } from '@/entities/account/account/model
 import { queryKey as getTokenBalanceQK } from '@/entities/account/account/model/use-get-token-balance'
 import { useDevMode } from '@/entities/dev-mode'
 import { useOperationLog } from '@/entities/operation-log'
+import { serverRequest } from '@/shared/api'
 import { useToast } from '@/shared/ui/toast'
-
-async function serverRequest(request: {
-  token_account_data: string
-  lamport_amount: string
-  mint_decimals: number
-  latest_blockhash: string
-}) {
-  const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT}/deposit-cb`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(request),
-  })
-
-  if (!response.ok) {
-    throw new Error(`😵 HTTP error! Status: ${response.status}`)
-  }
-
-  const data = await response.json()
-
-  return data
-}
 
 export const useDepositCb = ({ tokenAccountPubkey }: { tokenAccountPubkey: PublicKey }) => {
   const { connection } = useConnection()
@@ -84,7 +62,12 @@ export const useDepositCb = ({ tokenAccountPubkey }: { tokenAccountPubkey: Publi
         console.log('📤 Frontend request body:', JSON.stringify(requestBody, null, 2))
 
         // Call the deposit-cb endpoint
-        const data = await serverRequest(requestBody)
+        const data = await serverRequest<{
+          token_account_data: string
+          lamport_amount: string
+          mint_decimals: number
+          latest_blockhash: string
+        }>('/deposit-cb', requestBody)
 
         // Deserialize the transaction from the response
         const serializedTransaction = Buffer.from(data.transaction, 'base64')
@@ -137,7 +120,6 @@ export const useDepositCb = ({ tokenAccountPubkey }: { tokenAccountPubkey: Publi
         })
       }
 
-      // Log that we're going to invalidate the has-pending-balance query
       console.log('Invalidating has-pending-balance query after successful deposit')
 
       // Invalidate relevant queries to refresh data

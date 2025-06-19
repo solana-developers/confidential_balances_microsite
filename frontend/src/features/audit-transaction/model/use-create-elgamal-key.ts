@@ -4,26 +4,8 @@ import { useState } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { ELGAMAL_SEED_MESSAGE, generateSeedSignature } from '@/entities/account/account'
 import { useOperationLog } from '@/entities/operation-log'
+import { serverRequest } from '@/shared/api'
 import { useToast } from '@/shared/ui/toast'
-
-async function serverRequest(request: { elgamal_signature: string }) {
-  const route = `${process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT}/reveal-elgamal-pubkey`
-  const response = await fetch(route, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(request),
-  })
-
-  if (!response.ok) {
-    throw new Error(`😵 HTTP error! Status: ${response.status}`)
-  }
-
-  const data = await response.json()
-
-  return data
-}
 
 export const useCreateElGamalKey = () => {
   const wallet = useWallet()
@@ -54,7 +36,10 @@ export const useCreateElGamalKey = () => {
         elgamal_signature: elGamalSignatureBase64,
       }
 
-      const data = await serverRequest(requestBody)
+      const data = await serverRequest<{ elgamal_signature: string }>(
+        '/reveal-elgamal-pubkey',
+        requestBody
+      )
 
       // Store the actual public key returned from the backend
       setElGamalPubkey(data.pubkey)

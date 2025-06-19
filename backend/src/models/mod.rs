@@ -131,6 +131,7 @@ pub struct AuditTransactionRequest {
 #[derive(Serialize)]
 pub struct AuditTransactionResponse {
     pub amount: String,   // Full amount of the Transfer
+    pub mint: String,     // Mint address
     pub sender: String,   // Transfer's sender
     pub receiver: String, // Transfer's receiver
     pub message: String,

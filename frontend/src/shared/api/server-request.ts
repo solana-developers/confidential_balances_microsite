@@ -1,19 +1,40 @@
 export async function serverRequest<TRequest = any, TResponse = any>(
   endpoint: string,
-  request: TRequest
+  request?: TRequest,
+  method: 'GET' | 'POST' = 'POST'
 ): Promise<TResponse> {
-  const route = `${process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT}${endpoint}`
+  const backendEndpoint = process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT
 
-  const response = await fetch(route, {
-    method: 'POST',
+  if (!backendEndpoint) {
+    throw new Error('Backend API endpoint is not configured (NEXT_PUBLIC_BACKEND_API_ENDPOINT)')
+  }
+
+  const route = `${backendEndpoint}${endpoint}`
+
+  try {
+    new URL(route)
+  } catch {
+    throw new Error(`Invalid URL constructed: ${route}`)
+  }
+
+  const fetchOptions: RequestInit = {
+    method,
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(request),
-  })
+  }
+
+  if (method === 'POST' && request !== undefined) {
+    fetchOptions.body = JSON.stringify(request)
+  }
+
+  const response = await fetch(route, fetchOptions)
 
   if (!response.ok) {
-    throw new Error(`😵 HTTP error! Status: ${response.status}`)
+    const maybeErrorMessage = await response.text()
+    throw new Error(
+      `😵 HTTP error! ${Boolean(maybeErrorMessage) ? maybeErrorMessage : `Status: {response.status}`}`
+    )
   }
 
   const data = await response.json()

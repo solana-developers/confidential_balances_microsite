@@ -69,12 +69,12 @@ export const AuditTransaction: FC<AuditTransactionProps> = ({ tx }) => {
           )}
         />
 
-        {auditResult?.amount ? (
+        {auditResult?.uiAmount ? (
           <FormItemInput
             key={`input-${inputKey}-${auditResult.amount ?? ''}`}
             label="Amount (with lamports)"
             disabled={true}
-            value={auditResult.amount}
+            value={auditResult.uiAmount}
             icon={<Unlock />}
           />
         ) : (

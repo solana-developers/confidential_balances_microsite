@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { queryKey as getBalanceQK } from '@/entities/account/account/model/use-get-balance'
 import { queryKey as getSignaturesQK } from '@/entities/account/account/model/use-get-signatures'
 import { useToast } from '@/shared/ui/toast'
-import { createTransaction } from './create-transaction'
+import { createSystemTransferTx } from './create-system-transfer-tx'
 
 export const useTransferSol = ({ address }: { address: PublicKey }) => {
   const { connection } = useConnection()
@@ -17,7 +17,7 @@ export const useTransferSol = ({ address }: { address: PublicKey }) => {
     mutationFn: async (input: { destination: PublicKey; amount: number }) => {
       let signature: TransactionSignature = ''
       try {
-        const { transaction, latestBlockhash } = await createTransaction({
+        const { transaction, latestBlockhash } = await createSystemTransferTx({
           publicKey: address,
           destination: input.destination,
           amount: input.amount,

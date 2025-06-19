@@ -15,6 +15,7 @@ import { queryKey as getSignaturesQK } from '@/entities/account/account/model/us
 import { queryKey as getTokenAccountsQK } from '@/entities/account/account/model/use-get-token-accounts'
 import { queryKey as getTokenBalanceQK } from '@/entities/account/account/model/use-get-token-balance'
 import { useOperationLog } from '@/entities/operation-log'
+import { serverRequest } from '@/shared/api'
 import { useToast } from '@/shared/ui/toast'
 
 export const queryKey = (endpoint: string, address: PublicKey) => [
@@ -34,7 +35,7 @@ export const useWithdrawCB = ({ tokenAccountPubkey }: { tokenAccountPubkey: Publ
   const log = useOperationLog()
 
   return useMutation({
-    mutationKey: queryKey(connection.rpcEndpoint, tokenAccountPubkey), //['withdraw-cb', { endpoint: connection.rpcEndpoint, tokenAccountPubkey }],
+    mutationKey: queryKey(connection.rpcEndpoint, tokenAccountPubkey),
     mutationFn: async ({ amount }: { amount: number }) => {
       try {
         if (!wallet.publicKey) {
@@ -83,18 +84,7 @@ export const useWithdrawCB = ({ tokenAccountPubkey }: { tokenAccountPubkey: Publ
 
         // Step 1: Get the space requirements for each proof account
         console.log('Fetching proof space requirements...')
-        const spaceResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT}/withdraw-cb`,
-          {
-            method: 'GET',
-          }
-        )
-
-        if (!spaceResponse.ok) {
-          throw new Error(`HTTP error getting space requirements! Status: ${spaceResponse.status}`)
-        }
-
-        const spaceData = await spaceResponse.json()
+        const spaceData = await serverRequest('/withdraw-cb', undefined, 'GET')
         console.log('Space requirements:', spaceData)
 
         // Step 2: Calculate rent for each proof account
@@ -110,36 +100,20 @@ export const useWithdrawCB = ({ tokenAccountPubkey }: { tokenAccountPubkey: Publ
         console.log('- Equality proof rent:', equalityProofRent, 'lamports')
         console.log('- Range proof rent:', rangeProofRent, 'lamports')
 
-        // Add logging to debug
-        console.log('Submitting withdraw request with amount:', amount)
-
         // Step 3: Call the withdraw-cb endpoint with rent information
         console.log('Submitting withdraw request...')
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_API_ENDPOINT}/withdraw-cb`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              elgamal_signature: elGamalSignatureBase64,
-              aes_signature: aesSignatureBase64,
-              recipient_token_account: Buffer.from(tokenAccountInfo.data).toString('base64'),
-              mint_account_info: Buffer.from(mintAccountInfo.data).toString('base64'),
-              withdraw_amount_lamports: amount.toString(),
-              latest_blockhash: latestBlockhash.blockhash,
-              equality_proof_rent: equalityProofRent.toString(),
-              range_proof_rent: rangeProofRent.toString(),
-            }),
-          }
-        )
-
-        if (!response.ok) {
-          throw new Error(`😵 HTTP error! Status: ${response.status}`)
+        const requestBody = {
+          elgamal_signature: elGamalSignatureBase64,
+          aes_signature: aesSignatureBase64,
+          recipient_token_account: Buffer.from(tokenAccountInfo.data).toString('base64'),
+          mint_account_info: Buffer.from(mintAccountInfo.data).toString('base64'),
+          withdraw_amount_lamports: amount.toString(),
+          latest_blockhash: latestBlockhash.blockhash,
+          equality_proof_rent: equalityProofRent.toString(),
+          range_proof_rent: rangeProofRent.toString(),
         }
 
-        const data = await response.json()
+        const data = await serverRequest('/withdraw-cb', requestBody)
 
         const { signatures } = await processMultiTransaction(
           data.transactions,

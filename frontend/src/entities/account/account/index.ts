@@ -1,4 +1,3 @@
-export { TokenBalance } from './ui/token-balance'
 export { AccountBalance } from './ui/account-balance'
 export { WalletTitle } from './ui/wallet-title'
 
@@ -13,6 +12,5 @@ export { useMint } from './model/use-mint'
 export { useGetMintInfo } from './model/use-get-mint-info'
 
 export { useGetTokenBalance } from './model/use-get-token-balance'
-export { useNativeAndTokenBalance } from './model/use-native-and-token-balance'
 
 export { useCurrentBalance } from './model/use-current-balance'

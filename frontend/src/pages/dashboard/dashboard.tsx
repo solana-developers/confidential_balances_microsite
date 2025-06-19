@@ -1,5 +1,4 @@
 import { FC } from 'react'
-import { Skeleton } from '@solana-foundation/ms-tools-ui/components/skeleton'
 import { NATIVE_MINT } from '@solana/spl-token'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { WalletAccountHeader } from '@/entities/account-header'
@@ -8,7 +7,7 @@ import { CardStep } from '@/shared/ui/card-step'
 import { Text } from '@/shared/ui/text'
 
 export const Dashboard: FC = () => {
-  const { publicKey, connected } = useWallet()
+  const { publicKey } = useWallet()
 
   return (
     <section className="flex flex-col gap-5">
@@ -54,17 +53,11 @@ export const Dashboard: FC = () => {
           discarded immediately after use.
         </Text>
       </div>
-      {connected && publicKey ? (
-        <WalletAccountHeader
-          wallet={publicKey.toString()}
-          mint={NATIVE_MINT}
-          className="mt-12 mb-5"
-        />
-      ) : (
-        <Skeleton className="mt-12 mb-5 h-6 w-[250px] px-6 text-left text-(color:--surface)">
-          Loading..
-        </Skeleton>
-      )}
+      <WalletAccountHeader
+        wallet={publicKey?.toString()}
+        mint={NATIVE_MINT}
+        className="mt-12 flex h-[62px]"
+      />
       <TokenAccounts />
     </section>
   )

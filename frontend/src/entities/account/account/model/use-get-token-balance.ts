@@ -1,6 +1,7 @@
 import { useConnection } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
 import { useQuery } from '@tanstack/react-query'
+import { RPC_NUMBER_OF_RETRIES } from '@/shared/solana'
 
 export const queryKey = (endpoint: string, address: PublicKey) => [
   'get-token-balance',
@@ -27,6 +28,6 @@ export const useGetTokenBalance = ({ tokenAccountPubkey }: { tokenAccountPubkey?
         throw error
       }
     },
-    retry: 3,
+    retry: RPC_NUMBER_OF_RETRIES,
   })
 }

@@ -1,4 +1,4 @@
-import { ComponentProps, FC, useEffect, useMemo } from 'react'
+import { ComponentProps, FC, useMemo } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
 import { IconChecks } from '@tabler/icons-react'
@@ -39,11 +39,6 @@ function ConnectedWalletPendingOperations({
   const { data: hasPending, isLoading: isPendingLoading } = useHasPendingBalance({
     tokenAccountPubkey: account,
   })
-
-  // Log whenever hasPending changes
-  useEffect(() => {
-    console.log('hasPending value changed:', hasPending)
-  }, [hasPending])
 
   const emptyLabel = useMemo(() => {
     if (!hasPending) {
