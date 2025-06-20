@@ -45,7 +45,7 @@ export const useGetSingleTokenAccount = ({ address }: { address: PublicKey }) =>
           }
         }
 
-        // Now we know it's likely a token account, try to parse it
+        // Now we know it's likely an associated token account. Try to parse it.
         // First try TOKEN_2022_PROGRAM_ID
         try {
           const tokenAccount = await getAccount(

@@ -89,7 +89,7 @@ pub async fn create_test_token_cb(
     let auditor_elgamal_pk = match request.auditor_elgamal_pubkey {
         Some(elgamal_string) => {
             println!(
-                "🔍 Attempting to parse base64 elGamal encoded signature: {}",
+                "🔍 Attempting to parse base64 ElGamal encoded signature: {}",
                 elgamal_string
             );
             let decoded_elgamal_signature = BASE64_STANDARD
@@ -119,7 +119,7 @@ pub async fn create_test_token_cb(
         &mint_address,          // Mint account
         Some(authority_pubkey), // Authority that can modify confidential transfer settings
         true,                   // Auto approve new accounts
-        auditor_elgamal_pk,     // Optional auditor elGamal key
+        auditor_elgamal_pk,     // Optional auditor ElGamal key
     )
     .map_err(|_| AppError::SerializationError)?;
 

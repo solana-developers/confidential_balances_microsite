@@ -32,7 +32,7 @@ export const useApplyCB = ({ address }: { address: PublicKey }) => {
           throw new Error('Wallet does not support message signing')
         }
 
-        toast.info('Sign elGamal message...')
+        toast.info('Sign ElGamal message...')
         // Sign the ElGamal message
         const elGamalSignature = await generateSeedSignature(wallet, ELGAMAL_SEED_MESSAGE)
         const elGamalSignatureBase64 = Buffer.from(elGamalSignature).toString('base64')
