@@ -1,4 +1,4 @@
-import { FC, type PropsWithChildren } from 'react'
+import { ComponentProps, FC, type PropsWithChildren } from 'react'
 import {
   Alert,
   AlertDescription,
@@ -8,10 +8,11 @@ import { useConnection } from '@solana/wallet-adapter-react'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronRight } from 'lucide-react'
 import { useCluster } from '@/shared/solana'
+import { cn } from '@/shared/utils'
 
-type ClusterCheckerProps = PropsWithChildren<{}>
+type ClusterCheckerProps = PropsWithChildren<{}> & ComponentProps<'div'>
 
-export const ClusterChecker: FC<ClusterCheckerProps> = ({ children }) => {
+export const ClusterChecker: FC<ClusterCheckerProps> = ({ children, className }) => {
   const { cluster } = useCluster()
   const { connection } = useConnection()
 
@@ -24,7 +25,11 @@ export const ClusterChecker: FC<ClusterCheckerProps> = ({ children }) => {
   if (query.isLoading) return undefined
 
   return query.isError || !query.data ? (
-    <Alert className="z-50 cursor-pointer" variant="error" onClick={() => query.refetch()}>
+    <Alert
+      className={cn('z-50 max-h-16 cursor-pointer [&_svg]:shrink-0', className)}
+      variant="error"
+      onClick={() => query.refetch()}
+    >
       <AlertTitle>
         Error connecting to cluster <strong>{cluster.name}</strong>
       </AlertTitle>

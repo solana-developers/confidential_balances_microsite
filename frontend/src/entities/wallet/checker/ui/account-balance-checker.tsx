@@ -1,4 +1,4 @@
-import { FC, useState, type PropsWithChildren } from 'react'
+import { ComponentProps, FC, useState, type PropsWithChildren } from 'react'
 import {
   Alert,
   AlertDescription,
@@ -8,13 +8,19 @@ import { PublicKey } from '@solana/web3.js'
 import { ChevronRight } from 'lucide-react'
 import { useGetBalance } from '@/entities/account/account/model/use-get-balance'
 import { useCluster } from '@/shared/solana'
+import { cn } from '@/shared/utils'
 import { ModalRequestAirdrop } from './modal-request-airdrop'
 
 type AccountBalanceCheckerProps = PropsWithChildren<{
   address: PublicKey
-}>
+}> &
+  ComponentProps<'div'>
 
-export const AccountBalanceChecker: FC<AccountBalanceCheckerProps> = ({ children, address }) => {
+export const AccountBalanceChecker: FC<AccountBalanceCheckerProps> = ({
+  children,
+  address,
+  className,
+}) => {
   const { cluster } = useCluster()
   const query = useGetBalance({ address })
 
@@ -26,7 +32,7 @@ export const AccountBalanceChecker: FC<AccountBalanceCheckerProps> = ({ children
     return (
       <>
         <Alert
-          className="z-50 cursor-pointer"
+          className={cn('z-50 max-h-22 cursor-pointer [&_svg]:shrink-0', className)}
           variant="warning"
           onClick={() => setRequestAirdropOpen(true)}
         >

@@ -70,6 +70,7 @@
     "bs58": "^6.0.0",
     "eslint": "^8.57.1",
     "eslint-config-next": "14.2.24",
+    "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-storybook": "^0.12.0",
     "playwright": "^1.52.0",
     "postcss": "^8.5.3",

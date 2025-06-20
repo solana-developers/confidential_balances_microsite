@@ -1,4 +1,3 @@
-export { AccountBalance } from './ui/account-balance'
 export { WalletTitle } from './ui/wallet-title'
 
 export { AES_SEED_MESSAGE } from './model/aes-seed-message'

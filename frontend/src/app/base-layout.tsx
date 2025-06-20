@@ -10,7 +10,7 @@ import {
   OperationLogDrawer,
   operationLogOpenAtom,
 } from '@/entities/operation-log'
-import { WalletChecker } from '@/entities/wallet/checker'
+import { WalletChecker } from '@/entities/wallet/checker/ui/wallet-checker'
 import { Header } from '@/shared/ui/header'
 import { StickyPanel } from '@/shared/ui/sticky-panel'
 
