@@ -161,7 +161,7 @@ pub async fn apply_cb(
     println!("📝 Creating versioned transaction with placeholder signatures");
     let mut signatures = Vec::with_capacity(num_required_signatures);
 
-    // Add empty signatures as placeholders (will be replaced by the wallet)
+    // Add empty signatures as placeholders (will be replaced by the client's connected wallet)
     for _ in 0..num_required_signatures {
         signatures.push(solana_sdk::signature::Signature::default());
     }

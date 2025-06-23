@@ -114,11 +114,11 @@ pub async fn create_cb_ata(
     // Create signature directly from bytes
     let aes_signature = Signature::try_from(decoded_aes_signature.as_slice())
         .map_err(|_| AppError::SerializationError)?;
-    println!("✅ AES signature created successfully");
+    println!("✅ AES signature parsed successfully");
 
     let token_account_authority_aes_key =
         AeKey::new_from_signature(&aes_signature).map_err(|_| AppError::SerializationError)?;
-    println!("✅ AES key created successfully");
+    println!("✅ AES key created successfully from signature");
 
     // The maximum number of `Deposit` and `Transfer` instructions that can
     // credit `pending_balance` before the `ApplyPendingBalance` instruction is executed
