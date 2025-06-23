@@ -14,7 +14,7 @@ export const App: FC<PropsWithChildren> = ({ children }) => (
         <SolanaProvider>
           {children}
           <Toaster position="bottom-center" />
-          <WalletConnection className="fixed top-4 left-1/2 z-50 max-w-sm -translate-x-1/2" />
+          <WalletConnection className="fixed top-12 left-1/2 z-50 max-w-sm -translate-x-1/2" />
         </SolanaProvider>
       </ClusterProvider>
     </ReactQueryProvider>

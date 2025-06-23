@@ -5,9 +5,8 @@ import { useConnection } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
 import { useAtomValue } from 'jotai'
 import { Check, Coins, Send, Wallet } from 'lucide-react'
-import pluralize from 'pluralize'
 import { useForm } from 'react-hook-form'
-import { useCurrentBalance, useMint } from '@/entities/account/account'
+import { useMint } from '@/entities/account/account'
 import { devModeOpenAtom } from '@/entities/dev-mode'
 import { Content } from '@/shared/ui/content'
 import { FormItemInput, FormItemTextarea } from '@/shared/ui/form'
@@ -34,7 +33,6 @@ export const ModalTransfer: FC<ModalTransferProps> = ({ show, hide, tokenAccount
   const devMode = useAtomValue(devModeOpenAtom)
   const transferMutation = useTransferCB({ senderTokenAccountPubkey: tokenAccountPubkey })
 
-  const { balance, loading } = useCurrentBalance()
   const [resolvedTokenAccount, setResolvedTokenAccount] = useState<PublicKey | null>(null)
 
   const form = useForm<FormValues>({
@@ -239,23 +237,17 @@ export const ModalTransfer: FC<ModalTransferProps> = ({ show, hide, tokenAccount
                   value: 0.0000000001,
                   message: 'Amount must be greater than 0',
                 },
-                max:
-                  balance && !loading
-                    ? {
-                        value: balance,
-                        message: 'Amount must be less than or equal to the current balance',
-                      }
-                    : undefined,
+                max: undefined,
               }}
               render={({ field }) => (
                 <FormItemInput
                   type="number"
                   label="Amount (tokens)"
-                  hint={balance && !loading ? `Max: ${pluralize('token', balance, true)}` : ''}
+                  hint={''}
                   disabled={isSubmitting}
                   step={0.01}
                   min={0}
-                  max={balance && !loading ? balance : undefined}
+                  max={undefined}
                   {...field}
                 />
               )}

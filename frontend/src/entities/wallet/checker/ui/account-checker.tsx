@@ -8,7 +8,7 @@ export const AccountChecker: FC<AccountCheckerProps> = ({ children }) => {
   const { publicKey } = useWallet()
   return publicKey ? (
     <AccountBalanceChecker
-      className="color-red fixed top-4! left-1/2 z-50 max-w-sm -translate-x-1/2"
+      className="color-red fixed top-12! left-1/2 z-50 max-w-sm -translate-x-1/2"
       address={publicKey}
     />
   ) : (
