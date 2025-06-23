@@ -76,7 +76,10 @@ Trusted implementations require handling sensitive cryptographic operations on t
    - Consider implementing additional audit mechanisms
 
 ## Live Demo
+
 Check out the deployed version here: https://confidential-balances-microsite-peach.vercel.app
+
+![](./frontend/static/preview.png)
 
 ## Quick Start
 
