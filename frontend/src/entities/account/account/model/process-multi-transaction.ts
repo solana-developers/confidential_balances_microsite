@@ -19,7 +19,7 @@ export const processMultiTransaction = async (
   for (const txn of signedTransactions) {
     console.log('Simulating transaction before sending...')
     const simulation = await connection.simulateTransaction(txn, {
-      // Default [SimulateTransactionConfig]
+      // Empty body: Default [SimulateTransactionConfig]
     })
 
     if (simulation.value.err) {
