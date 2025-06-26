@@ -30,13 +30,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the binary from the builder stage
-COPY --from=builder /usr/src/app/target/release/axum-hello-world /usr/local/bin/
+COPY --from=builder /usr/src/app/target/release/confidential-balances-api-server /usr/local/bin/
 
 # Make the binary executable (just to be safe)
-RUN chmod +x /usr/local/bin/axum-hello-world
+RUN chmod +x /usr/local/bin/confidential-balances-api-server
 
 # Verify the binary is compatible with the system
-RUN ldd /usr/local/bin/axum-hello-world || true
+RUN ldd /usr/local/bin/confidential-balances-api-server || true
 
 # Set the startup command
-CMD ["axum-hello-world"]
+CMD ["confidential-balances-api-server"]

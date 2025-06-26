@@ -135,7 +135,7 @@ export const useCreateAssociatedTokenAccountCB = ({
         log.push({
           title: 'Create account Operation - FAILED',
           content: `Account initialization failed\n  Wallet: ${walletAddressPubkey}\n  Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          variant: 'success',
+          variant: 'error',
         })
       }
     },
