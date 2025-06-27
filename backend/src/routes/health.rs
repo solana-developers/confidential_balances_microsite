@@ -1,9 +1,9 @@
-// Health check endpoint
+/// Health check endpoint
 pub async fn health_check() -> &'static str {
     "OK"
 }
 
-// Hello world endpoint
-pub async fn hello_world() -> &'static str {
-    "Hello, World!"
-} 
+/// Version check endpoint
+pub async fn version_check() -> &'static str {
+    "0.1.0"
+}

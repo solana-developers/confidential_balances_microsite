@@ -1,8 +1,7 @@
-/** @type {import('postcss-load-config').Config} */
+import uikitConfig from '@solana-foundation/ms-tools-config/postcss.config.mjs'
+
 const config = {
-  plugins: {
-    tailwindcss: {},
-  },
+  ...uikitConfig,
 }
 
 export default config

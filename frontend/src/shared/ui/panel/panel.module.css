@@ -1,0 +1,7 @@
+.panel {
+  scrollbar-color: var(--muted) var(--table-background);
+}
+
+.panel::-webkit-scrollbar {
+  background: var(--table-background);
+}

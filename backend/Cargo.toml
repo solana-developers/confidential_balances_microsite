@@ -1,5 +1,5 @@
 [package]
-name = "axum-hello-world"
+name = "confidential-balances-api-server"
 version = "0.1.0"
 edition = "2021"
 
@@ -12,7 +12,7 @@ tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 # Solana dependencies
 solana-program = "2.2.1"
 spl-memo = "6.0.0"
-bincode = "1.3.3" 
+bincode = "1.3.3"
 
 # Solana dependencies
 solana-sdk = "2.1.11"
@@ -22,8 +22,8 @@ solana-zk-sdk = "2.1.11"
 solana-message = "2.1.11"
 
 # SPL dependencies
-spl-token-2022 = "7.0.0" 
-spl-token-client = "0.14.0" 
+spl-token-2022 = "7.0.0"
+spl-token-client = "0.14.0"
 spl-associated-token-account = "6.0.0"
 spl-token-confidential-transfer-proof-generation = "0.3.0"
 spl-token-confidential-transfer-proof-extraction = "0.2.1"
